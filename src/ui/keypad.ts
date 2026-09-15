@@ -52,12 +52,23 @@ function tick(): void {
 }
 
 /**
- * The keypad is for thumbs, so it defaults to touch devices; `?keypad=1` or
- * `?keypad=0` in the URL overrides for testing on a desktop.
+ * The keypad is for thumbs, so it defaults to touch devices. A test viewport
+ * (`?test=phone`) implies it; `?keypad=1` / `?keypad=0` override explicitly.
  */
 export function keypadEnabled(search: string, coarsePointer: boolean): boolean {
   const override = new URLSearchParams(search).get('keypad');
   if (override === '1' || override === 'true') return true;
   if (override === '0' || override === 'false') return false;
-  return coarsePointer;
+  return coarsePointer || testViewport(search) !== undefined;
+}
+
+export type TestViewport = 'phone' | 'phone-full';
+
+/**
+ * `?test=phone` sizes the page like the reference phone's browser viewport;
+ * `?test=phone-full` like the viewport when launched from the home screen.
+ */
+export function testViewport(search: string): TestViewport | undefined {
+  const value = new URLSearchParams(search).get('test');
+  return value === 'phone' || value === 'phone-full' ? value : undefined;
 }

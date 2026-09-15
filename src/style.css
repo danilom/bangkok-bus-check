@@ -9,6 +9,10 @@
   --accent-soft: #fdece6;
   --match: #fff2a8;
   --radius: 14px;
+  --footer: #9a9a9f;
+  /* Column width on wide screens, matching the reference phone (a 1080px-wide
+     Android at 2.5×) so the desktop view keeps its proportions. */
+  --page-width: 432px;
   --font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Thai", "Leelawadee UI", Tahoma, sans-serif;
 }
 
@@ -22,6 +26,7 @@
     --accent: #ff7a4d;
     --accent-soft: #3a2119;
     --match: #5a4a00;
+    --footer: #5c5c64;
   }
 }
 
@@ -44,7 +49,7 @@ body {
 }
 
 #app {
-  max-width: 560px;
+  max-width: var(--page-width);
   margin: 0 auto;
   padding: 0 16px env(safe-area-inset-bottom);
   display: flex;
@@ -352,25 +357,26 @@ body {
 .footer {
   padding: 20px 0 16px;
   font-size: 0.75rem;
-  color: var(--muted);
+  color: var(--footer);
 }
 
 .footer-line {
   margin: 2px 0;
 }
 
-/* On-screen keypad, pinned to the bottom of the viewport on touch devices. */
+/*
+ * On-screen keypad. It is the last child of the #app flex column and sticks
+ * to the bottom of whatever scrolls (the viewport normally, #app itself in
+ * test mode); short content is pushed down by `.main { flex: 1 }`.
+ */
 .keypad-slot {
-  position: fixed;
-  left: 0;
-  right: 0;
+  position: sticky;
   bottom: 0;
   z-index: 10;
+  margin: 12px -16px 0;
 }
 
 .keypad {
-  max-width: 560px;
-  margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
@@ -406,7 +412,27 @@ body {
   color: var(--accent);
 }
 
-/* Leave room so the last result and the footer clear the keypad. */
-#app.has-keypad {
-  padding-bottom: calc(4 * 58px + 3 * 8px + 24px + env(safe-area-inset-bottom));
+/*
+ * Desktop test viewports: #app becomes a box the size of the reference
+ * phone's page viewport and scrolls internally. ?test=phone is the browser
+ * with its address bar (432×811); ?test=phone-full is the home-screen
+ * launch (432×876).
+ */
+#app.test-phone,
+#app.test-phone-full {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: 432px;
+  height: 811px;
+  min-height: 0;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  /* Shrunk to fit the window by the app (--test-scale); proportions stay. */
+  transform: scale(var(--test-scale, 1));
+  transform-origin: center;
+}
+
+#app.test-phone-full {
+  height: 876px;
 }

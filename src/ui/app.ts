@@ -5,7 +5,7 @@ import { formatHash, loadLang, loadRecent, pushRecent, readHash, saveLang } from
 import type { RouteIndex, RouteSummary } from '../lib/types.ts';
 import { renderDetailView, type DetailStatus } from './detail-view.ts';
 import { h, replaceChildren } from './dom.ts';
-import { keypadEnabled, renderKeypad } from './keypad.ts';
+import { keypadEnabled, renderKeypad, testViewport } from './keypad.ts';
 import { renderRouteCard } from './route-card.ts';
 
 interface AppState {
@@ -19,6 +19,16 @@ interface AppState {
   recent: string[];
 }
 
+/**
+ * Scales the boxed test viewport down (never up) to fit the window, so the
+ * phone's proportions are kept on any desktop screen.
+ */
+function fitTestViewport(root: HTMLElement): void {
+  const margin = 24;
+  const scale = Math.min(1, (innerHeight - margin) / root.offsetHeight, (innerWidth - margin) / root.offsetWidth);
+  root.style.setProperty('--test-scale', String(scale));
+}
+
 export function createApp(root: HTMLElement): void {
   const initial = readHash(location.hash);
   const state: AppState = {
@@ -30,6 +40,12 @@ export function createApp(root: HTMLElement): void {
   };
   if (initial.routeId) state.routeId = initial.routeId;
   const useKeypad = keypadEnabled(location.search, matchMedia('(pointer: coarse)').matches);
+  const viewport = testViewport(location.search);
+  if (viewport) {
+    root.classList.add(`test-${viewport}`);
+    fitTestViewport(root);
+    window.addEventListener('resize', () => fitTestViewport(root));
+  }
 
   const input = h('input', {
     class: 'search-input',
