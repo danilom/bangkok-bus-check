@@ -7,6 +7,7 @@ const STRINGS = {
   tagline: { en: 'Type the bus number. See where it goes.', th: 'พิมพ์เลขสาย แล้วดูว่ารถไปไหน' },
   inputPlaceholder: { en: 'Bus number', th: 'เลขสายรถเมล์' },
   clear: { en: 'Clear', th: 'ล้าง' },
+  backspace: { en: 'Delete', th: 'ลบ' },
   recent: { en: 'Recent', th: 'ค้นหาล่าสุด' },
   noMatch: { en: 'No route matches', th: 'ไม่พบสาย' },
   formerly: { en: 'formerly', th: 'เดิม' },
