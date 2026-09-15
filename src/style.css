@@ -34,6 +34,25 @@
   box-sizing: border-box;
 }
 
+/* Thin, unobtrusive scrollbars on desktop, closer to a phone's overlay bar.
+   The scroller is the viewport normally and #app in the ?test= modes. */
+html,
+#app {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+html::-webkit-scrollbar,
+#app::-webkit-scrollbar {
+  width: 6px;
+}
+
+html::-webkit-scrollbar-thumb,
+#app::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
 html {
   font-family: var(--font);
   font-size: 17px;
