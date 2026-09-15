@@ -217,8 +217,11 @@ function buildRoute(bucket: Bucket, stops: Record<string, Stop>): Route {
   };
   const terminals = pickTerminals(base, directions);
   if (terminals) {
-    route.terminals = terminals;
     assignOrigins(directions, terminals);
+    // The pill must agree with the stop lists: when Wikipedia's termini match
+    // none of OSM's directions (different language, name or routing), take
+    // the termini from an OSM out-and-back pair instead.
+    route.terminals = directions.some((d) => d.origin !== undefined) ? terminals : (terminalsFromDirections(directions) ?? terminals);
   }
   const operator = pickOperator(base?.operator ?? osmRoutes.find((r) => r.operator)?.operator);
   if (operator) route.operator = operator;
@@ -277,6 +280,23 @@ function assignOrigins(directions: Direction[], terminals: [LocalizedText, Local
     if (first && second && first.origin !== undefined && second.origin === undefined) second.origin = first.origin === 0 ? 1 : 0;
     if (first && second && second.origin !== undefined && first.origin === undefined) first.origin = second.origin === 0 ? 1 : 0;
   }
+}
+
+/** Finds A→B with a matching B→A among the directions and marks them as the route's ends. */
+function terminalsFromDirections(directions: Direction[]): [LocalizedText, LocalizedText] | undefined {
+  for (const outbound of directions) {
+    const inbound = directions.find(
+      (candidate) =>
+        candidate !== outbound &&
+        endpointSimilarity(candidate.from, outbound.to) >= TERMINUS_MATCH_SIMILARITY &&
+        endpointSimilarity(candidate.to, outbound.from) >= TERMINUS_MATCH_SIMILARITY,
+    );
+    if (!inbound) continue;
+    outbound.origin = 0;
+    inbound.origin = 1;
+    return [outbound.from, outbound.to];
+  }
+  return undefined;
 }
 
 /** Compares in either language, since OSM sometimes only has an English name. */

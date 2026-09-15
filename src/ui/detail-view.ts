@@ -50,7 +50,10 @@ function renderStatus(props: DetailViewProps): HTMLElement {
 function renderDetailBody(props: DetailViewProps, detail: RouteDetail): HTMLElement {
   const { lang, route, side } = props;
   const chosen = detail.directions.find((direction) => direction.origin === side);
-  const others = detail.directions.filter((direction) => direction.origin === undefined);
+  // Variants for this side (short-turns, expressway runs) and directions that
+  // matched neither terminus are listed below; the other side's are behind the toggle.
+  const otherSide: Side = side === 0 ? 1 : 0;
+  const others = detail.directions.filter((direction) => direction !== chosen && direction.origin !== otherSide);
   return h('div', { class: 'detail-body' }, [
     chosen
       ? renderStopList(lang, chosen, detail.stops)
