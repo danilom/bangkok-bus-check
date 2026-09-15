@@ -1,14 +1,18 @@
-/** Compiles `data/raw/*` into the dataset the app ships. */
+/**
+ * Compiles `data/raw/*` into what the app ships: a small eager index and one
+ * lazily fetched detail file per route.
+ */
 
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname } from 'node:path';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 
+import type { RouteDataset, RouteDetail, RouteIndex, Stop } from '../src/lib/types.ts';
 import { OSM_FILE, WIKI_FILE } from './fetch-raw.ts';
 import { mergeRoutes, type MergeReport } from './merge.ts';
 import { overpassSnapshotSchema, parseOsmRoutes } from './sources/osm.ts';
 import { parseWikipediaRoutes } from './sources/wikipedia.ts';
 
-export const DEFAULT_OUTPUT = 'public/data/routes.json';
+export const DEFAULT_OUTPUT_DIR = 'public/data';
 
 export interface BuildOptions {
   out: string;
@@ -27,11 +31,46 @@ export async function buildData(options: BuildOptions): Promise<void> {
 
   const { dataset, report } = mergeRoutes(wiki, osm);
   printReport(report, options.verbose);
+  await writeOutput(dataset, options.out);
+}
 
-  await mkdir(dirname(options.out), { recursive: true });
-  await writeFile(options.out, JSON.stringify(dataset), 'utf8');
-  const size = Buffer.byteLength(JSON.stringify(dataset));
-  console.log(`Wrote ${options.out} (${(size / 1024).toFixed(0)} KB, ${Object.keys(dataset.stops).length} stops)`);
+async function writeOutput(dataset: RouteDataset, outDir: string): Promise<void> {
+  const routesDir = join(outDir, 'routes');
+  // Start clean so renamed or removed routes do not leave stale detail files.
+  await rm(routesDir, { recursive: true, force: true });
+  await mkdir(routesDir, { recursive: true });
+
+  const index: RouteIndex = {
+    generatedAt: dataset.generatedAt,
+    attribution: dataset.attribution,
+    routes: dataset.routes.map(({ directions, notes, vehicles, ...summary }) => ({ ...summary, directionCount: directions.length })),
+  };
+  const indexPath = join(outDir, 'index.json');
+  await writeFile(indexPath, JSON.stringify(index), 'utf8');
+
+  for (const route of dataset.routes) {
+    const detail: RouteDetail = {
+      id: route.id,
+      directions: route.directions,
+      vehicles: route.vehicles,
+      stops: pickStops(dataset.stops, route),
+    };
+    if (route.notes !== undefined) detail.notes = route.notes;
+    await writeFile(join(routesDir, `${route.id}.json`), JSON.stringify(detail), 'utf8');
+  }
+  const indexSize = Buffer.byteLength(JSON.stringify(index));
+  console.log(`Wrote ${indexPath} (${(indexSize / 1024).toFixed(0)} KB) and ${dataset.routes.length} detail files in ${routesDir}`);
+}
+
+function pickStops(all: Record<string, Stop>, route: RouteDataset['routes'][number]): Record<string, Stop> {
+  const picked: Record<string, Stop> = {};
+  for (const direction of route.directions) {
+    for (const id of direction.stops) {
+      const stop = all[id];
+      if (stop) picked[id] = stop;
+    }
+  }
+  return picked;
 }
 
 function printReport(report: MergeReport, verbose: boolean): void {

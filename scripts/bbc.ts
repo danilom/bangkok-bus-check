@@ -2,7 +2,7 @@
 
 import { Command, Option } from 'commander';
 
-import { buildData, DEFAULT_OUTPUT } from './build-data.ts';
+import { buildData, DEFAULT_OUTPUT_DIR } from './build-data.ts';
 import { fetchRaw, type RawSource } from './fetch-raw.ts';
 
 const program = new Command('bbc').description('Bangkok Bus Check data tooling');
@@ -18,7 +18,7 @@ program
 program
   .command('build-data')
   .description('compile data/raw/ into the app dataset')
-  .option('-o, --out <path>', 'output file', DEFAULT_OUTPUT)
+  .option('-o, --out <dir>', 'output directory', DEFAULT_OUTPUT_DIR)
   .option('-v, --verbose', 'list skipped rows and merge decisions', false)
   .action(async (options: { out: string; verbose: boolean }) => {
     await buildData(options);

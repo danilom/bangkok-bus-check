@@ -116,7 +116,9 @@ const NAME_REF_PREFIX = /^[A-Za-z0-9\-]+(?:\s+[A-Z]{1,3})?(?:\s*\([^)]*\))*\s*[:
 
 export function splitTermini(name: string | undefined, ref: string): [string, string] | undefined {
   if (!name) return undefined;
-  const withoutRef = name.startsWith(ref) ? name.slice(ref.length) : name.replace(NAME_REF_PREFIX, '');
+  // "1-CCW วงกลม…" starts with ref "1" but the ref is not a whole token there.
+  const refIsToken = name.startsWith(ref) && /^(?:[\s:：]|$)/.test(name.slice(ref.length));
+  const withoutRef = refIsToken ? name.slice(ref.length) : name.replace(NAME_REF_PREFIX, '');
   const parts = withoutRef
     .replace(/^[\s:：]+/, '')
     .split(/\s+[-–—→]+\s+|\s*→\s*/)

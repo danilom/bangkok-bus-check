@@ -1,4 +1,10 @@
-/** Shape of `public/data/routes.json`, produced by `bbc build-data`. */
+/**
+ * Data model shared by the pipeline and the app.
+ *
+ * `bbc build-data` assembles a full `RouteDataset` in memory, then ships it as
+ * `public/data/index.json` (a `RouteIndex`, loaded eagerly) plus one
+ * `public/data/routes/<id>.json` (`RouteDetail`) per route with directions.
+ */
 
 export interface LocalizedText {
   th: string;
@@ -11,6 +17,22 @@ export interface RouteDataset {
   attribution: string[];
   routes: Route[];
   /** Stops referenced from `Direction.stops`, keyed by id. */
+  stops: Record<string, Stop>;
+}
+
+export interface RouteIndex {
+  generatedAt: string;
+  attribution: string[];
+  routes: RouteSummary[];
+}
+
+/** What the search screen needs; long text and per-direction data live in `RouteDetail`. */
+export interface RouteSummary extends Omit<Route, 'directions' | 'notes' | 'vehicles'> {
+  directionCount: number;
+}
+
+export interface RouteDetail extends Pick<Route, 'id' | 'directions' | 'notes' | 'vehicles'> {
+  /** Only the stops this route's directions reference. */
   stops: Record<string, Stop>;
 }
 

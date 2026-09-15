@@ -32,6 +32,15 @@ export function canonicalRouteNumber(raw: string): string | undefined {
   return ROUTE_NUMBER.test(compact) ? compact : undefined;
 }
 
+/**
+ * Search form: dashes, spaces and invisible characters removed, uppercase, so
+ * "3-35" and "335" collide. Accepts partial input ("7"), unlike
+ * `canonicalRouteNumber`.
+ */
+export function searchKey(raw: string): string {
+  return raw.replace(INVISIBLE, '').replace(DASHES, '').replace(/[\s-]/g, '').toUpperCase();
+}
+
 /** True for reform-era numbers with a zone prefix ("2-45", "1-2E"). */
 export function isZoneNumber(number: string): boolean {
   return ZONE_NUMBER.test(number);

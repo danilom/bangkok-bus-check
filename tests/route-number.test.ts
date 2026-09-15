@@ -89,6 +89,10 @@ describe('splitTermini (OSM)', () => {
     assert.equal(splitTermini('เส้นทางที่ 2', '2'), undefined);
   });
 
+  it('does not treat a ref that is only the start of a token as the ref', () => {
+    assert.deepEqual(splitTermini('1-CCW วงกลม นนทบุรี - สนามบินน้ำ (วนซ้าย)', '1'), ['วงกลม นนทบุรี', 'สนามบินน้ำ (วนซ้าย)']);
+  });
+
   it('does not split on hyphens inside a name', () => {
     assert.equal(splitTermini('เมืองทอง-แจ้งวัฒนะ', '1'), undefined);
   });
