@@ -17,6 +17,7 @@ const STRINGS = {
   noStops: { en: 'No stop list for this direction yet.', th: 'ยังไม่มีรายการป้ายสำหรับทิศทางนี้' },
   noDirections: { en: 'No per-direction detail for this route yet.', th: 'ยังไม่มีข้อมูลรายทิศทางของสายนี้' },
   notes: { en: 'Notes (Thai)', th: 'หมายเหตุ' },
+  otherDirections: { en: 'Other directions', th: 'ทิศทางอื่น' },
   back: { en: 'Back', th: 'กลับ' },
   loading: { en: 'Loading…', th: 'กำลังโหลด…' },
   loadFailed: { en: 'Could not load route data.', th: 'โหลดข้อมูลไม่สำเร็จ' },

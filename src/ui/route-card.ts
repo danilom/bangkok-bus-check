@@ -1,6 +1,7 @@
-import { isFallback, localize, serviceBadges, t, type Lang } from '../lib/i18n.ts';
+import { localize, serviceBadges, t, type Lang } from '../lib/i18n.ts';
 import type { RouteMatch } from '../lib/matcher.ts';
 import type { RouteSummary } from '../lib/types.ts';
+import { renderDirectionPill, type Side } from './direction-pill.ts';
 import { h } from './dom.ts';
 
 /** The number as on the bus, with former numbers small; the matched alias is highlighted. */
@@ -18,33 +19,39 @@ export function renderNumber(lang: Lang, route: RouteSummary, matchedAlias?: str
   ]);
 }
 
-export function renderTerminals(lang: Lang, route: RouteSummary): HTMLElement {
-  if (!route.terminals) return h('p', { class: 'terminals terminals-unknown', text: '—' });
-  const [from, to] = route.terminals;
-  return h('p', { class: 'terminals' }, [
-    h('span', { class: fallbackClass(lang, from), text: localize(lang, from) }),
-    h('span', { class: 'terminals-arrow', text: ' ↔ ' }),
-    h('span', { class: fallbackClass(lang, to), text: localize(lang, to) }),
-  ]);
-}
-
-function fallbackClass(lang: Lang, text: { th: string; en?: string }): string {
-  return isFallback(lang, text) ? 'terminal is-fallback' : 'terminal';
-}
-
 export function renderBadges(lang: Lang, route: RouteSummary): HTMLElement | false {
   const badges = serviceBadges(lang, route.service);
   return badges.length > 0 && h('div', { class: 'badges' }, badges.map((badge) => h('span', { class: 'badge', text: badge })));
 }
 
-export function renderRouteCard(lang: Lang, match: RouteMatch, onOpen: (route: RouteSummary) => void): HTMLElement {
+export interface RouteCardProps {
+  lang: Lang;
+  match: RouteMatch;
+  /** Opens the route; `side` is set when a direction half was tapped. */
+  onOpen: (route: RouteSummary, side?: Side) => void;
+}
+
+export function renderRouteCard({ lang, match, onOpen }: RouteCardProps): HTMLElement {
   const { route } = match;
+  const open = (): void => onOpen(route);
   return h(
-    'button',
-    { class: 'route-card', attrs: { type: 'button' }, on: { click: () => onOpen(route) } },
+    'article',
+    {
+      class: 'route-card',
+      attrs: { tabindex: '0', role: 'button' },
+      on: {
+        click: open,
+        keydown: (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            open();
+          }
+        },
+      },
+    },
     [
       renderNumber(lang, route, match.alias),
-      renderTerminals(lang, route),
+      renderDirectionPill({ lang, route, onSelect: (side) => onOpen(route, side) }),
       h('div', { class: 'route-meta' }, [
         renderBadges(lang, route),
         route.operator && h('span', { class: 'operator', text: localize(lang, route.operator) }),

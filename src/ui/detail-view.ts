@@ -1,7 +1,8 @@
 import { localize, t, type Lang } from '../lib/i18n.ts';
 import type { Direction, RouteDetail, RouteSummary, Stop } from '../lib/types.ts';
+import { renderDirectionPill, type Side } from './direction-pill.ts';
 import { h } from './dom.ts';
-import { renderBadges, renderNumber, renderTerminals } from './route-card.ts';
+import { renderBadges, renderNumber } from './route-card.ts';
 
 export type DetailStatus =
   | { kind: 'loading' }
@@ -12,18 +13,24 @@ export interface DetailViewProps {
   lang: Lang;
   route: RouteSummary;
   status: DetailStatus;
-  /** Directions (by OSM relation id) the user has expanded; survives re-renders. */
+  /** Which direction's stops are shown; the pill is the toggle. */
+  side: Side;
+  /** Unmatched directions (by OSM relation id) the user has expanded; survives re-renders. */
   expanded: Set<number>;
+  onSelectSide: (side: Side) => void;
   onBack: () => void;
   onRetry: () => void;
 }
 
 export function renderDetailView(props: DetailViewProps): HTMLElement {
-  const { lang, route } = props;
+  const { lang, route, side } = props;
   return h('section', { class: 'detail' }, [
     h('button', { class: 'back-button', attrs: { type: 'button' }, text: `‹ ${t(lang, 'back')}`, on: { click: props.onBack } }),
-    h('header', { class: 'detail-header' }, [renderNumber(lang, route), renderTerminals(lang, route), renderBadges(lang, route)]),
-    route.operator && renderFact(t(lang, 'operator'), localize(lang, route.operator)),
+    h('header', { class: 'detail-header' }, [
+      renderNumber(lang, route),
+      renderDirectionPill({ lang, route, selected: side, onSelect: props.onSelectSide }),
+      renderBadges(lang, route),
+    ]),
     renderStatus(props),
   ]);
 }
@@ -41,12 +48,20 @@ function renderStatus(props: DetailViewProps): HTMLElement {
 }
 
 function renderDetailBody(props: DetailViewProps, detail: RouteDetail): HTMLElement {
-  const { lang } = props;
+  const { lang, route, side } = props;
+  const chosen = detail.directions.find((direction) => direction.origin === side);
+  const others = detail.directions.filter((direction) => direction.origin === undefined);
   return h('div', { class: 'detail-body' }, [
+    chosen
+      ? renderStopList(lang, chosen, detail.stops)
+      : h('p', { class: 'muted', text: t(lang, detail.directions.length === 0 ? 'noDirections' : 'noStops') }),
+    others.length > 0 &&
+      h('div', { class: 'directions' }, [
+        h('p', { class: 'recent-label', text: t(lang, 'otherDirections') }),
+        ...others.map((direction) => renderCollapsibleDirection(props, direction, detail.stops)),
+      ]),
+    route.operator && renderFact(t(lang, 'operator'), localize(lang, route.operator)),
     detail.vehicles.length > 0 && renderFact(t(lang, 'vehicles'), detail.vehicles.join(' · ')),
-    detail.directions.length === 0
-      ? h('p', { class: 'muted', text: t(lang, 'noDirections') })
-      : h('div', { class: 'directions' }, detail.directions.map((direction) => renderDirection(props, direction, detail.stops))),
     detail.notes && renderNotes(lang, detail.notes),
   ]);
 }
@@ -55,12 +70,26 @@ function renderFact(label: string, value: string): HTMLElement {
   return h('p', { class: 'fact' }, [h('span', { class: 'fact-label', text: `${label}: ` }), value]);
 }
 
-function renderDirection(props: DetailViewProps, direction: Direction, stops: Record<string, Stop>): HTMLElement {
-  const { lang, expanded } = props;
-  // Unnamed stop nodes exist in OSM but say nothing useful in a text list.
-  const named = direction.stops
+/** Unnamed stop nodes exist in OSM but say nothing useful in a text list. */
+function namedStops(direction: Direction, stops: Record<string, Stop>): Stop[] {
+  return direction.stops
     .map((id) => stops[id])
     .filter((stop): stop is Stop => stop !== undefined && stop.name.th.length > 0);
+}
+
+function renderStopList(lang: Lang, direction: Direction, stops: Record<string, Stop>): HTMLElement {
+  const named = namedStops(direction, stops);
+  if (named.length === 0) return h('p', { class: 'muted', text: t(lang, 'noStops') });
+  return h('div', { class: 'stops-panel' }, [
+    h('p', { class: 'direction-count', text: `${direction.stops.length} ${t(lang, 'stops')}` }),
+    h('ol', { class: 'stop-list' }, named.map((stop) => h('li', { class: 'stop', text: localize(lang, stop.name) }))),
+  ]);
+}
+
+/** Directions that did not match either terminus (loops, short-turns) stay collapsible. */
+function renderCollapsibleDirection(props: DetailViewProps, direction: Direction, stops: Record<string, Stop>): HTMLElement {
+  const { lang, expanded } = props;
+  const named = namedStops(direction, stops);
   const details = h('details', { class: 'direction' }, [
     h('summary', { class: 'direction-summary' }, [
       h('span', { class: 'direction-title', text: `${localize(lang, direction.from)} → ${localize(lang, direction.to)}` }),

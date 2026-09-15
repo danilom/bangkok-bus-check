@@ -71,6 +71,8 @@ export interface ServiceFlags {
 export interface Direction {
   from: LocalizedText;
   to: LocalizedText;
+  /** Index into `Route.terminals` of the terminus this direction departs from, when it could be matched. */
+  origin?: 0 | 1;
   /** Ordered stop ids; often empty because OSM stop membership is sparse. */
   stops: string[];
   osmRelationId: number;

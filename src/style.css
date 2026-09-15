@@ -183,6 +183,7 @@ body {
   text-align: left;
   font: inherit;
   color: inherit;
+  margin: 0;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -190,8 +191,10 @@ body {
   cursor: pointer;
 }
 
-.route-card:active {
+.route-card:active,
+.route-card:focus-visible {
   border-color: var(--accent);
+  outline: none;
 }
 
 .route-number {
@@ -224,23 +227,63 @@ body {
   background: var(--match);
 }
 
-.terminals {
-  margin: 6px 0 4px;
-  font-size: 1.05rem;
+/* Direction pill: two halves, each the terminus the bus departs from. */
+.dir-pill {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin: 8px 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.dir-half {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 52px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 1rem;
   font-weight: 600;
+  line-height: 1.25;
+  color: var(--text);
+  background: var(--surface);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.terminals-arrow {
-  color: var(--muted);
-  font-weight: 400;
+.dir-half-0 {
+  justify-content: flex-end;
+  text-align: right;
+  border-right: 1px solid var(--border);
 }
 
-.terminal.is-fallback {
+.dir-half:active,
+.dir-half.is-selected {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.dir-arrow {
+  flex: none;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.dir-name.is-fallback {
   font-weight: 500;
 }
 
 .terminals-unknown {
   color: var(--muted);
+  margin: 8px 0 6px;
+}
+
+.stops-panel .direction-count {
+  margin: 4px 4px 0;
 }
 
 .route-meta {

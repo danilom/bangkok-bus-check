@@ -4,6 +4,7 @@ import { findRoutes } from '../lib/matcher.ts';
 import { formatHash, loadLang, loadRecent, pushRecent, readHash, saveLang } from '../lib/state.ts';
 import type { RouteIndex, RouteSummary } from '../lib/types.ts';
 import { renderDetailView, type DetailStatus } from './detail-view.ts';
+import type { Side } from './direction-pill.ts';
 import { h, replaceChildren } from './dom.ts';
 import { keypadEnabled, renderKeypad, testViewport } from './keypad.ts';
 import { renderRouteCard } from './route-card.ts';
@@ -12,6 +13,7 @@ interface AppState {
   lang: Lang;
   query: string;
   routeId?: string;
+  side: Side;
   index?: RouteIndex;
   indexError?: string;
   details: Map<string, DetailStatus>;
@@ -34,6 +36,7 @@ export function createApp(root: HTMLElement): void {
   const state: AppState = {
     lang: loadLang() ?? detectLang(),
     query: initial.query,
+    side: initial.side ?? 0,
     details: new Map(),
     expandedDirections: new Set(),
     recent: loadRecent(),
@@ -88,11 +91,19 @@ export function createApp(root: HTMLElement): void {
     render();
   }
 
-  function openRoute(route: RouteSummary): void {
+  function openRoute(route: RouteSummary, side: Side = 0): void {
     state.routeId = route.id;
+    state.side = side;
     state.recent = pushRecent(state.recent, route.number);
-    history.pushState(null, '', formatHash({ query: state.query, routeId: route.id }));
+    history.pushState(null, '', formatHash({ query: state.query, routeId: route.id, side }));
     void ensureDetail(route.id);
+    render();
+  }
+
+  function selectSide(side: Side): void {
+    if (state.routeId === undefined) return;
+    state.side = side;
+    history.replaceState(null, '', formatHash({ query: state.query, routeId: state.routeId, side }));
     render();
   }
 
@@ -162,7 +173,9 @@ export function createApp(root: HTMLElement): void {
         lang,
         route: openRouteSummary,
         status: state.details.get(openRouteSummary.id) ?? { kind: 'loading' },
+        side: state.side,
         expanded: state.expandedDirections,
+        onSelectSide: selectSide,
         onBack: closeRoute,
         onRetry: () => void ensureDetail(openRouteSummary.id),
       });
@@ -176,7 +189,7 @@ export function createApp(root: HTMLElement): void {
     if (matches.length === 0) return h('p', { class: 'empty', text: `${t(lang, 'noMatch')} “${state.query.trim()}”` });
     const truncated = matches.some((match) => match.tier === 'prefix');
     return h('div', { class: 'results' }, [
-      ...matches.map((match) => renderRouteCard(lang, match, openRoute)),
+      ...matches.map((match) => renderRouteCard({ lang, match, onOpen: openRoute })),
       truncated && h('p', { class: 'muted hint', text: t(lang, 'moreRoutes') }),
     ]);
   }
@@ -216,6 +229,7 @@ export function createApp(root: HTMLElement): void {
   window.addEventListener('popstate', () => {
     const next = readHash(location.hash);
     state.query = next.query;
+    state.side = next.side ?? 0;
     if (next.routeId) {
       state.routeId = next.routeId;
       void ensureDetail(next.routeId);

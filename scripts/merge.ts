@@ -216,7 +216,10 @@ function buildRoute(bucket: Bucket, stops: Record<string, Stop>): Route {
     sources: { wikipedia: wikiRows.length > 0, osmRelationIds: osmRoutes.map((r) => r.relationId) },
   };
   const terminals = pickTerminals(base, directions);
-  if (terminals) route.terminals = terminals;
+  if (terminals) {
+    route.terminals = terminals;
+    assignOrigins(directions, terminals);
+  }
   const operator = pickOperator(base?.operator ?? osmRoutes.find((r) => r.operator)?.operator);
   if (operator) route.operator = operator;
   const notes = unique(wikiRows.map((row) => row.notes ?? '').filter((note) => note.length > 0)).join('\n');
@@ -254,6 +257,37 @@ function pickTerminals(base: WikiRoute | undefined, directions: Direction[]): [L
 
 /** A wrong English name is worse than none, so the match must be convincing. */
 const TERMINUS_MATCH_SIMILARITY = 0.5;
+
+/**
+ * Marks which terminus each direction departs from, scoring both ends
+ * (A→B vs B→A) so "รังสิต → หัวลำโพง" still resolves when only the
+ * destination resembles a terminal. On two-direction routes, one resolved
+ * direction settles the other by elimination.
+ */
+function assignOrigins(directions: Direction[], terminals: [LocalizedText, LocalizedText]): void {
+  const [a, b] = terminals;
+  for (const direction of directions) {
+    const forward = endpointSimilarity(direction.from, a) + endpointSimilarity(direction.to, b);
+    const backward = endpointSimilarity(direction.from, b) + endpointSimilarity(direction.to, a);
+    if (Math.max(forward, backward) < TERMINUS_MATCH_SIMILARITY || Math.abs(forward - backward) < 0.2) continue;
+    direction.origin = forward > backward ? 0 : 1;
+  }
+  if (directions.length === 2) {
+    const [first, second] = directions;
+    if (first && second && first.origin !== undefined && second.origin === undefined) second.origin = first.origin === 0 ? 1 : 0;
+    if (first && second && second.origin !== undefined && first.origin === undefined) first.origin = second.origin === 0 ? 1 : 0;
+  }
+}
+
+/** Compares in either language, since OSM sometimes only has an English name. */
+function endpointSimilarity(x: LocalizedText, y: LocalizedText): number {
+  return Math.max(
+    terminusSimilarity(x.th, y.th),
+    x.en && y.en ? terminusSimilarity(x.en, y.en) : 0,
+    x.en ? terminusSimilarity(x.en, y.th) : 0,
+    y.en ? terminusSimilarity(x.th, y.en) : 0,
+  );
+}
 
 function localizeTerminus(th: string, endpoints: LocalizedText[]): LocalizedText {
   let best: { en: string; score: number } | undefined;
