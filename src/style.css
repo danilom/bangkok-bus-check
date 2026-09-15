@@ -358,3 +358,55 @@ body {
 .footer-line {
   margin: 2px 0;
 }
+
+/* On-screen keypad, pinned to the bottom of the viewport on touch devices. */
+.keypad-slot {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+}
+
+.keypad {
+  max-width: 560px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+
+.key {
+  font: inherit;
+  font-size: 1.9rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-height: 58px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.key:active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.key-action {
+  font-size: 1.4rem;
+  color: var(--accent);
+}
+
+/* Leave room so the last result and the footer clear the keypad. */
+#app.has-keypad {
+  padding-bottom: calc(4 * 58px + 3 * 8px + 24px + env(safe-area-inset-bottom));
+}

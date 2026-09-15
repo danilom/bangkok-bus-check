@@ -5,6 +5,7 @@ import { formatHash, loadLang, loadRecent, pushRecent, readHash, saveLang } from
 import type { RouteIndex, RouteSummary } from '../lib/types.ts';
 import { renderDetailView, type DetailStatus } from './detail-view.ts';
 import { h, replaceChildren } from './dom.ts';
+import { keypadEnabled, renderKeypad } from './keypad.ts';
 import { renderRouteCard } from './route-card.ts';
 
 interface AppState {
@@ -28,10 +29,19 @@ export function createApp(root: HTMLElement): void {
     recent: loadRecent(),
   };
   if (initial.routeId) state.routeId = initial.routeId;
+  const useKeypad = keypadEnabled(location.search, matchMedia('(pointer: coarse)').matches);
 
   const input = h('input', {
     class: 'search-input',
-    attrs: { type: 'text', inputmode: 'numeric', autocomplete: 'off', autocapitalize: 'characters', enterkeyhint: 'search', 'aria-label': t(state.lang, 'inputPlaceholder') },
+    attrs: {
+      type: 'text',
+      // With the on-screen keypad the field must never summon the OS keyboard.
+      inputmode: useKeypad ? 'none' : 'numeric',
+      autocomplete: 'off',
+      autocapitalize: 'characters',
+      enterkeyhint: 'search',
+      'aria-label': t(state.lang, 'inputPlaceholder'),
+    },
     on: { input: () => setQuery(input.value) },
   });
   input.value = state.query;
@@ -40,17 +50,25 @@ export function createApp(root: HTMLElement): void {
   const langButton = h('button', { class: 'lang-button', attrs: { type: 'button' }, on: { click: toggleLang } });
   const content = h('div', { class: 'content' });
   const footer = h('footer', { class: 'footer' });
+  const keypadSlot = h('div', { class: 'keypad-slot' });
 
   root.append(
     h('header', { class: 'topbar' }, [title, langButton]),
     h('main', { class: 'main' }, [h('div', { class: 'search' }, [input, clearButton]), content]),
     footer,
+    keypadSlot,
   );
+
+  const keypadHandlers = {
+    onDigit: (digit: string) => setQuery(state.query + digit),
+    onBackspace: () => setQuery(state.query.slice(0, -1)),
+    onClear: () => setQuery(''),
+  };
 
   function setQuery(query: string): void {
     state.query = query;
     delete state.routeId;
-    history.replaceState(null, '', formatHash({ query }) || location.pathname);
+    history.replaceState(null, '', formatHash({ query }) || currentUrlWithoutHash());
     render();
   }
 
@@ -64,8 +82,13 @@ export function createApp(root: HTMLElement): void {
 
   function closeRoute(): void {
     delete state.routeId;
-    history.replaceState(null, '', formatHash({ query: state.query }) || location.pathname);
+    history.replaceState(null, '', formatHash({ query: state.query }) || currentUrlWithoutHash());
     render();
+  }
+
+  /** Keeps `?keypad=1`-style settings when the hash is cleared. */
+  function currentUrlWithoutHash(): string {
+    return `${location.pathname}${location.search}`;
   }
 
   function toggleLang(): void {
@@ -98,6 +121,14 @@ export function createApp(root: HTMLElement): void {
     if (input.value !== state.query) input.value = state.query;
     replaceChildren(content, renderContent());
     replaceChildren(footer, ...renderFooter());
+    renderKeypadSlot();
+  }
+
+  /** The keypad belongs to the search screen only; the detail view gets the whole screen. */
+  function renderKeypadSlot(): void {
+    const show = useKeypad && state.routeId === undefined && state.index !== undefined;
+    root.classList.toggle('has-keypad', show);
+    replaceChildren(keypadSlot, show && renderKeypad(state.lang, keypadHandlers));
   }
 
   function renderContent(): HTMLElement {

@@ -30,6 +30,8 @@ const routes = [
   route('80', []),
   route('800', []),
   route('1009', []),
+  route('A1', []),
+  route('S1', []),
 ];
 
 const ids = (query: string): string[] => findRoutes(routes, query).map((match) => match.route.id);
@@ -58,6 +60,13 @@ describe('findRoutes', () => {
   it('shows every route that carries the typed old number, documented routes first', () => {
     // 2-45 (formerly 73) is Wikipedia-backed; the bare OSM-only "73" is not.
     assert.deepEqual(ids('73'), ['2-45', '73', '2-46']);
+  });
+
+  it('lists letter-prefixed routes last for a digit-only query', () => {
+    const matches = findRoutes(routes, '1');
+    const lettered = matches.filter((match) => match.tier === 'lettered').map((match) => match.route.id);
+    assert.deepEqual(lettered, ['A1', 'S1']);
+    assert.equal(matches.at(-1)?.tier, 'lettered');
   });
 
   it('accepts dashes and lowercase letters typed on a desktop keyboard', () => {

@@ -9,7 +9,7 @@
 import { searchKey } from './route-number.ts';
 import type { RouteSummary } from './types.ts';
 
-export type MatchTier = 'exact' | 'variant' | 'prefix';
+export type MatchTier = 'exact' | 'variant' | 'prefix' | 'lettered';
 
 export interface RouteMatch<R extends RouteSummary = RouteSummary> {
   route: R;
@@ -46,18 +46,23 @@ function matchRoute<R extends RouteSummary>(route: R, key: string): RouteMatch<R
   return best;
 }
 
-const TIER_RANK: Record<MatchTier, number> = { exact: 0, variant: 1, prefix: 2 };
+const TIER_RANK: Record<MatchTier, number> = { exact: 0, variant: 1, prefix: 2, lettered: 3 };
 
 /**
- * exact:   alias key equals the query ("335" ~ "3-35", "73" ~ "73")
- * variant: query plus a letter suffix only ("8" ~ "8E", "73" ~ "73ก", "1" ~ "1-1"? no — see prefix)
- * prefix:  query is a proper prefix and more digits follow ("7" ~ "70", "1" ~ "1-10")
+ * exact:    alias key equals the query ("335" ~ "3-35", "73" ~ "73")
+ * variant:  query plus a letter suffix only ("8" ~ "8E", "73" ~ "73ก")
+ * prefix:   query is a proper prefix and more digits follow ("7" ~ "70", "1" ~ "1-10")
+ * lettered: the alias has a letter prefix the keypad cannot type ("1" ~ "A1", "S1")
  */
 function classify(aliasKey: string, key: string): MatchTier | undefined {
   if (aliasKey === key) return 'exact';
-  if (!aliasKey.startsWith(key)) return undefined;
-  const rest = aliasKey.slice(key.length);
-  return /^[^0-9]+$/.test(rest) ? 'variant' : 'prefix';
+  if (aliasKey.startsWith(key)) {
+    const rest = aliasKey.slice(key.length);
+    return /^[^0-9]+$/.test(rest) ? 'variant' : 'prefix';
+  }
+  const unlettered = aliasKey.replace(/^[A-Z]+/, '');
+  if (unlettered !== aliasKey && unlettered.length > 0 && /^\d/.test(key) && unlettered.startsWith(key)) return 'lettered';
+  return undefined;
 }
 
 function compareMatches(a: RouteMatch, b: RouteMatch): number {
