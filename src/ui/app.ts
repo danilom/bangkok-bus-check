@@ -2,7 +2,7 @@ import { loadDetail, loadIndex } from '../lib/data.ts';
 import { detectLang, t, type Lang } from '../lib/i18n.ts';
 import { requestPosition, type Position } from '../lib/location.ts';
 import { findRoutes } from '../lib/matcher.ts';
-import { formatHash, loadAccent, loadLang, loadLocationEnabled, loadRecent, loadSimulatedLocation, loadTheme, pushRecent, readHash, saveAccent, saveLang, saveLocationEnabled, saveSimulatedLocation, saveTheme, type Accent, type Theme } from '../lib/state.ts';
+import { formatHash, loadAccent, loadLang, loadLocationAccepted, loadLocationEnabled, loadRecent, loadSimulatedLocation, loadTheme, pushRecent, readHash, saveAccent, saveLang, saveLocationAccepted, saveLocationEnabled, saveSimulatedLocation, saveTheme, type Accent, type Theme } from '../lib/state.ts';
 import type { RouteIndex, RouteSummary } from '../lib/types.ts';
 import { renderDetailView, type DetailStatus, type LocationStatus } from './detail-view.ts';
 import type { Side } from './direction-pill.ts';
@@ -26,8 +26,10 @@ interface AppState {
   details: Map<string, DetailStatus>;
   expandedDirections: Set<string>;
   recent: string[];
-  /** User opted in to location on route pages (settings / first-use prompt). */
+  /** Route pages may offer location (settings toggle; on by default). */
   locationEnabled: boolean;
+  /** The user has accepted the explanation once; fixes are then automatic. */
+  locationAccepted: boolean;
   location: LocationStatus;
   simulatedLocation: Position | undefined;
 }
@@ -66,6 +68,7 @@ export function createApp(root: HTMLElement): void {
     expandedDirections: new Set(),
     recent: loadRecent(),
     locationEnabled: loadLocationEnabled(),
+    locationAccepted: loadLocationAccepted(),
     location: { kind: 'off' },
     simulatedLocation: loadSimulatedLocation(),
   };
@@ -141,7 +144,7 @@ export function createApp(root: HTMLElement): void {
     state.routeId = route.id;
     state.side = side;
     // A fresh fix per route opened; a fix from a minute ago is reused by the browser anyway.
-    if (state.locationEnabled) void locate();
+    if (state.locationEnabled && state.locationAccepted) void locate();
     else state.location = { kind: 'off' };
     state.recent = pushRecent(state.recent, route.number);
     history.pushState(null, '', formatHash({ query: state.query, routeId: route.id, side }));
@@ -193,16 +196,16 @@ export function createApp(root: HTMLElement): void {
     render();
   }
 
-  /** First tap explains; a tap on "Use location" (or a later tap, once enabled) asks the device. */
+  /** First tap explains; a tap on "Use location" (or any tap once accepted) asks the device. */
   function onLocation(): void {
-    if (!state.locationEnabled && state.location.kind !== 'explaining') {
+    if (!state.locationAccepted && state.location.kind !== 'explaining') {
       state.location = { kind: 'explaining' };
       render();
       return;
     }
-    if (!state.locationEnabled) {
-      state.locationEnabled = true;
-      saveLocationEnabled(true);
+    if (!state.locationAccepted) {
+      state.locationAccepted = true;
+      saveLocationAccepted(true);
     }
     void locate();
   }
@@ -229,6 +232,16 @@ export function createApp(root: HTMLElement): void {
     state.locationEnabled = enabled;
     saveLocationEnabled(enabled);
     if (!enabled) state.location = { kind: 'off' };
+    render();
+  }
+
+  /** Test aid: back to the state of a first visit, so the explanation shows again. */
+  function clearLocation(): void {
+    state.locationAccepted = false;
+    saveLocationAccepted(false);
+    state.simulatedLocation = undefined;
+    saveSimulatedLocation(undefined);
+    state.location = { kind: 'off' };
     render();
   }
 
@@ -299,7 +312,7 @@ export function createApp(root: HTMLElement): void {
         onBack: closeSettings,
         locationEnabled: state.locationEnabled,
         onLocationEnabled: setLocationEnabled,
-        ...(testMode ? { simulated: { position: state.simulatedLocation, onChange: setSimulatedLocation } } : {}),
+        ...(testMode ? { simulated: { position: state.simulatedLocation, onChange: setSimulatedLocation, onClear: clearLocation } } : {}),
       });
     }
     if (!index) return h('p', { class: 'muted', text: t(lang, 'loading') });
@@ -314,7 +327,7 @@ export function createApp(root: HTMLElement): void {
         onSelectSide: selectSide,
         onBack: closeRoute,
         onRetry: () => void ensureDetail(openRouteSummary.id),
-        location: state.location,
+        location: state.locationEnabled ? state.location : { kind: 'disabled' },
         onLocation,
         onLocationDismiss,
       });
@@ -362,7 +375,7 @@ export function createApp(root: HTMLElement): void {
     else state.indexError = result.error;
     if (state.routeId) {
       void ensureDetail(state.routeId);
-      if (state.locationEnabled) void locate();
+      if (state.locationEnabled && state.locationAccepted) void locate();
     }
     render();
     if (!state.routeId && !state.settings) focusInput();
@@ -377,7 +390,7 @@ export function createApp(root: HTMLElement): void {
       const changed = state.routeId !== next.routeId;
       state.routeId = next.routeId;
       void ensureDetail(next.routeId);
-      if (state.locationEnabled && changed) void locate();
+      if (state.locationEnabled && state.locationAccepted && changed) void locate();
     } else {
       delete state.routeId;
     }

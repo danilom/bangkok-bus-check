@@ -7,6 +7,7 @@ import { renderBadges, renderNumber } from './route-card.ts';
 
 /** Where the location feature stands for this view. */
 export type LocationStatus =
+  | { kind: 'disabled' }
   | { kind: 'off' }
   | { kind: 'explaining' }
   | { kind: 'locating' }
@@ -113,9 +114,9 @@ function namedStops(direction: Direction, stops: Record<string, Stop>): Stop[] {
  */
 function renderLocationPanel(props: DetailViewProps): HTMLElement | false {
   const { lang, location } = props;
-  if (location.kind === 'ready') return false;
+  if (location.kind === 'ready' || location.kind === 'disabled') return false;
   if (location.kind === 'off') {
-    return h('button', { class: 'text-button location-button', attrs: { type: 'button' }, text: `\ud83d\udccd ${t(lang, 'locationButton')}`, on: { click: props.onLocation } });
+    return h('button', { class: 'text-button location-button', attrs: { type: 'button' }, on: { click: props.onLocation } }, [pinIcon(), t(lang, 'locationButton')]);
   }
   if (location.kind === 'explaining') {
     return h('div', { class: 'location-explain' }, [
@@ -132,6 +133,20 @@ function renderLocationPanel(props: DetailViewProps): HTMLElement | false {
     h('p', { class: 'muted', text: t(lang, key) }),
     location.reason !== 'unsupported' && h('button', { class: 'text-button', attrs: { type: 'button' }, text: t(lang, 'retry'), on: { click: props.onLocation } }),
   ]);
+}
+
+/** A map-pin outline in the current text colour, so it follows the accent. */
+function pinIcon(): SVGSVGElement {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'pin-icon');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M12 22s7-7.1 7-12.5A7 7 0 0 0 5 9.5C5 14.9 12 22 12 22zm0-9.5a3 3 0 1 1 0-6 3 3 0 0 1 0 6z');
+  path.setAttribute('fill', 'currentColor');
+  path.setAttribute('fill-rule', 'evenodd');
+  svg.append(path);
+  return svg;
 }
 
 /**

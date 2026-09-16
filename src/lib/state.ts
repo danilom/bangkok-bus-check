@@ -44,6 +44,7 @@ export function formatHash(state: HashState): string {
 
 const LANG_KEY = 'bbc.lang';
 const LOCATION_KEY = 'bbc.location';
+const LOCATION_ACCEPTED_KEY = 'bbc.locationAccepted';
 const SIMULATED_LOCATION_KEY = 'bbc.simulatedLocation';
 const THEME_KEY = 'bbc.theme';
 const ACCENT_KEY = 'bbc.accent';
@@ -77,13 +78,26 @@ export function saveAccent(accent: Accent): void {
   write(ACCENT_KEY, accent);
 }
 
-/** Whether the details page may ask for the phone's position. Off until the user opts in. */
+/**
+ * Whether route pages may offer location at all. On by default; "off" is the
+ * user saying "don't ask me again".
+ */
 export function loadLocationEnabled(): boolean {
-  return read(LOCATION_KEY) === 'on';
+  return read(LOCATION_KEY) !== 'off';
 }
 
 export function saveLocationEnabled(enabled: boolean): void {
   write(LOCATION_KEY, enabled ? 'on' : 'off');
+}
+
+/** The user has read the explanation and tapped "Use location" once; from then on fixes are automatic. */
+export function loadLocationAccepted(): boolean {
+  return read(LOCATION_ACCEPTED_KEY) === 'yes';
+}
+
+export function saveLocationAccepted(accepted: boolean): void {
+  if (accepted) write(LOCATION_ACCEPTED_KEY, 'yes');
+  else remove(LOCATION_ACCEPTED_KEY);
 }
 
 /** Test aid: a position pasted into settings, used instead of the real one. */

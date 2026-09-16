@@ -13,7 +13,7 @@ export interface SettingsViewProps {
   locationEnabled: boolean;
   onLocationEnabled: (enabled: boolean) => void;
   /** Test mode only: a pasted position that replaces the real one. */
-  simulated?: { position: Position | undefined; onChange: (position: Position | undefined) => void };
+  simulated?: { position: Position | undefined; onChange: (position: Position | undefined) => void; onClear: () => void };
 }
 
 const THEME_LABELS: Record<Theme, StringKey> = { system: 'themeSystem', light: 'themeLight', dark: 'themeDark' };
@@ -27,7 +27,7 @@ export function renderSettingsView(props: SettingsViewProps): HTMLElement {
     renderChoice(t(lang, 'theme'), THEMES, props.theme, (theme) => t(lang, THEME_LABELS[theme]), props.onTheme),
     renderChoice(t(lang, 'accent'), ACCENTS, props.accent, (accent) => t(lang, ACCENT_LABELS[accent]), props.onAccent, true),
     renderChoice(t(lang, 'locationSetting'), [false, true] as const, props.locationEnabled, (on) => t(lang, on ? 'on' : 'off'), props.onLocationEnabled),
-    props.simulated && renderSimulatedLocation(lang, props.simulated),
+    props.simulated && renderTestSection(lang, props.simulated),
   ]);
 }
 
@@ -52,6 +52,18 @@ function renderChoice<T extends string | boolean>(
         name(option),
       ]),
     )),
+  ]);
+}
+
+/** Only with a ?test param: aids for exercising location on a desktop. */
+function renderTestSection(lang: Lang, simulated: { position: Position | undefined; onChange: (position: Position | undefined) => void; onClear: () => void }): HTMLElement {
+  return h('div', { class: 'test-section' }, [
+    h('h3', { class: 'settings-subtitle', text: t(lang, 'testSection') }),
+    renderSimulatedLocation(lang, simulated),
+    h('div', { class: 'setting' }, [
+      h('button', { class: 'chip', attrs: { type: 'button' }, text: t(lang, 'clearLocation'), on: { click: simulated.onClear } }),
+      h('p', { class: 'setting-status', text: t(lang, 'clearLocationHint') }),
+    ]),
   ]);
 }
 
