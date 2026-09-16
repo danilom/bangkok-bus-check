@@ -125,7 +125,7 @@ function renderFrontSign(props: DetailViewProps, detail: RouteDetail): HTMLEleme
       on: { click: () => props.onSelectSide(destination) },
     }, [h('span', { class: 'sign-th', text: thai ?? '—' })]);
   });
-  const panel = h('details', { class: 'front-sign' }, [
+  const panel = h('details', { class: 'disclosure front-sign' }, [
     h('summary', { text: t(lang, 'frontSign') }),
     h('div', { class: 'sign-halves' }, rows),
   ]);
@@ -315,8 +315,8 @@ function renderCollapsibleDirection(props: DetailViewProps, direction: Direction
 }
 
 function renderNotes(lang: Lang, notes: string): HTMLElement {
-  return h('details', { class: 'notes' }, [
+  return h('details', { class: 'disclosure notes' }, [
     h('summary', { text: t(lang, 'notes') }),
-    ...notes.split('\n').map((line) => h('p', { class: 'note-line', text: line })),
+    h('div', { class: 'panel' }, notes.split('\n').map((line) => h('p', { class: 'note-line', text: line }))),
   ]);
 }

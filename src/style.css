@@ -649,13 +649,22 @@ body {
 }
 
 .direction,
-/* "Front sign (Thai)": big single-line Thai per destination, for matching the bus's sign by shape. */
-.front-sign summary {
+/* Openable panels on the route page ("Front sign (Thai)", "Notes (Thai)"): a quiet heading with the marker, then a boxed body. */
+.disclosure > summary {
   cursor: pointer;
   color: var(--muted);
   margin: 0 4px 6px;
   font-size: 0.9rem;
 }
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+}
+
+/* "Front sign (Thai)": big single-line Thai per destination, for matching the bus's sign by shape. */
 
 .sign-halves {
   display: grid;
@@ -701,15 +710,7 @@ body {
   mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
 }
 
-.notes {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 10px 14px;
-}
-
-.direction-summary,
-.notes summary {
+.direction-summary {
   cursor: pointer;
   display: flex;
   justify-content: space-between;
@@ -719,8 +720,7 @@ body {
   list-style: none;
 }
 
-.direction-summary::-webkit-details-marker,
-.notes summary::-webkit-details-marker {
+.direction-summary::-webkit-details-marker {
   display: none;
 }
 
