@@ -3,6 +3,7 @@
 import { Command, Option } from 'commander';
 
 import { buildData, DEFAULT_OUTPUT_DIR } from './build-data.ts';
+import { extractPlaces } from './extract-places.ts';
 import { fetchRaw, RAW_SOURCES, type RawSource } from './fetch-raw.ts';
 
 const program = new Command('bbc').description('Bangkok Bus Check data tooling');
@@ -22,6 +23,14 @@ program
   .option('-v, --verbose', 'list skipped rows and merge decisions', false)
   .action(async (options: { out: string; verbose: boolean }) => {
     await buildData(options);
+  });
+
+program
+  .command('extract-places')
+  .description('add Thai names that lack English to data/overrides/translations.json as drafts')
+  .option('--feed-matches', 'also print the English the feed supplied for resolved names', false)
+  .action(async (options: { feedMatches: boolean }) => {
+    await extractPlaces(options);
   });
 
 program.parseAsync(process.argv).catch((error: unknown) => {

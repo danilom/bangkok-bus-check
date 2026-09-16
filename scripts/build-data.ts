@@ -8,9 +8,11 @@ import { join } from 'node:path';
 
 import type { RouteDataset, RouteDetail, RouteIndex, Stop } from '../src/lib/types.ts';
 import { NAMTANG_DIR, WIKI_FILE } from './fetch-raw.ts';
+import { loadTranslations, type Translations } from './lib/translations.ts';
 import { mergeRoutes, type MergeReport } from './merge.ts';
-import { parseGtfs } from './sources/gtfs.ts';
-import { parseWikipediaRoutes } from './sources/wikipedia.ts';
+import { parseGtfs, type GtfsFeed } from './sources/gtfs.ts';
+import { parseWikipediaRoutes, type WikiParseResult } from './sources/wikipedia.ts';
+import { applyTranslations, type TranslationReport } from './translate.ts';
 
 export const DEFAULT_OUTPUT_DIR = 'public/data';
 
@@ -19,12 +21,14 @@ export interface BuildOptions {
   verbose: boolean;
 }
 
-export async function buildData(options: BuildOptions): Promise<void> {
-  const wikitext = await readFile(WIKI_FILE, 'utf8');
-  const wiki = parseWikipediaRoutes(wikitext);
-  console.log(`Wikipedia: ${wiki.routes.length} rows, ${wiki.reformMapping.size} reform mappings, ${wiki.skipped.length} rows skipped`);
-  if (options.verbose) for (const skip of wiki.skipped) console.log(`  skipped line ${skip.line}: ${skip.reason}`);
+export interface Sources {
+  feed: GtfsFeed;
+  wiki: WikiParseResult;
+  translations: Translations;
+}
 
+export async function loadSources(): Promise<Sources> {
+  const wikitext = await readFile(WIKI_FILE, 'utf8');
   const read = (table: string): Promise<string> => readFile(join(NAMTANG_DIR, table), 'utf8');
   const feed = parseGtfs({
     agency: await read('agency.txt'),
@@ -35,10 +39,26 @@ export async function buildData(options: BuildOptions): Promise<void> {
     stops: await read('stops.txt'),
     frequencies: await read('frequencies.txt'),
   });
-  console.log(`GTFS ${feed.version}: ${feed.routes.length} Bangkok bus route entries`);
+  return { feed, wiki: parseWikipediaRoutes(wikitext), translations: await loadTranslations() };
+}
 
-  const { dataset, report } = mergeRoutes(feed, wiki);
+/** Merge plus translation pass; shared by the build and the extract command. */
+export function compile(sources: Sources): { dataset: RouteDataset; report: MergeReport; translation: TranslationReport } {
+  const { dataset, report } = mergeRoutes(sources.feed, sources.wiki);
+  const translation = applyTranslations(dataset, sources.feed, sources.translations);
+  return { dataset, report, translation };
+}
+
+export async function buildData(options: BuildOptions): Promise<void> {
+  const sources = await loadSources();
+  console.log(`Wikipedia: ${sources.wiki.routes.length} rows, ${sources.wiki.reformMapping.size} reform mappings, ${sources.wiki.skipped.length} rows skipped`);
+  if (options.verbose) for (const skip of sources.wiki.skipped) console.log(`  skipped line ${skip.line}: ${skip.reason}`);
+  console.log(`GTFS ${sources.feed.version}: ${sources.feed.routes.length} Bangkok bus route entries`);
+
+  const { dataset, report, translation } = compile(sources);
   printReport(report, options.verbose);
+  const unresolved = translation.unresolvedPlaces.size + translation.unresolvedOperators.size;
+  console.log(`Translations: ${translation.used.places.size} places and ${translation.used.operators.size} operators applied, ${translation.feedResolved.size} places resolved from the feed, ${unresolved} still without English (run extract-places)`);
   await writeOutput(dataset, options.out);
 }
 
