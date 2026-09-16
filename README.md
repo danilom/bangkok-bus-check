@@ -76,7 +76,10 @@ missing from the dictionary means no swatch and a build warning.
 
 The route page's "Map" button opens a full-screen map (`#…/map`): the
 Protomaps basemap in the app's theme and language with the selected
-direction's line in the accent colour and the other direction faint.
+direction's line in the accent colour and the other direction faint. With
+location on and the user within 1.5 km of the route (the list's rule), the
+stretch already ridden is greyed, the nearest stop ringed in blue, and the
+view fitted to what is ahead.
 MapLibre and the basemap style load on demand, so the text app's bundle is
 unchanged; the map's fonts and sprites come from Protomaps' asset host.
 

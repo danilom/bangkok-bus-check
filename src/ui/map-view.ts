@@ -14,7 +14,7 @@ import { Protocol } from 'pmtiles';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 import { localize, t, type Lang } from '../lib/i18n.ts';
-import type { Position } from '../lib/location.ts';
+import { NEAR_ROUTE_METERS, distanceMeters, nearestStop, type Position } from '../lib/location.ts';
 import type { Direction, RouteDetail, RouteSummary, Stop } from '../lib/types.ts';
 import type { Side } from './direction-pill.ts';
 
@@ -42,6 +42,8 @@ const ROUTE_SOURCE = 'route';
 const STOPS_SOURCE = 'stops';
 const POSITION_SOURCE = 'position';
 const FONT = ['Noto Sans Regular'];
+/** The blue every map app uses for "you are here"; deliberately not the accent, so it reads the same on any theme. */
+const POSITION_BLUE = '#1a73e8';
 
 let protocolRegistered = false;
 
@@ -89,6 +91,8 @@ export function createRouteMap(container: HTMLElement, initial: RouteMapProps): 
     update(next) {
       const sideChanged = next.side !== props.side;
       const restyle = next.dark !== props.dark || next.lang !== props.lang;
+      // A position arriving (or going) changes what "ahead" means; a fix moving along the route does not refit.
+      const aheadChanged = (aheadFrom(next) === undefined) !== (aheadFrom(props) === undefined);
       props = next;
       if (!loaded) return;
       if (restyle) {
@@ -104,7 +108,7 @@ export function createRouteMap(container: HTMLElement, initial: RouteMapProps): 
       setRouteData(map, props);
       setStopData(map, props);
       setPositionData(map, props);
-      if (sideChanged) fitToRoute(map, props);
+      if (sideChanged || aheadChanged) fitToRoute(map, props);
     },
     destroy() {
       map.remove();
@@ -129,18 +133,67 @@ function basemapStyle(props: RouteMapProps): StyleSpecification {
   };
 }
 
-/** One feature per main run; `selected` marks the direction the page shows. */
+/**
+ * One feature per main run; `selected` marks the direction the page shows.
+ * With the user on the route, the selected run is split at the nearest stop
+ * into a `passed` part and the part ahead, like the list's "earlier stops".
+ */
 function routeFeatures(props: RouteMapProps): FeatureCollection {
   const departsFrom: Side = props.side === 0 ? 1 : 0;
   const runs = props.detail.directions.filter((direction) => !direction.variant && direction.shape);
-  return {
-    type: 'FeatureCollection',
-    features: runs.map((direction) => ({
-      type: 'Feature',
-      properties: { selected: direction.origin === departsFrom },
-      geometry: { type: 'LineString', coordinates: direction.shape ?? [] },
-    })),
-  };
+  const ahead = aheadFrom(props);
+  const features: Feature[] = [];
+  for (const direction of runs) {
+    const selected = direction.origin === departsFrom;
+    const shape = direction.shape ?? [];
+    const split = selected && ahead ? nearestShapeIndex(shape, ahead.stop) : undefined;
+    if (split === undefined) {
+      features.push({ type: 'Feature', properties: { selected, passed: false }, geometry: { type: 'LineString', coordinates: shape } });
+      continue;
+    }
+    // Both parts share the split point so the line has no gap.
+    features.push({ type: 'Feature', properties: { selected, passed: true }, geometry: { type: 'LineString', coordinates: shape.slice(0, split + 1) } });
+    features.push({ type: 'Feature', properties: { selected, passed: false }, geometry: { type: 'LineString', coordinates: shape.slice(split) } });
+  }
+  return { type: 'FeatureCollection', features };
+}
+
+interface Ahead {
+  /** Index into the run's named stops of the nearest one. */
+  index: number;
+  stop: Stop;
+}
+
+/** The nearest named stop of the selected run, when the user is close enough to be on the route (same rule as the list). */
+function aheadFrom(props: RouteMapProps): Ahead | undefined {
+  if (!props.position) return undefined;
+  const named = namedStops(props);
+  const nearest = nearestStop(named, props.position);
+  if (!nearest || nearest.meters > NEAR_ROUTE_METERS) return undefined;
+  const stop = named[nearest.index];
+  return stop ? { index: nearest.index, stop } : undefined;
+}
+
+function namedStops(props: RouteMapProps): Stop[] {
+  const run = selectedRun(props);
+  if (!run) return [];
+  return run.stops.map((id) => props.detail.stops[id]).filter((stop): stop is Stop => stop !== undefined && stop.name.th.length > 0);
+}
+
+/** The shape point closest to a stop: the line is cut there. Good to a few metres, which is all the eye needs. */
+function nearestShapeIndex(shape: readonly [number, number][], stop: Stop): number | undefined {
+  if (stop.lat === undefined || stop.lon === undefined || shape.length === 0) return undefined;
+  const target = { lat: stop.lat, lon: stop.lon };
+  let best = 0;
+  let bestMeters = Infinity;
+  shape.forEach(([lon, lat], index) => {
+    const meters = distanceMeters(target, { lat, lon });
+    if (meters < bestMeters) {
+      bestMeters = meters;
+      best = index;
+    }
+  });
+  return best;
 }
 
 function addRouteLayers(map: MapLibreMap, props: RouteMapProps): void {
@@ -153,11 +206,20 @@ function addRouteLayers(map: MapLibreMap, props: RouteMapProps): void {
     layout: { 'line-cap': 'round', 'line-join': 'round' },
     paint: { 'line-color': props.dark ? '#9e9e9e' : '#757575', 'line-width': 3, 'line-opacity': 0.5 },
   });
+  // The stretch already ridden: the other direction's grey, a little firmer so it still reads as this route.
+  map.addLayer({
+    id: 'route-passed',
+    type: 'line',
+    source: ROUTE_SOURCE,
+    filter: ['all', ['get', 'selected'], ['get', 'passed']],
+    layout: { 'line-cap': 'round', 'line-join': 'round' },
+    paint: { 'line-color': props.dark ? '#9e9e9e' : '#757575', 'line-width': 4, 'line-opacity': 0.6 },
+  });
   map.addLayer({
     id: 'route-casing',
     type: 'line',
     source: ROUTE_SOURCE,
-    filter: ['get', 'selected'],
+    filter: AHEAD,
     layout: { 'line-cap': 'round', 'line-join': 'round' },
     paint: { 'line-color': props.dark ? '#121212' : '#ffffff', 'line-width': 9, 'line-opacity': 0.9 },
   });
@@ -165,11 +227,14 @@ function addRouteLayers(map: MapLibreMap, props: RouteMapProps): void {
     id: 'route-selected',
     type: 'line',
     source: ROUTE_SOURCE,
-    filter: ['get', 'selected'],
+    filter: AHEAD,
     layout: { 'line-cap': 'round', 'line-join': 'round' },
     paint: { 'line-color': props.accent, 'line-width': 5 },
   });
 }
+
+/** The selected run's part still to come (the whole run when the user is not on it). */
+const AHEAD: FilterSpecification = ['all', ['get', 'selected'], ['!', ['get', 'passed']]];
 
 const LINE_BLOCKER = 'line-blocker';
 
@@ -184,7 +249,7 @@ function addLineBlockers(map: MapLibreMap): void {
     id: 'route-blockers',
     type: 'symbol',
     source: ROUTE_SOURCE,
-    filter: ['get', 'selected'],
+    filter: AHEAD,
     layout: {
       'symbol-placement': 'line',
       'symbol-spacing': 8,
@@ -209,16 +274,22 @@ function selectedRun(props: RouteMapProps): Direction | undefined {
  * ordinary stops a small dot and a label only when zoomed in.
  */
 function stopFeatures(props: RouteMapProps): FeatureCollection<Point> {
-  const run = selectedRun(props);
-  if (!run) return { type: 'FeatureCollection', features: [] };
-  const named = run.stops.map((id) => props.detail.stops[id]).filter((stop): stop is Stop => stop !== undefined && stop.name.th.length > 0);
+  const named = namedStops(props);
+  const ahead = aheadFrom(props);
   const features = named.flatMap((stop, index): Feature<Point>[] => {
     if (stop.lon === undefined || stop.lat === undefined) return [];
     const terminus = index === 0 || index === named.length - 1;
     const rank = terminus ? 'terminus' : stop.landmark?.rank === 'major' ? 'major' : 'stop';
     return [{
       type: 'Feature',
-      properties: { name: localize(props.lang, stop.name), rank, index: index + 1, total: named.length },
+      properties: {
+        name: localize(props.lang, stop.name),
+        rank,
+        index: index + 1,
+        total: named.length,
+        passed: ahead !== undefined && index < ahead.index,
+        nearest: ahead !== undefined && index === ahead.index,
+      },
       geometry: { type: 'Point', coordinates: [stop.lon, stop.lat] },
     }];
   });
@@ -227,6 +298,7 @@ function stopFeatures(props: RouteMapProps): FeatureCollection<Point> {
 
 function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
   const surface = props.dark ? '#121212' : '#ffffff';
+  const grey = props.dark ? '#9e9e9e' : '#757575';
   addLabelBoxImage(map, props.dark);
   map.addSource(STOPS_SOURCE, { type: 'geojson', data: stopFeatures(props) });
   map.addLayer({
@@ -238,7 +310,7 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
     paint: {
       'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 2, 14, 4, 16, 6],
       'circle-color': surface,
-      'circle-stroke-color': props.accent,
+      'circle-stroke-color': ['case', ['get', 'passed'], grey, props.accent],
       'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 11, 1, 14, 2],
     },
   });
@@ -249,15 +321,29 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
     filter: ['!=', ['get', 'rank'], 'stop'],
     paint: {
       'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, 3, 14, 6, 16, 8],
-      'circle-color': props.accent,
+      'circle-color': ['case', ['get', 'passed'], grey, props.accent],
       'circle-stroke-color': surface,
       'circle-stroke-width': 2,
     },
   });
+  // The nearest stop: a ring in the position dot's blue, tying the two together.
+  map.addLayer({
+    id: 'stops-nearest',
+    type: 'circle',
+    source: STOPS_SOURCE,
+    filter: ['get', 'nearest'],
+    paint: {
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, 7, 14, 11, 16, 14],
+      'circle-color': 'rgba(0, 0, 0, 0)',
+      'circle-stroke-color': POSITION_BLUE,
+      'circle-stroke-width': 3,
+    },
+  });
   // Two label layers rather than a zoom filter: termini and landmarks from zoom 10, the rest once there is room.
   const labelLayers: { id: string; filter: FilterSpecification; minzoom: number }[] = [
-    { id: 'stops-label', filter: ['!=', ['get', 'rank'], 'stop'], minzoom: 10 },
-    { id: 'stops-label-all', filter: ['==', ['get', 'rank'], 'stop'], minzoom: 14 },
+    // Passed stops keep their dots but lose their labels; the nearest stop is always labelled.
+    { id: 'stops-label', filter: ['all', ['!', ['get', 'passed']], ['any', ['!=', ['get', 'rank'], 'stop'], ['get', 'nearest']]], minzoom: 10 },
+    { id: 'stops-label-all', filter: ['all', ['!', ['get', 'passed']], ['==', ['get', 'rank'], 'stop'], ['!', ['get', 'nearest']]], minzoom: 14 },
   ];
   for (const { id, filter, minzoom } of labelLayers) map.addLayer({
     id,
@@ -286,7 +372,7 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
       // Only the text is collision-tested: the fitted box is evaluated at the anchor, not where the text went.
       'icon-allow-overlap': true,
       'icon-ignore-placement': true,
-      'symbol-sort-key': ['match', ['get', 'rank'], 'terminus', 0, 'major', 1, 2],
+      'symbol-sort-key': ['case', ['get', 'nearest'], -1, ['match', ['get', 'rank'], 'terminus', 0, 'major', 1, 2]],
     },
     paint: {
       'text-color': props.dark ? '#e0e0e0' : '#212121',
@@ -365,9 +451,6 @@ function positionFeatures(props: RouteMapProps): FeatureCollection<Point> {
   };
 }
 
-/** The blue every map app uses for "you are here"; deliberately not the accent, so it reads the same on any theme. */
-const POSITION_BLUE = '#1a73e8';
-
 /** The user's position: a soft halo and a solid dot, above the stops. */
 function addPositionLayers(map: MapLibreMap, props: RouteMapProps): void {
   map.addSource(POSITION_SOURCE, { type: 'geojson', data: positionFeatures(props) });
@@ -395,12 +478,14 @@ function setRouteData(map: MapLibreMap, props: RouteMapProps): void {
   if (source instanceof GeoJSONSource) source.setData(routeFeatures(props));
 }
 
+/** Fits the part of the selected run still ahead (the whole run off-route), plus the user's position when on it. */
 function fitToRoute(map: MapLibreMap, props: RouteMapProps): void {
-  const selected = routeFeatures(props).features.find((feature) => feature.properties?.['selected'] === true);
-  const coordinates = selected?.geometry.type === 'LineString' ? selected.geometry.coordinates : [];
+  const ahead = routeFeatures(props).features.find((feature) => feature.properties?.['selected'] === true && feature.properties?.['passed'] === false);
+  const coordinates = [...(ahead?.geometry.type === 'LineString' ? ahead.geometry.coordinates : [])] as [number, number][];
   if (coordinates.length === 0) return;
+  if (props.position && aheadFrom(props)) coordinates.push([props.position.lon, props.position.lat]);
   let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
-  for (const [lon, lat] of coordinates as [number, number][]) {
+  for (const [lon, lat] of coordinates) {
     minLon = Math.min(minLon, lon);
     maxLon = Math.max(maxLon, lon);
     minLat = Math.min(minLat, lat);
