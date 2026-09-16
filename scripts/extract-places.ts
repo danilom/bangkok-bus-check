@@ -5,13 +5,15 @@
  * overwrites an existing entry's English or status.
  */
 
+import { resolve } from 'node:path';
+
 import { compile, loadSources } from './build-data.ts';
 import { saveTranslations, TRANSLATIONS_FILE, type TranslationEntry, type Translations } from './lib/translations.ts';
 import type { TranslationReport } from './translate.ts';
 
 export interface ExtractOptions {
-  /** Print what the feed supplied for names it resolved, to spot bad English. */
-  feedMatches: boolean;
+  /** Print the English the feed supplied for the names it resolved, as paste-ready JSON lines. */
+  feedEnglish: boolean;
 }
 
 export async function extractPlaces(options: ExtractOptions): Promise<void> {
@@ -28,10 +30,33 @@ export async function extractPlaces(options: ExtractOptions): Promise<void> {
 
   await saveTranslations(translations);
   printSummary(translations, added, translation);
-  if (options.feedMatches) {
-    console.log('\nResolved from the feed (add an override entry to replace any of these):');
-    for (const [th, en] of [...translation.feedResolved].sort(([a], [b]) => a.localeCompare(b, 'th'))) console.log(`  ${th} → ${en}`);
+  if (options.feedEnglish) printFeedEnglish(translation.feedResolved);
+  // Full path last and highlighted, so a terminal can open it with one click.
+  console.log(`\n\u001b[36m${resolve(TRANSLATIONS_FILE)}\u001b[0m`);
+}
+
+/**
+ * The feed's English for names it resolved, one JSON line each so any of
+ * them can be pasted into the file as an override and edited. Values are
+ * aligned on the key column when the keys are not absurdly long.
+ */
+function printFeedEnglish(resolved: Map<string, string>): void {
+  const rows = [...resolved].sort(([a], [b]) => a.localeCompare(b, 'th'));
+  const widths = rows.map(([th]) => displayWidth(JSON.stringify(th)));
+  const column = Math.min(Math.max(...widths, 0), 36);
+  console.log('\nEnglish the feed supplied (paste a line to override it):');
+  for (const [th, en] of rows) {
+    const key = JSON.stringify(th);
+    const pad = ' '.repeat(Math.max(0, column - displayWidth(key)));
+    console.log(`  ${key}:${pad} ${JSON.stringify(en)},`);
   }
+}
+
+/** Terminal columns a string takes: Thai vowel and tone marks stack on the previous letter. */
+function displayWidth(text: string): number {
+  let width = 0;
+  for (const char of text) if (!/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/.test(char)) width += 1;
+  return width;
 }
 
 function addMissing(section: Record<string, TranslationEntry>, unresolved: Map<string, string[]>): number {

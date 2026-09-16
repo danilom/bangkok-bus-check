@@ -39,6 +39,11 @@ describe('translations file', () => {
     assert.equal(written.split('\n').filter((line) => line.includes('"status"')).length, 3);
   });
 
+  it('expands a plain string into a reviewed override', async () => {
+    const { loaded } = await roundTrip('{"places":{"สนามหลวง":"Sanam Luang"}}');
+    assert.deepEqual(loaded.places['สนามหลวง'], { en: 'Sanam Luang', status: 'ok', override: true });
+  });
+
   it('returns empty sections for a missing file', async () => {
     const loaded = await loadTranslations(join(tmpdir(), 'does-not-exist', 'translations.json'));
     assert.deepEqual(loaded, { places: {}, operators: {} });

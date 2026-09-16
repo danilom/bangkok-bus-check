@@ -7,7 +7,8 @@
  * Sections are keyed by the Thai text as it appears in the source. Each
  * entry: `en`, `status` ("draft" = written by the assistant, "ok" =
  * reviewed), optional `override` (apply even where the feed has English),
- * `usedBy` (regenerated hint), `note` (free text).
+ * `usedBy` (regenerated hint), `note` (free text). A plain string value is
+ * shorthand for a reviewed override — what a person adds by hand.
  */
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
@@ -58,7 +59,8 @@ export async function loadTranslations(path = TRANSLATIONS_FILE): Promise<Transl
 
 /** Accepts the short forms a reviewer types ("r", "ok", "reviewed") and normalises them. */
 function parseEntry(value: unknown, where: string): TranslationEntry {
-  if (typeof value !== 'object' || value === null) throw new Error(`${where}: expected an object`);
+  if (typeof value === 'string') return { en: value, status: 'ok', override: true };
+  if (typeof value !== 'object' || value === null) throw new Error(`${where}: expected an object or a string`);
   const record = value as Record<string, unknown>;
   const en = typeof record['en'] === 'string' ? record['en'] : '';
   const rawStatus = String(record['status'] ?? 'draft').toLowerCase();

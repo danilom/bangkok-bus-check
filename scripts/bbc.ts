@@ -28,8 +28,8 @@ program
 program
   .command('extract-places')
   .description('add Thai names that lack English to data/overrides/translations.json as drafts')
-  .option('--feed-matches', 'also print the English the feed supplied for resolved names', false)
-  .action(async (options: { feedMatches: boolean }) => {
+  .option('--feed-english', 'also print the English the feed supplied, as paste-ready override lines', false)
+  .action(async (options: { feedEnglish: boolean }) => {
     await extractPlaces(options);
   });
 

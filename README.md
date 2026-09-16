@@ -36,6 +36,7 @@ bbc fetch-raw                    # both sources → data/raw/   (bbc.cmd on Wind
 bbc fetch-raw --source namtang   # just the GTFS feed
 bbc build-data --verbose         # data/raw/ → public/data/index.json + routes/<id>.json
 bbc extract-places               # add Thai names lacking English to data/overrides/translations.json
+bbc extract-places --feed-english  # also list the feed's English, as lines you can paste to override
 ```
 
 Snapshots in `data/raw/` are committed so `build-data` is deterministic and
