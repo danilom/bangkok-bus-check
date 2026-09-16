@@ -46,7 +46,7 @@ function renderViewportReadout(): HTMLElement {
   const visible = window.visualViewport ? Math.round(window.visualViewport.height) : undefined;
   const scroller = document.scrollingElement;
   const mode = matchMedia('(display-mode: standalone)').matches ? 'standalone' : 'browser';
-  const parts = [`${mode}`, `window ${innerWidth}×${innerHeight}`, visible !== undefined && `visible ${visible}`, `100dvh ${dvh}`, `safe-area ${safeBottom}`, scroller && `page ${scroller.scrollHeight}`];
+  const parts = [`build ${__BUILD_ID__}`, `${mode}`, `window ${innerWidth}×${innerHeight}`, visible !== undefined && `visible ${visible}`, `100dvh ${dvh}`, `safe-area ${safeBottom}`, scroller && `page ${scroller.scrollHeight}`];
   return h('p', { class: 'viewport-readout', text: parts.filter(Boolean).join(' · ') });
 }
 
