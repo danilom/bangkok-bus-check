@@ -558,12 +558,14 @@ body {
 }
 
 /* Livery swatch before a vehicle name; bordered so white and cream survive on the light theme. */
+/* Bus silhouette (the app icon's shape); the livery bands fill it, windshield and hubs show the card through. */
 .swatch {
+  --bus: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 23%22%3E%3Cpath d=%22M6 3h12a4 4 0 0 1 4 4v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4zM18 6H6.5A1.5 1.5 0 0 0 5 7.5v3A1.5 1.5 0 0 0 6.5 12H18a1.5 1.5 0 0 0 1.5-1.5v-3A1.5 1.5 0 0 0 18 6zM5.1 19.4a2.4 2.4 0 1 1 4.8 0a2.4 2.4 0 1 1-4.8 0zM6.7 19.4a.8.8 0 1 0 1.6 0a.8.8 0 1 0-1.6 0zM14.1 19.4a2.4 2.4 0 1 1 4.8 0a2.4 2.4 0 1 1-4.8 0zM15.7 19.4a.8.8 0 1 0 1.6 0a.8.8 0 1 0-1.6 0z%22/%3E%3C/svg%3E");
   display: inline-block;
-  width: 1em;
-  height: 1em;
-  border-radius: 50%;
-  border: 1px solid var(--border);
+  width: 1.25em;
+  height: 1.2em;
+  -webkit-mask: var(--bus) center / contain no-repeat;
+  mask: var(--bus) center / contain no-repeat;
 }
 
 /* On the title row, right of the number and former numbers; several badges stack rather than crowd the row. */
