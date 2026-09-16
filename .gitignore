@@ -2,4 +2,5 @@ node_modules/
 dist/
 .env
 .env.local
-settings.local.jsonpublic/dev-maps/
+settings.local.json
+public/dev-maps/
