@@ -463,11 +463,14 @@ function agreement(terminals: [LocalizedText, LocalizedText] | [undefined, undef
   return similar ? 'agree' : 'conflict';
 }
 
-const OPERATOR_NAMES: Record<string, LocalizedText> = {
+export const OPERATOR_NAMES: Record<string, LocalizedText> = {
   bmta: { th: 'ขสมก.', en: 'BMTA' },
   tsb: { th: 'ไทยสมายล์บัส', en: 'Thai Smile Bus' },
   bma: { th: 'กทม.', en: 'BMA' },
 };
+
+/** "A (ให้บริการในนาม B)": operator A runs the route under subsidiary B's name. */
+export const OPERATING_AS = /^(.*?)\s*\(ให้บริการในนาม\s*([^)]*)\)\s*$/;
 
 /** Wikipedia's generic "private" entry, and the English shown for any private company on the card. */
 const PRIVATE_OPERATOR_TH = 'เอกชน';
@@ -485,12 +488,14 @@ function pickOperator(primary: GtfsRoute | undefined, wikiBase: WikiRoute | unde
   // A big operator counts whichever source names it: the feed files some TSB
   // routes under subsidiary agencies, and "DLT" is the licensing department.
   const known = (agencyKey && OPERATOR_NAMES[agencyKey]) ?? (wikiKey && OPERATOR_NAMES[wikiKey]);
-  const detail = wikiText && known && wikiText !== known.th ? { th: wikiText } : undefined;
+  // The full wording is only worth keeping when it names a subsidiary the
+  // route is run under; "บจก.ไทยสมายล์บัส" alone is the short name with a prefix.
+  const detail = wikiText && OPERATING_AS.test(wikiText) ? { th: wikiText } : undefined;
   if (known) return detail ? { short: known, detail } : { short: known };
   if (wikiText) {
     // Private companies keep their Thai name; the English card says only that
     // it is a private operator, which is all a non-Thai reader can use.
-    const short = wikiText.replace(/\s*\(ให้บริการในนาม[^)]*\)/g, '').trim();
+    const short = wikiText.replace(OPERATING_AS, '$1').trim();
     const shortName: LocalizedText = { th: short || PRIVATE_OPERATOR_TH, en: PRIVATE_OPERATOR_EN };
     return short !== wikiText ? { short: shortName, detail: { th: wikiText } } : { short: shortName };
   }

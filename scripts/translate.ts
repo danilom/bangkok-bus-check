@@ -8,6 +8,7 @@
 import type { LocalizedText, Route, RouteDataset } from '../src/lib/types.ts';
 import { normalizePlace } from './lib/places.ts';
 import { TranslationIndex, type Translations } from './lib/translations.ts';
+import { OPERATING_AS, OPERATOR_NAMES, operatorKey } from './merge.ts';
 import type { GtfsFeed } from './sources/gtfs.ts';
 
 export interface TranslationReport {
@@ -44,6 +45,7 @@ export function applyTranslations(dataset: RouteDataset, feed: GtfsFeed, transla
     if (route.sideLabels) route.sideLabels = [route.sideLabels[0] && resolvePlace(route.sideLabels[0], route), route.sideLabels[1] && resolvePlace(route.sideLabels[1], route)];
     if (route.operator) route.operator = resolveOperator(route.operator, route);
     route.vehicles = route.vehicles.map((vehicle) => resolveVehicle(vehicle, route));
+    if (route.operatorDetail) route.operatorDetail = resolveOperatorDetail(route.operatorDetail, route);
   }
   return report;
 
@@ -67,6 +69,35 @@ export function applyTranslations(dataset: RouteDataset, feed: GtfsFeed, transla
     if (hit?.entry.en && (hit.entry.override || placeholder)) return use('operators', hit.th, { th: text.th, en: hit.entry.en });
     if (placeholder && /[ก-๛]/.test(text.th) && text.th !== 'เอกชน') note(report.unresolvedOperators, text.th, route.id);
     return text;
+  }
+
+  /**
+   * "A (ให้บริการในนาม B)" → "A (operating as B)", each name through the same
+   * lookup as the card's operator. Missing pieces are reported so they land
+   * in the operators section as drafts.
+   */
+  function resolveOperatorDetail(text: LocalizedText, route: Route): LocalizedText {
+    const match = OPERATING_AS.exec(text.th);
+    const parts = match?.[1] !== undefined && match[2] !== undefined ? [match[1].trim(), match[2].trim()] : [text.th];
+    const english = parts.map((name) => operatorEnglish(name, route));
+    if (english.some((en) => en === undefined)) return text;
+    const en = english.length === 2 ? `${english[0]} (operating as ${english[1]})` : english[0] ?? '';
+    return { th: text.th, en };
+  }
+
+  function operatorEnglish(name: string, route: Route): string | undefined {
+    // An entry first: "บจก.สมาร์ทบัส" is a TSB subsidiary and must read
+    // "Smart Bus" here, though the big-operator matcher folds it into TSB.
+    const hit = operators.find(name);
+    if (hit?.entry.en) {
+      report.used.operators.add(hit.th);
+      return hit.entry.en;
+    }
+    const key = operatorKey(name);
+    const known = key === undefined ? undefined : OPERATOR_NAMES[key];
+    if (known?.en) return known.en;
+    note(report.unresolvedOperators, name, route.id);
+    return undefined;
   }
 
   /** Vehicle descriptions exist only in Wikipedia, so entries are the only source of English. */
