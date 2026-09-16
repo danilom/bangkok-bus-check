@@ -272,11 +272,12 @@ function addArrowLayer(map: MapLibreMap, props: RouteMapProps): void {
       'symbol-placement': 'line',
       'symbol-spacing': ['interpolate', ['linear'], ['zoom'], 9, 90, 14, 140],
       'icon-image': ARROW,
-      'icon-size': ['interpolate', ['linear'], ['zoom'], 9, 0.7, 15, 1.2],
+      'icon-size': ['interpolate', ['linear'], ['zoom'], 9, 1.4, 15, 2.2],
       'icon-rotation-alignment': 'map',
       'icon-allow-overlap': true,
       'icon-ignore-placement': true,
     },
+    paint: { 'icon-opacity': 0.6 },
   });
 }
 
