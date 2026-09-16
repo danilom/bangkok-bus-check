@@ -200,7 +200,7 @@ function stopFeatures(props: RouteMapProps): FeatureCollection<Point> {
 
 function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
   const surface = props.dark ? '#121212' : '#ffffff';
-  addLabelBoxImage(map);
+  addLabelBoxImage(map, props.dark);
   map.addSource(STOPS_SOURCE, { type: 'geojson', data: stopFeatures(props) });
   map.addLayer({
     id: 'stops-dot',
@@ -251,36 +251,43 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
       'icon-image': LABEL_BOX,
       'icon-text-fit': 'both',
       // The fit already follows the text's offset; an icon offset of its own would double it.
-      'icon-text-fit-padding': [2, 5, 3, 5],
+      'icon-text-fit-padding': [3, 7, 4, 7],
       'icon-anchor': 'center',
       'icon-offset': [0, 0],
       'symbol-sort-key': ['match', ['get', 'rank'], 'terminus', 0, 'major', 1, 2],
     },
     paint: {
-      'text-color': '#ffffff',
+      'text-color': props.dark ? '#e0e0e0' : '#212121',
     },
   });
 }
 
 const LABEL_BOX = 'label-box';
 
-/** The label background: a tiny rounded translucent square the symbol layer stretches to each label. */
-function addLabelBoxImage(map: MapLibreMap): void {
-  if (map.hasImage(LABEL_BOX)) return;
-  // Drawn at 2x so the corners are crisp on phone screens: 12 css px square, 5 css px radius.
-  const size = 24;
-  const radius = 10;
+/**
+ * The label background: a small card in the app's terms (surface colour,
+ * 1px border, rounded), drawn at 2x for crisp corners and stretched to each
+ * label; the stretch zones keep the border and corners at their size.
+ */
+function addLabelBoxImage(map: MapLibreMap, dark: boolean): void {
+  if (map.hasImage(LABEL_BOX)) map.removeImage(LABEL_BOX);
+  const scale = 2;
+  const radius = 8 * scale;
+  const size = radius * 2 + 4 * scale;
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
-  ctx.fillStyle = 'rgba(18, 18, 18, 0.72)';
+  ctx.fillStyle = dark ? 'rgba(30, 30, 30, 0.92)' : 'rgba(255, 255, 255, 0.92)';
+  ctx.strokeStyle = dark ? '#3a3a3a' : '#d6d6d6';
+  ctx.lineWidth = scale;
   ctx.beginPath();
-  ctx.roundRect(0, 0, size, size, radius);
+  ctx.roundRect(scale / 2, scale / 2, size - scale, size - scale, radius);
   ctx.fill();
+  ctx.stroke();
   map.addImage(LABEL_BOX, ctx.getImageData(0, 0, size, size), {
-    pixelRatio: 2,
+    pixelRatio: scale,
     stretchX: [[radius, size - radius]],
     stretchY: [[radius, size - radius]],
     content: [radius, radius, size - radius, size - radius],
