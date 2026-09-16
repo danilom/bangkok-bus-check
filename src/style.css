@@ -32,7 +32,6 @@
  * 100 as the light soft backgrounds; dark soft backgrounds are the 900
  * shade blended towards the dark surface.
  */
-:root,
 :root[data-accent="blue"] {
   --accent-l: #1976d2;
   --accent-soft-l: #e3f2fd;
@@ -51,6 +50,7 @@
   --match-d: #2e5a33;
 }
 
+:root,
 :root[data-accent="purple"] {
   --accent-l: #512da8;
   --accent-soft-l: #ede7f6;

@@ -67,7 +67,7 @@ export function saveTheme(theme: Theme): void {
 
 export function loadAccent(): Accent {
   const value = read(ACCENT_KEY);
-  return ACCENTS.find((accent) => accent === value) ?? 'blue';
+  return ACCENTS.find((accent) => accent === value) ?? 'purple';
 }
 
 export function saveAccent(accent: Accent): void {
