@@ -129,9 +129,13 @@ function renderLocationPanel(props: DetailViewProps): HTMLElement | false {
   }
   if (location.kind === 'locating') return h('p', { class: 'muted', text: t(lang, 'locating') });
   const key = location.reason === 'denied' ? 'locationDenied' : location.reason === 'unsupported' ? 'locationUnsupported' : 'locationUnavailable';
+  // Errors: retry, or turn the feature off (same as the settings toggle).
   return h('div', { class: 'location-explain' }, [
     h('p', { class: 'muted', text: t(lang, key) }),
-    location.reason !== 'unsupported' && h('button', { class: 'text-button', attrs: { type: 'button' }, text: t(lang, 'retry'), on: { click: props.onLocation } }),
+    h('div', { class: 'chips' }, [
+      location.reason !== 'unsupported' && h('button', { class: 'chip is-selected', attrs: { type: 'button' }, text: t(lang, 'retry'), on: { click: props.onLocation } }),
+      h('button', { class: 'chip chip-quiet', attrs: { type: 'button' }, text: t(lang, 'turnOff'), on: { click: props.onLocationDismiss } }),
+    ]),
   ]);
 }
 

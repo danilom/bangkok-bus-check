@@ -49,6 +49,7 @@ const STRINGS = {
     th: 'แสดงเฉพาะป้ายที่อยู่ข้างหน้าคุณ ตำแหน่งของคุณจะไม่ถูกส่งไปที่ใด',
   },
   locationUse: { en: 'Use location', th: 'ใช้ตำแหน่ง' },
+  turnOff: { en: 'Turn off', th: 'ปิด' },
   dontAsk: { en: 'No, don’t ask again', th: 'ไม่ ไม่ต้องถามอีก' },
   locating: { en: 'Finding your position\u2026', th: 'กำลังหาตำแหน่ง\u2026' },
   locationDenied: { en: 'Location is blocked for this site in your browser.', th: 'เบราว์เซอร์ไม่อนุญาตให้เว็บนี้ใช้ตำแหน่ง' },
