@@ -40,6 +40,7 @@ bbc extract-places --feed-english  # also list the feed's English, as lines you 
 bbc build-data --strict          # fail instead of warning when anything would show untranslated
 bbc landmarks 2-45 73            # print a route's condensed stop list with the reason each stop is kept
 bbc landmarks --audit            # dataset-wide numbers for judging the landmark keywords
+bbc map 2-45 1-76                # draw routes (shapes, stops, landmarks) as SVG into public/dev-maps
 ```
 
 Snapshots in `data/raw/` are committed so `build-data` is deterministic and
@@ -72,6 +73,11 @@ word → colour dictionary in `data/overrides/vehicle-colours.json`. The swatch
 is a readable approximation of the livery, not a paint code — the one place
 the app draws something the data does not literally say. A colour word
 missing from the dictionary means no swatch and a build warning.
+
+Route geometry comes from the feed's `shapes.txt`, reduced on fetch to
+`data/raw/namtang/shapes.json` (Bangkok-box shapes only, 2 m simplified,
+identical shapes stored once) and simplified again to 8 m for the app,
+where each direction carries its line as `[lon, lat]` pairs.
 
 The feed models hail-and-ride stretches (vans, suburban routes) as chains
 of virtual stops named "visual stop". They are kept with their coordinates

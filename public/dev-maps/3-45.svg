@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 2745" width="100%" font-family="system-ui, sans-serif" font-size="11">
+<rect width="100%" height="100%" fill="#fafafa"/>
+<text x="30" y="20" font-size="14" font-weight="bold">3-45: Mochit 2 – Central RAMA 3</text>
+<path d="M512.9,566.1 L485.5,637.0 L510.6,653.6 L532.6,662.3 L585.7,515.3 L592.6,505.4 L593.6,492.7 L589.2,461.4 L593.0,453.8 L598.1,449.0 L607.8,445.3 L616.6,447.4 L648.6,475.5 L657.2,474.1 L668.1,455.9 L674.5,437.8 L674.3,383.9 L684.4,379.2 L676.9,314.7 L661.7,252.7 L663.9,210.2 L680.5,167.1 L700.2,134.0 L740.3,101.8 L749.3,80.9 L787.4,79.0 L843.2,67.6 L851.8,61.2 L852.5,56.2 L849.9,51.5 L841.7,50.0 L836.6,56.2 L840.5,110.7 L839.2,149.3 L858.9,353.9 L863.4,385.8 L868.9,406.9 L870.0,443.0 L867.4,445.7 L856.5,446.1 L851.8,449.0 L817.6,512.2 L717.8,683.2 L708.2,704.4 L523.4,1236.0 L477.2,1324.4 L475.9,1342.2 L473.1,1349.0 L460.3,1356.3 L456.8,1360.6 L397.3,1470.7 L401.0,1476.5 L560.5,1515.7 L571.8,1512.3 L586.8,1501.2 L598.3,1497.2 L613.1,1497.8 L636.0,1494.5 L648.2,1495.2 L665.1,1501.8 L666.9,1505.5 L665.6,1510.3 L638.8,1504.7 L601.6,1500.5 L587.6,1504.3 L566.7,1517.7 L560.9,1518.6 L547.2,1515.3 L542.1,1517.7 L518.7,1623.7 L477.0,1916.6 L443.4,2008.6 L433.9,2026.2 L423.4,2033.0 L356.2,2059.0 L59.1,2169.2 L32.4,2233.5 L65.5,2242.8 L84.4,2241.1 L311.1,2171.9 L319.8,2173.6 L456.8,2455.7 L498.0,2534.0 L531.8,2584.2 L517.7,2610.1 L502.2,2632.7 L478.5,2653.6 L429.4,2676.2 L417.2,2677.7 L367.8,2697.6 L364.8,2689.5 L374.2,2686.8 L376.2,2682.0 L414.2,2664.6 L466.1,2645.3" fill="none" stroke="#7e57c2" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" opacity="0.85"/>
+<path d="M364.8,2689.5 L355.0,2662.3 L320.5,2691.1 L292.2,2711.1 L292.0,2714.6 L372.3,2686.2 L401.4,2670.6 L469.9,2643.9 L489.2,2630.2 L503.9,2615.1 L523.6,2584.0 L493.5,2539.2 L450.8,2458.0 L313.6,2175.8 L100.4,2240.1 L78.2,2248.6 L62.5,2248.8 L30.0,2240.3 L59.7,2166.1 L427.9,2028.5 L435.2,2019.4 L469.1,1931.9 L476.8,1900.2 L518.1,1630.1 L543.5,1511.7 L545.0,1392.8 L543.6,1379.7 L480.6,1348.4 L463.3,1351.9 L459.0,1350.0 L455.8,1344.5 L459.8,1332.8 L476.3,1320.2 L518.1,1241.4 L695.3,737.5 L698.5,719.1 L705.4,698.4 L850.9,442.2 L849.9,420.6 L853.9,406.7 L854.2,390.1 L847.7,350.4 L836.6,195.3 L828.7,135.2 L819.1,98.7 L805.4,95.0 L789.5,87.5 L782.4,87.1 L763.0,93.5 L735.1,108.4 L699.8,136.8 L676.1,181.2 L671.6,194.1 L667.1,211.5 L664.7,249.4 L667.5,268.1 L680.8,320.1 L687.8,377.9 L687.6,401.3 L684.2,426.4 L679.9,441.1 L655.7,481.8 L651.7,492.3 L650.8,510.6 L654.0,575.7 L651.4,577.3 L650.2,575.7 L644.2,479.1 L615.0,452.1 L608.8,449.8 L596.8,454.2 L590.9,462.1 L593.9,493.0 L593.2,505.8 L588.7,513.7 L584.9,516.4 L551.0,503.5 L544.2,506.8 L528.4,525.7 L512.5,565.9" fill="none" stroke="#9e9e9e" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="0.85"/>
+<circle cx="512.8" cy="566.1" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<text x="518.8" y="570.1">Rear Krung Thep Aphiwat Central Terminal</text>
+<circle cx="563.6" cy="574.9" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<text x="569.6" y="578.9">[Drop off] Krung Thep Aphiwat Central Terminal</text>
+<circle cx="675.1" cy="408.0" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<text x="681.1" y="412.0">Mo Chit 2 Bus Terminal (in front of Sao Thong)</text>
+<circle cx="662.2" cy="215.8" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="693.1" cy="140.6" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<text x="699.1" y="144.6">Chatuchak Station</text>
+<circle cx="844.1" cy="181.0" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="854.5" cy="286.4" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="815.5" cy="518.9" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<text x="821.5" y="522.9">BTS Visionary Park</text>
+<circle cx="752.7" cy="626.8" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<text x="758.7" y="630.8">Opposite Chatuchak Park (Stop 2)</text>
+<circle cx="733.9" cy="659.6" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<text x="739.9" y="663.6">Department of Land Transport</text>
+<circle cx="704.5" cy="720.3" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="688.5" cy="766.9" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="677.1" cy="799.5" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<text x="683.1" y="803.5">BTS Saphan Khwai (Exit 2)</text>
+<circle cx="631.9" cy="929.9" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="615.5" cy="975.2" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="587.9" cy="1053.9" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="571.7" cy="1101.0" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="553.1" cy="1153.7" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="542.0" cy="1185.6" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<text x="548.0" y="1189.6">BTS Sanampao (Exit 4)</text>
+<circle cx="517.6" cy="1250.3" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="494.8" cy="1293.7" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="471.0" cy="1355.5" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<text x="477.0" y="1359.5">Victory Monument (Phaya Thai)</text>
+<circle cx="436.3" cy="1400.8" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="411.9" cy="1444.9" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="443.9" cy="1486.2" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="472.5" cy="1493.2" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="532.3" cy="1564.2" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<text x="538.3" y="1568.2">Indra Square Pratunam (Opoosite)</text>
+<circle cx="511.1" cy="1684.9" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="502.0" cy="1758.5" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="490.4" cy="1834.5" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<text x="496.4" y="1838.5">BTS Ratchadamri (Exit 2)</text>
+<circle cx="483.4" cy="1881.8" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="462.2" cy="1960.6" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<text x="468.2" y="1964.6">Lumphini Park (Ratchadamri side)</text>
+<circle cx="450.2" cy="1992.7" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="393.1" cy="2045.5" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="329.9" cy="2069.3" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="254.2" cy="2097.1" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="216.7" cy="2110.1" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="175.2" cy="2125.7" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="136.1" cy="2140.6" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="72.3" cy="2164.3" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="43.9" cy="2208.9" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<text x="49.9" y="2212.9">Opposite Central Bangrak</text>
+<circle cx="43.1" cy="2235.0" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="157.1" cy="2217.6" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<text x="163.1" y="2221.6">BTS Surasak (Exit 3)</text>
+<circle cx="196.9" cy="2205.3" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="247.2" cy="2190.2" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="333.7" cy="2199.3" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="377.2" cy="2288.5" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="399.6" cy="2334.0" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="437.5" cy="2412.8" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="478.0" cy="2492.0" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="511.3" cy="2552.4" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="517.9" cy="2612.1" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="482.9" cy="2653.6" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="372.2" cy="2686.4" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="465.2" cy="2642.5" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<text x="471.2" y="2646.5">Central Rama 3</text>
+<circle cx="372.2" cy="2686.4" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="465.2" cy="2642.5" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<circle cx="512.4" cy="2600.1" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="505.7" cy="2560.9" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="476.0" cy="2509.8" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="461.3" cy="2481.6" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="421.4" cy="2400.5" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="402.7" cy="2358.4" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="379.0" cy="2311.6" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="359.3" cy="2272.6" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="337.6" cy="2227.9" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="285.5" cy="2185.6" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="218.8" cy="2206.0" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="170.1" cy="2220.8" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<circle cx="97.2" cy="2242.9" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="47.7" cy="2194.0" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<circle cx="77.4" cy="2156.8" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="123.9" cy="2139.4" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<circle cx="151.2" cy="2129.7" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="189.7" cy="2115.6" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="243.3" cy="2095.9" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="333.8" cy="2063.1" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="377.0" cy="2046.9" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<circle cx="449.0" cy="1980.4" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="464.5" cy="1939.3" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="479.2" cy="1876.1" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="485.5" cy="1830.8" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<circle cx="493.7" cy="1779.9" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="509.9" cy="1677.2" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<circle cx="531.2" cy="1563.9" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<circle cx="543.3" cy="1477.1" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="543.3" cy="1420.3" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="510.2" cy="1363.6" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="461.3" cy="1325.4" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<circle cx="493.9" cy="1285.5" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="519.3" cy="1237.6" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="531.7" cy="1203.5" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<circle cx="542.5" cy="1172.8" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<circle cx="561.0" cy="1117.4" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="586.4" cy="1047.2" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="614.4" cy="967.1" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="631.2" cy="916.7" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="673.3" cy="797.8" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<circle cx="684.3" cy="767.3" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="752.7" cy="607.6" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<circle cx="762.0" cy="591.9" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<circle cx="808.8" cy="512.9" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="852.0" cy="387.9" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<circle cx="842.4" cy="297.7" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="839.0" cy="238.4" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="833.4" cy="179.2" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="722.3" cy="119.2" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="689.9" cy="156.9" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<circle cx="672.9" cy="194.6" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="689.9" cy="411.5" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+<circle cx="652.0" cy="505.4" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="647.6" cy="560.8" r="2.5" fill="#212121" stroke="#fff" stroke-width="1"/>
+<circle cx="512.8" cy="566.1" r="4" fill="#d13b2f" stroke="#fff" stroke-width="1"/>
+</svg>

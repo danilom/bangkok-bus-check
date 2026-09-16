@@ -6,6 +6,7 @@ import { buildData, DEFAULT_OUTPUT_DIR } from './build-data.ts';
 import { extractPlaces } from './extract-places.ts';
 import { fetchRaw, RAW_SOURCES, type RawSource } from './fetch-raw.ts';
 import { reviewLandmarks } from './review-landmarks.ts';
+import { reviewMap } from './review-map.ts';
 
 const program = new Command('bbc').description('Bangkok Bus Check data tooling');
 
@@ -43,6 +44,14 @@ program
   .option('--audit', 'whole-dataset numbers for judging the keyword rules', false)
   .action(async (ids: string[], options: { all: boolean; audit: boolean }) => {
     await reviewLandmarks(ids, options);
+  });
+
+program
+  .command('map')
+  .description('draw routes as SVG (shapes, stops, landmarks) into public/dev-maps for a look')
+  .argument('<route...>', 'route ids or numbers, e.g. 2-45 73')
+  .action(async (ids: string[]) => {
+    await reviewMap(ids);
   });
 
 program.parseAsync(process.argv).catch((error: unknown) => {

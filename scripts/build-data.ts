@@ -7,7 +7,7 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { RouteDataset, RouteDetail, RouteIndex, Stop } from '../src/lib/types.ts';
-import { NAMTANG_DIR, WIKI_FILE } from './fetch-raw.ts';
+import { NAMTANG_DIR, SHAPES_FILE, WIKI_FILE } from './fetch-raw.ts';
 import { loadLandmarkRules, tagLandmarks } from './landmarks.ts';
 import { loadVehicleColours, tagVehicleColours, VEHICLE_COLOURS_FILE } from './vehicle-colours.ts';
 import { loadTranslations, type Translations } from './lib/translations.ts';
@@ -31,9 +31,19 @@ export interface Sources {
   translations: Translations;
 }
 
+async function readOptional(path: string): Promise<string | undefined> {
+  try {
+    return await readFile(path, 'utf8');
+  } catch (error: unknown) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
+    throw error;
+  }
+}
+
 export async function loadSources(): Promise<Sources> {
   const wikitext = await readFile(WIKI_FILE, 'utf8');
   const read = (table: string): Promise<string> => readFile(join(NAMTANG_DIR, table), 'utf8');
+  const shapesJson = await readOptional(join(NAMTANG_DIR, SHAPES_FILE));
   const feed = parseGtfs({
     agency: await read('agency.txt'),
     feedInfo: await read('feed_info.txt'),
@@ -42,6 +52,7 @@ export async function loadSources(): Promise<Sources> {
     stopTimes: await read('stop_times.txt'),
     stops: await read('stops.txt'),
     frequencies: await read('frequencies.txt'),
+    ...(shapesJson === undefined ? {} : { shapes: shapesJson }),
   });
   return { feed, wiki: parseWikipediaRoutes(wikitext), translations: await loadTranslations() };
 }

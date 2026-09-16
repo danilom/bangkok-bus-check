@@ -7,6 +7,7 @@
 import { canonicalRouteNumber } from '../../src/lib/route-number.ts';
 import type { LocalizedText, Stop } from '../../src/lib/types.ts';
 import { parseCsv } from '../lib/csv.ts';
+import type { LonLat } from '../lib/geometry.ts';
 
 export interface GtfsTables {
   agency: string;
@@ -16,6 +17,8 @@ export interface GtfsTables {
   stops: string;
   frequencies: string;
   feedInfo: string;
+  /** `shapes.json` as written by fetch-raw: simplified shapes plus aliases. Optional so older raw folders still build. */
+  shapes?: string;
 }
 
 export interface GtfsTrip {
@@ -23,6 +26,8 @@ export interface GtfsTrip {
   directionId: 0 | 1;
   headsign?: LocalizedText;
   stops: Stop[];
+  /** The drawn path, [lon, lat], from shapes.txt via fetch-raw's reduction. */
+  shape?: LonLat[];
 }
 
 export interface GtfsRoute {
@@ -49,16 +54,20 @@ export interface GtfsFeed {
 const BUS = '3';
 
 /** Bangkok and the surrounding provinces; intercity coaches leave this box. */
-const BBOX = { minLat: 13.3, maxLat: 14.3, minLon: 100.1, maxLon: 101.1 };
-/** Share of a route's stops that must lie in the box for it to count as a Bangkok route. */
-const MIN_IN_BBOX = 0.9;
+export const BBOX = { minLat: 13.3, maxLat: 14.3, minLon: 100.1, maxLon: 101.1 };
+/** Share of a route's stops (or a shape's points) that must lie in the box to count as Bangkok. */
+export const MIN_IN_BBOX = 0.9;
+
+export function inBangkokBox(lon: number, lat: number): boolean {
+  return lat >= BBOX.minLat && lat <= BBOX.maxLat && lon >= BBOX.minLon && lon <= BBOX.maxLon;
+}
 
 export function parseGtfs(tables: GtfsTables): GtfsFeed {
   const version = parseCsv(tables.feedInfo)[0]?.['feed_version'] ?? 'unknown';
   const agencies = new Map(parseCsv(tables.agency).map((row) => [row['agency_id'] ?? '', localized(row['agency_name'] ?? '')]));
   const stops = parseStops(tables.stops);
   const stopsByTrip = groupStopTimes(tables.stopTimes, stops);
-  const tripsByRoute = groupTrips(tables.trips, stopsByTrip);
+  const tripsByRoute = groupTrips(tables.trips, stopsByTrip, parseShapes(tables.shapes));
   const windows = groupFrequencies(tables.frequencies);
 
   const routes: GtfsRoute[] = [];
@@ -161,7 +170,24 @@ function groupStopTimes(table: string, stops: Map<string, Stop>): Map<string, St
   return ordered;
 }
 
-function groupTrips(table: string, stopsByTrip: Map<string, Stop[]>): Map<string, GtfsTrip[]> {
+/** shape_id → path, aliases resolved; an absent table means no shapes. */
+function parseShapes(json: string | undefined): Map<string, LonLat[]> {
+  const shapes = new Map<string, LonLat[]>();
+  if (!json) return shapes;
+  const parsed: unknown = JSON.parse(json);
+  if (typeof parsed !== 'object' || parsed === null) throw new Error('shapes.json: expected an object');
+  const record = parsed as { shapes?: Record<string, unknown>; aliases?: Record<string, unknown> };
+  for (const [id, path] of Object.entries(record.shapes ?? {})) {
+    if (Array.isArray(path)) shapes.set(id, path as LonLat[]);
+  }
+  for (const [alias, id] of Object.entries(record.aliases ?? {})) {
+    const path = typeof id === 'string' ? shapes.get(id) : undefined;
+    if (path) shapes.set(alias, path);
+  }
+  return shapes;
+}
+
+function groupTrips(table: string, stopsByTrip: Map<string, Stop[]>, shapes: Map<string, LonLat[]>): Map<string, GtfsTrip[]> {
   const byRoute = new Map<string, GtfsTrip[]>();
   for (const row of parseCsv(table)) {
     const tripId = row['trip_id'] ?? '';
@@ -172,6 +198,8 @@ function groupTrips(table: string, stopsByTrip: Map<string, Stop[]>): Map<string
     };
     const headsign = row['trip_headsign'];
     if (headsign) trip.headsign = localized(headsign);
+    const shape = shapes.get(row['shape_id'] ?? '');
+    if (shape) trip.shape = shape;
     const routeId = row['route_id'] ?? '';
     byRoute.set(routeId, [...(byRoute.get(routeId) ?? []), trip]);
   }
@@ -223,7 +251,7 @@ function inBangkok(trips: GtfsTrip[]): boolean {
   const stops = trips.flatMap((trip) => trip.stops).filter((stop) => stop.lat !== undefined && stop.lon !== undefined);
   if (stops.length === 0) return false;
   const inside = stops.filter(
-    (stop) => (stop.lat ?? 0) >= BBOX.minLat && (stop.lat ?? 0) <= BBOX.maxLat && (stop.lon ?? 0) >= BBOX.minLon && (stop.lon ?? 0) <= BBOX.maxLon,
+    (stop) => inBangkokBox(stop.lon ?? 0, stop.lat ?? 0),
   ).length;
   return inside / stops.length >= MIN_IN_BBOX;
 }

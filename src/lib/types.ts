@@ -102,6 +102,8 @@ export interface Direction {
   headsign?: LocalizedText;
   /** A short-turn, expressway or other variant trip rather than the main run. */
   variant: boolean;
+  /** The drawn path as [lon, lat] pairs, simplified for the map; absent when the feed has none. */
+  shape?: [number, number][];
 }
 
 /**

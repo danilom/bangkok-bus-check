@@ -11,6 +11,7 @@
  */
 
 import { isVanNumber, isZoneNumber, pickPrimaryNumber } from '../src/lib/route-number.ts';
+import { simplify } from './lib/geometry.ts';
 import { displayPlace, LOOP_LEFT, LOOP_PREFIX, LOOP_RIGHT, placeVariants, stripLoopMarkers } from './lib/places.ts';
 import type { Direction, LocalizedText, LoopSide, Route, RouteDataset, ServiceFlags, SourceAgreement, Stop } from '../src/lib/types.ts';
 import type { GtfsFeed, GtfsRoute, GtfsTrip } from './sources/gtfs.ts';
@@ -50,6 +51,9 @@ const ATTRIBUTION = [
 ];
 
 /** Minimum name similarity for two termini to count as the same place. */
+/** Map lines: eight metres is invisible at any zoom the app uses and roughly halves the raw point count. */
+const SHAPE_TOLERANCE_METERS = 8;
+
 const SAME_PLACE = 0.5;
 
 export function mergeRoutes(feed: GtfsFeed, wiki: WikiParseResult): { dataset: RouteDataset; report: MergeReport } {
@@ -460,6 +464,7 @@ function toDirection(trip: GtfsTrip, origin: 0 | 1 | undefined, variant: boolean
   };
   if (trip.headsign) direction.headsign = trip.headsign;
   if (origin !== undefined) direction.origin = origin;
+  if (trip.shape) direction.shape = simplify(trip.shape, SHAPE_TOLERANCE_METERS);
   return direction;
 }
 
