@@ -42,7 +42,7 @@ function applyAppearance(theme: Theme, accent: Accent): void {
   else html.dataset['theme'] = theme;
   html.dataset['accent'] = accent;
   const dark = theme === 'dark' || (theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#131316' : '#f6f5f2');
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#121212' : '#fafafa');
 }
 
 export function createApp(root: HTMLElement): void {

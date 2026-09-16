@@ -6,14 +6,14 @@
   --page-width: 432px;
   --font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Thai", "Leelawadee UI", Tahoma, sans-serif;
 
-  /* Light palette. Dark overrides follow; the accent comes from data-accent. */
-  --bg: #f6f5f2;
+  /* Material 2 palette: neutrals from the Grey swatch; accents below. */
+  --bg: #fafafa;
   --surface: #ffffff;
-  --text: #1b1b1f;
-  --muted: #6b6b73;
-  --border: #e2e0da;
-  --warning: #fff2a8;
-  --footer: #9a9a9f;
+  --text: #212121;
+  --muted: #757575;
+  --border: #e0e0e0;
+  --warning: #fff59d;
+  --footer: #9e9e9e;
   --accent: var(--accent-l);
   --accent-soft: var(--accent-soft-l);
   --match: var(--match-l);
@@ -27,72 +27,75 @@
   color-scheme: dark;
 }
 
-/* Each accent defines its light (-l) and dark (-d) tones; the theme picks. */
+/*
+ * Each accent: Material 700 for light text/accents, 200 for dark; 50 and
+ * 100 as the light soft backgrounds; dark soft backgrounds are the 900
+ * shade blended towards the dark surface.
+ */
 :root,
 :root[data-accent="blue"] {
-  --accent-l: #1e5fd6;
-  --accent-soft-l: #e4edff;
-  --match-l: #c5dbff;
-  --accent-d: #6ea8ff;
-  --accent-soft-d: #1a2c4f;
-  --match-d: #24457a;
+  --accent-l: #1976d2;
+  --accent-soft-l: #e3f2fd;
+  --match-l: #bbdefb;
+  --accent-d: #90caf9;
+  --accent-soft-d: #1c2f47;
+  --match-d: #274a75;
 }
 
 :root[data-accent="green"] {
-  --accent-l: #1f7a3f;
-  --accent-soft-l: #e2f3e7;
-  --match-l: #bfe6cb;
-  --accent-d: #5fd08a;
-  --accent-soft-d: #17331f;
-  --match-d: #1f4d2e;
+  --accent-l: #388e3c;
+  --accent-soft-l: #e8f5e9;
+  --match-l: #c8e6c9;
+  --accent-d: #a5d6a7;
+  --accent-soft-d: #1f3a22;
+  --match-d: #2e5a33;
 }
 
 :root[data-accent="purple"] {
-  --accent-l: #6b3fd6;
-  --accent-soft-l: #ede6ff;
-  --match-l: #d6c7ff;
-  --accent-d: #b08cff;
-  --accent-soft-d: #2a1f4f;
-  --match-d: #3f2f7a;
+  --accent-l: #512da8;
+  --accent-soft-l: #ede7f6;
+  --match-l: #d1c4e9;
+  --accent-d: #b39ddb;
+  --accent-soft-d: #2b2245;
+  --match-d: #40336a;
 }
 
 :root[data-accent="orange"] {
-  --accent-l: #d9481c;
-  --accent-soft-l: #fdece6;
-  --match-l: #fbd2c2;
-  --accent-d: #ff7a4d;
-  --accent-soft-d: #3a2119;
-  --match-d: #5c2f1f;
+  --accent-l: #ef6c00;
+  --accent-soft-l: #fff3e0;
+  --match-l: #ffe0b2;
+  --accent-d: #ffcc80;
+  --accent-soft-d: #3d2a12;
+  --match-d: #5c3f1a;
 }
 
 :root[data-accent="red"] {
-  --accent-l: #c8102e;
-  --accent-soft-l: #fde6ea;
-  --match-l: #f9c4cd;
-  --accent-d: #ff6b81;
-  --accent-soft-d: #3f1a22;
-  --match-d: #66222f;
+  --accent-l: #d32f2f;
+  --accent-soft-l: #ffebee;
+  --match-l: #ffcdd2;
+  --accent-d: #ef9a9a;
+  --accent-soft-d: #3d1f1f;
+  --match-d: #5c2b2b;
 }
 
-/* Gray: the accent is just a darker/lighter text tone; highlights stay visible. */
 :root[data-accent="gray"] {
-  --accent-l: #3a3a42;
-  --accent-soft-l: #e8e8ea;
-  --match-l: #d3d3d8;
-  --accent-d: #d0d0d6;
-  --accent-soft-d: #2c2c33;
-  --match-d: #44444d;
+  --accent-l: #424242;
+  --accent-soft-l: #eeeeee;
+  --match-l: #e0e0e0;
+  --accent-d: #e0e0e0;
+  --accent-soft-d: #303030;
+  --match-d: #424242;
 }
 
 /* Dark palette: chosen explicitly, or by the system when nothing is chosen. */
 :root[data-theme="dark"] {
-  --bg: #131316;
-  --surface: #1e1e23;
-  --text: #f1f0ec;
-  --muted: #a0a0a8;
-  --border: #2e2e35;
-  --warning: #5a4a00;
-  --footer: #5c5c64;
+  --bg: #121212;
+  --surface: #1e1e1e;
+  --text: #e0e0e0;
+  --muted: #9e9e9e;
+  --border: #2c2c2c;
+  --warning: #4d4300;
+  --footer: #616161;
   --accent: var(--accent-d);
   --accent-soft: var(--accent-soft-d);
   --match: var(--match-d);
@@ -100,13 +103,13 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #131316;
-    --surface: #1e1e23;
-    --text: #f1f0ec;
-    --muted: #a0a0a8;
-    --border: #2e2e35;
-    --warning: #5a4a00;
-    --footer: #5c5c64;
+    --bg: #121212;
+    --surface: #1e1e1e;
+    --text: #e0e0e0;
+    --muted: #9e9e9e;
+    --border: #2c2c2c;
+    --warning: #4d4300;
+    --footer: #616161;
     --accent: var(--accent-d);
     --accent-soft: var(--accent-soft-d);
     --match: var(--match-d);
@@ -259,12 +262,12 @@ body {
   }
 }
 
-.swatch[data-accent="blue"] { --accent-l: #1e5fd6; --accent-d: #6ea8ff; }
-.swatch[data-accent="green"] { --accent-l: #1f7a3f; --accent-d: #5fd08a; }
-.swatch[data-accent="purple"] { --accent-l: #6b3fd6; --accent-d: #b08cff; }
-.swatch[data-accent="orange"] { --accent-l: #d9481c; --accent-d: #ff7a4d; }
-.swatch[data-accent="red"] { --accent-l: #c8102e; --accent-d: #ff6b81; }
-.swatch[data-accent="gray"] { --accent-l: #3a3a42; --accent-d: #d0d0d6; }
+.swatch[data-accent="blue"] { --accent-l: #1976d2; --accent-d: #90caf9; }
+.swatch[data-accent="green"] { --accent-l: #388e3c; --accent-d: #a5d6a7; }
+.swatch[data-accent="purple"] { --accent-l: #512da8; --accent-d: #b39ddb; }
+.swatch[data-accent="orange"] { --accent-l: #ef6c00; --accent-d: #ffcc80; }
+.swatch[data-accent="red"] { --accent-l: #d32f2f; --accent-d: #ef9a9a; }
+.swatch[data-accent="gray"] { --accent-l: #424242; --accent-d: #e0e0e0; }
 
 .main {
   flex: 1;
