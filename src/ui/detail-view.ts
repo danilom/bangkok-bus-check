@@ -203,8 +203,11 @@ function renderStopList(props: DetailViewProps, direction: Direction, stops: Rec
     const isNearest = nearest !== undefined && index === nearest.index;
     const classes = ['stop', isNearest && 'is-nearest', secondary && !isNearest && 'is-secondary'].filter(Boolean).join(' ');
     return h('li', { class: classes, attrs: { value: String(index + 1) } }, [
-      localize(lang, stop.name),
-      isNearest && nearest && h('span', { class: 'stop-distance', text: ` \u00b7 ${t(lang, 'nearestStop')}, ${formatDistance(nearest.meters)}` }),
+      h('span', { class: 'stop-number', text: String(index + 1) }),
+      h('span', { class: 'stop-name' }, [
+        localize(lang, stop.name),
+        isNearest && nearest && h('span', { class: 'stop-distance', text: ` \u00b7 ${t(lang, 'nearestStop')}, ${formatDistance(nearest.meters)}` }),
+      ]),
     ]);
   };
   const rows: HTMLElement[] = [];

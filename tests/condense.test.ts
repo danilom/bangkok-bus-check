@@ -39,12 +39,16 @@ describe('condenseStops', () => {
   });
 
   it('ignores a minor landmark that sits right after the previous shown stop', () => {
-    assert.deepEqual(shownIndexes(condenseStops(stops('ojoooooooo'), { maxGap: 6 })), [0, 7, 9]);
+    assert.deepEqual(shownIndexes(condenseStops(stops('ojooooooooo'), { maxGap: 6 })), [0, 7, 10]);
   });
 
   it('hides a minor landmark when a major one already breaks the stretch', () => {
-    const segments = condenseStops(stops('ojoLoo'), { maxGap: 6 });
-    assert.deepEqual(shownIndexes(segments), [0, 3, 5]);
+    const segments = condenseStops(stops('ojoLooo'), { maxGap: 6 });
+    assert.deepEqual(shownIndexes(segments), [0, 3, 6]);
+  });
+
+  it('never hides a single stop between two shown ones', () => {
+    assert.deepEqual(shownIndexes(condenseStops(stops('oLoLooo'))), [0, 1, 2, 3, 6]);
   });
 
   it('folds a landmark into the one right before it when both match the same keyword', () => {

@@ -57,6 +57,10 @@ export function condenseStops(stops: readonly Stop[], options: CondenseOptions =
       lastShown = pick;
     }
   }
+  // A hidden run of one stop saves no space and reads as a hole; show the stop.
+  for (let index = 1; index < stops.length - 1; index += 1) {
+    if (!reasons.has(index) && reasons.has(index - 1) && reasons.has(index + 1)) keep(index, 'spacing');
+  }
   return toSegments(stops, reasons);
 }
 
