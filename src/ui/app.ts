@@ -392,7 +392,13 @@ export function createApp(root: HTMLElement): void {
     // The page may have been left while the module loaded.
     if (!routeMap || routeMap.routeId !== route.id || routeMap.instance) return;
     replaceChildren(routeMap.canvas);
-    routeMap.instance = createRouteMap(routeMap.canvas, props);
+    try {
+      routeMap.instance = createRouteMap(routeMap.canvas, props);
+    } catch (error: unknown) {
+      // MapLibre throws when it cannot get a WebGL2 context; nothing to retry.
+      console.warn('map unavailable', error);
+      replaceChildren(routeMap.canvas, h('p', { class: 'muted map-loading', text: t(state.lang, 'mapNoWebgl') }));
+    }
   }
 
   function mapProps(route: RouteSummary, detail: RouteDetail): RouteMapProps {
