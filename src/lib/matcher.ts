@@ -9,7 +9,7 @@
 import { searchKey } from './route-number.ts';
 import type { RouteSummary } from './types.ts';
 
-export type MatchTier = 'exact' | 'variant' | 'prefix' | 'lettered';
+export type MatchTier = 'exact' | 'variant' | 'letteredExact' | 'prefix' | 'lettered';
 
 export interface RouteMatch<R extends RouteSummary = RouteSummary> {
   route: R;
@@ -46,13 +46,16 @@ function matchRoute<R extends RouteSummary>(route: R, key: string): RouteMatch<R
   return best;
 }
 
-const TIER_RANK: Record<MatchTier, number> = { exact: 0, variant: 1, prefix: 2, lettered: 3 };
+const TIER_RANK: Record<MatchTier, number> = { exact: 0, variant: 1, letteredExact: 2, prefix: 3, lettered: 4 };
 
 /**
  * exact:    alias key equals the query ("335" ~ "3-35", "73" ~ "73")
  * variant:  query plus a letter suffix only ("8" ~ "8E", "73" ~ "73ก")
+ * letteredExact: the alias has a prefix the keypad cannot type but its digits
+ *           match exactly ("15" ~ "ต.15", "1" ~ "A1") — a van numbered 15 is a
+ *           far better guess than bus 1500, so this outranks prefix matches
  * prefix:   query is a proper prefix and more digits follow ("7" ~ "70", "1" ~ "1-10")
- * lettered: the alias has a prefix the keypad cannot type ("1" ~ "A1", "S1", "ต.1")
+ * lettered: prefixed alias whose digits only start with the query ("1" ~ "ต.15")
  */
 function classify(aliasKey: string, key: string): MatchTier | undefined {
   if (aliasKey === key) return 'exact';
@@ -61,8 +64,9 @@ function classify(aliasKey: string, key: string): MatchTier | undefined {
     return /^[^0-9]+$/.test(rest) ? 'variant' : 'prefix';
   }
   const unlettered = aliasKey.replace(/^(?:[A-Z]+|ต\.)/, '');
-  if (unlettered !== aliasKey && unlettered.length > 0 && /^\d/.test(key) && unlettered.startsWith(key)) return 'lettered';
-  return undefined;
+  if (unlettered === aliasKey || unlettered.length === 0 || !/^\d/.test(key)) return undefined;
+  if (unlettered === key) return 'letteredExact';
+  return unlettered.startsWith(key) ? 'lettered' : undefined;
 }
 
 function compareMatches(a: RouteMatch, b: RouteMatch): number {

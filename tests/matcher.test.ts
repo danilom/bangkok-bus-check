@@ -65,11 +65,17 @@ describe('findRoutes', () => {
     assert.deepEqual(ids('73'), ['2-45', '73', '2-46']);
   });
 
-  it('lists letter-prefixed routes last for a digit-only query', () => {
-    const matches = findRoutes(routes, '1');
-    const lettered = matches.filter((match) => match.tier === 'lettered').map((match) => match.route.id);
-    assert.deepEqual(lettered, ['A1', 'S1', 'ต.1']);
-    assert.equal(matches.at(-1)?.tier, 'lettered');
+  it('ranks a prefixed route whose digits match exactly above prefix matches', () => {
+    // A van numbered 15 is a better guess for "15" than bus 1500.
+    assert.deepEqual(ids('1').slice(0, 3), ['3-35', 'A1', 'S1']);
+    const tiers = findRoutes(routes, '1').map((match) => match.tier);
+    assert.ok(tiers.indexOf('letteredExact') < tiers.indexOf('prefix'));
+  });
+
+  it('keeps prefixed routes that merely start with the digits last', () => {
+    const many = [route('ต.15'), route('150'), route('151')];
+    assert.deepEqual(findRoutes(many, '1').map((match) => match.tier), ['prefix', 'prefix', 'lettered']);
+    assert.deepEqual(findRoutes(many, '15').map((match) => match.route.id), ['ต.15', '150', '151']);
   });
 
   it('accepts dashes and lowercase letters typed on a desktop keyboard', () => {
