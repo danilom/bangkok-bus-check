@@ -532,15 +532,29 @@ body {
 }
 
 .route-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin: 6px 0 0;
   font-size: 0.9rem;
   color: var(--muted);
 }
 
-.route-meta.is-clipped {
+.route-meta-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.route-meta.is-clipped .route-meta-text {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.route-meta-swatches {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 /* Livery swatch before a vehicle name; bordered so white and cream survive on the light theme. */
@@ -550,8 +564,6 @@ body {
   height: 1.1em;
   border-radius: 3px;
   border: 1px solid var(--border);
-  vertical-align: -0.2em;
-  margin-right: 6px;
 }
 
 /* On the title row, right of the number and former numbers; several badges stack rather than crowd the row. */

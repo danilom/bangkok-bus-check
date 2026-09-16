@@ -73,13 +73,16 @@ export function renderRouteCard({ lang, match, onOpen }: RouteCardProps): HTMLEl
  * "(Euro II)") so the colour and type fit; the route page shows it in full.
  */
 export function renderMeta(lang: Lang, route: RouteSummary, full: boolean): HTMLElement | false {
-  // Swatches lead the line, in the vehicles' order, so every card has its colour cue at the same spot.
+  // Swatches sit at the right end of the line, in the vehicles' order; the text clips before they do.
   const swatches = route.vehicles.map(renderSwatch).filter((swatch): swatch is HTMLElement => swatch !== false);
   const parts: string[] = [];
   if (route.operator) parts.push(localize(lang, route.operator));
   for (const vehicle of route.vehicles) parts.push(full ? localize(lang, vehicle) : withoutParenthetical(localize(lang, vehicle)));
   if (parts.length === 0 && swatches.length === 0) return false;
-  return h('p', { class: full ? 'route-meta' : 'route-meta is-clipped' }, [...swatches, parts.join(' · ')]);
+  return h('p', { class: full ? 'route-meta' : 'route-meta is-clipped' }, [
+    h('span', { class: 'route-meta-text', text: parts.join(' · ') }),
+    swatches.length > 0 && h('span', { class: 'route-meta-swatches' }, swatches),
+  ]);
 }
 
 /** A small square in the livery's colours, one horizontal band per colour word ("cream-red" → cream over red), as on the bus. */
