@@ -59,6 +59,9 @@ export function createApp(root: HTMLElement): void {
     recent: loadRecent(),
   };
   if (initial.routeId) state.routeId = initial.routeId;
+  // Entries this session pushed (detail, settings). In-app Back pops them so
+  // the browser's own Back is never left with a duplicate entry to go through.
+  let pushedEntries = 0;
   const useKeypad = keypadEnabled(location.search, matchMedia('(pointer: coarse)').matches);
   const viewport = testViewport(location.search);
   if (viewport) {
@@ -115,7 +118,19 @@ export function createApp(root: HTMLElement): void {
     state.side = side;
     state.recent = pushRecent(state.recent, route.number);
     history.pushState(null, '', formatHash({ query: state.query, routeId: route.id, side }));
+    pushedEntries += 1;
     void ensureDetail(route.id);
+    render();
+  }
+
+  /** Leaves a pushed screen the way the browser's Back would, so history stays one entry deep. */
+  function leavePushedScreen(fallbackHash: string): void {
+    if (pushedEntries > 0) {
+      // popstate decrements the counter and re-renders from the hash.
+      history.back();
+      return;
+    }
+    history.replaceState(null, '', fallbackHash || currentUrlWithoutHash());
     render();
   }
 
@@ -128,8 +143,7 @@ export function createApp(root: HTMLElement): void {
 
   function closeRoute(): void {
     delete state.routeId;
-    history.replaceState(null, '', formatHash({ query: state.query }) || currentUrlWithoutHash());
-    render();
+    leavePushedScreen(formatHash({ query: state.query }));
   }
 
   /** Keeps `?keypad=1`-style settings when the hash is cleared. */
@@ -140,13 +154,13 @@ export function createApp(root: HTMLElement): void {
   function openSettings(): void {
     state.settings = true;
     history.pushState(null, '', formatHash({ query: state.query, settings: true }));
+    pushedEntries += 1;
     render();
   }
 
   function closeSettings(): void {
     state.settings = false;
-    history.replaceState(null, '', formatHash({ query: state.query }) || currentUrlWithoutHash());
-    render();
+    leavePushedScreen(formatHash({ query: state.query }));
   }
 
   function setTheme(theme: Theme): void {
@@ -274,6 +288,8 @@ export function createApp(root: HTMLElement): void {
   }
 
   window.addEventListener('popstate', () => {
+    // The browser's Back consumed a pushed entry, or went past one.
+    pushedEntries = Math.max(0, pushedEntries - 1);
     const next = readHash(location.hash);
     state.query = next.query;
     state.settings = next.settings ?? false;
