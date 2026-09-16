@@ -4,7 +4,7 @@ import { formatDistance, NEAR_ROUTE_METERS, nearestStop, type Position } from '.
 import type { Direction, RouteDetail, RouteSummary, Stop } from '../lib/types.ts';
 import { renderDirectionPill, renderLoopLine, sideAt, type Side } from './direction-pill.ts';
 import { h } from './dom.ts';
-import { renderMeta, renderNumber, renderVehicles } from './route-card.ts';
+import { renderMeta, renderNumber } from './route-card.ts';
 
 /** Where the location feature stands for this view. */
 export type LocationStatus =
@@ -59,8 +59,7 @@ function renderHeader(props: DetailViewProps): HTMLElement {
     renderNumber(lang, route),
     renderLoopLine(lang, route),
     renderDirectionPill({ lang, route, selected: side, onSelect: props.onSelectSide }),
-    renderVehicles(lang, route, true),
-    renderMeta(lang, route),
+    renderMeta(lang, route, true),
   ]);
   return header;
 }

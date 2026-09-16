@@ -5,6 +5,7 @@ import { renderDirectionPill, renderLoopLine, sideAt, type Side } from './direct
 import { h } from './dom.ts';
 
 /** The number as on the bus, with former numbers small; the matched alias is highlighted. */
+/** The title row: number, former numbers, and the badges right-aligned in the space the row has left. */
 export function renderNumber(lang: Lang, route: RouteSummary, matchedAlias?: string): HTMLElement {
   const former = route.formerNumbers.filter((number) => number !== route.number);
   return h('div', { class: 'route-number' }, [
@@ -18,6 +19,7 @@ export function renderNumber(lang: Lang, route: RouteSummary, matchedAlias?: str
           h('span', { class: `number-former-item${matchedAlias === number ? ' is-match' : ''}`, text: index < former.length - 1 ? `${number}, ` : number }),
         ),
       ]),
+    renderBadges(lang, route),
   ]);
 }
 
@@ -57,27 +59,25 @@ export function renderRouteCard({ lang, match, onOpen }: RouteCardProps): HTMLEl
       renderNumber(lang, route, match.alias),
       renderLoopLine(lang, route),
       renderDirectionPill({ lang, route, onSelect: (side) => onOpen(route, side) }),
-      renderVehicles(lang, route, false),
-      renderMeta(lang, route),
+      renderMeta(lang, route, false),
     ],
   );
   return card;
 }
 
 /**
- * What the bus looks like, the fact that identifies it at the kerb. One line
- * with an ellipsis on a results card (space matters there); the route page
- * shows it in full.
+ * The footer line: operator, then what the bus looks like (the fact that
+ * identifies it at the kerb). On a results card it is one line with an
+ * ellipsis and the vehicle names lose their bracketed part ("(electric)",
+ * "(Euro II)") so the colour and type fit; the route page shows it in full.
  */
-export function renderVehicles(lang: Lang, route: RouteSummary, full: boolean): HTMLElement | false {
-  if (route.vehicles.length === 0) return false;
-  return h('p', { class: full ? 'route-vehicles' : 'route-vehicles is-clipped', text: route.vehicles.map((vehicle) => localize(lang, vehicle)).join(' · ') });
+export function renderMeta(lang: Lang, route: RouteSummary, full: boolean): HTMLElement | false {
+  const vehicles = route.vehicles.map((vehicle) => (full ? localize(lang, vehicle) : withoutParenthetical(localize(lang, vehicle))));
+  const parts = [route.operator && localize(lang, route.operator), ...vehicles].filter((part): part is string => Boolean(part));
+  if (parts.length === 0) return false;
+  return h('p', { class: full ? 'route-meta' : 'route-meta is-clipped', text: parts.join(' · ') });
 }
 
-/** Badges and the operator, on one line under the pill. */
-export function renderMeta(lang: Lang, route: RouteSummary): HTMLElement {
-  return h('div', { class: 'route-meta' }, [
-    renderBadges(lang, route),
-    route.operator && h('span', { class: 'operator', text: localize(lang, route.operator) }),
-  ]);
+function withoutParenthetical(text: string): string {
+  return text.replace(/\s*\([^)]*\)/g, '').trim();
 }
