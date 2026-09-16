@@ -523,13 +523,9 @@ body {
   top: 0;
   transform: translateY(-50%);
   line-height: 1;
-  color: var(--muted);
+  color: var(--accent);
   font-size: 0.7rem;
   letter-spacing: 0.1em;
-}
-
-.stop-gap-lit {
-  color: var(--accent);
 }
 
 .route-meta {

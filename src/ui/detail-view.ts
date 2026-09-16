@@ -40,7 +40,7 @@ export interface DetailViewProps {
   onToggleAllStops: () => void;
 }
 
-/** Dots in a hidden-stretch row. Stretches run up to max(6, n/10) stops, so only the longest routes light them all. */
+/** A hidden stretch is a fixed row of dots; the count is in the row's title only. */
 const GAP_DOTS = 9;
 
 export function renderDetailView(props: DetailViewProps): HTMLElement {
@@ -220,13 +220,8 @@ function renderStopList(props: DetailViewProps, direction: Direction, stops: Rec
       continue;
     }
     // One dot per hidden stop: the length of the stretch at a glance, in one short row.
-    // A fixed row of ten dots, the first `count` of them in the accent: the row's length never varies, its colour tells the stretch.
-    const lit = Math.min(segment.count, GAP_DOTS);
     rows.push(h('li', { class: 'stop-gap', attrs: { title: `${segment.count} ${t(lang, segment.count === 1 ? 'stopOne' : 'stops')}` } }, [
-      h('span', { class: 'stop-gap-dots' }, [
-        h('span', { class: 'stop-gap-lit', text: '\u00b7'.repeat(lit) }),
-        '\u00b7'.repeat(GAP_DOTS - lit),
-      ]),
+      h('span', { class: 'stop-gap-dots', text: '\u00b7'.repeat(GAP_DOTS) }),
     ]));
   }
   const earlier = named.slice(0, start);
