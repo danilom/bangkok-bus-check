@@ -29,7 +29,6 @@ export interface DetailViewProps {
   /** Variant runs (by trip id) the user has expanded; survives re-renders. */
   expanded: Set<string>;
   onSelectSide: (side: Side) => void;
-  onBack: () => void;
   onRetry: () => void;
   location: LocationStatus;
   /** The location button: first tap explains, then asks. */
@@ -43,7 +42,6 @@ export interface DetailViewProps {
 export function renderDetailView(props: DetailViewProps): HTMLElement {
   const { lang, route, side } = props;
   return h('section', { class: 'detail' }, [
-    h('button', { class: 'back-button', attrs: { type: 'button' }, text: `‹ ${t(lang, 'back')}`, on: { click: props.onBack } }),
     renderHeader(props),
     renderStatus(props),
   ]);

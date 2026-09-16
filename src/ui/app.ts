@@ -106,12 +106,14 @@ export function createApp(root: HTMLElement): void {
   const title = h('h1', { class: 'app-title' });
   const langButton = h('button', { class: 'lang-button', attrs: { type: 'button' }, on: { click: toggleLang } });
   const settingsButton = h('button', { class: 'icon-button', attrs: { type: 'button' }, text: '⚙', on: { click: openSettings } });
+  // On a route page the Back button takes the title row's left slot; the title sits centred between it and the actions.
+  const backButton = h('button', { class: 'back-button topbar-back', attrs: { type: 'button' }, on: { click: closeRoute } });
   const content = h('div', { class: 'content' });
   const footer = h('footer', { class: 'footer' });
   const keypadSlot = h('div', { class: 'keypad-slot' });
 
   root.append(
-    h('header', { class: 'topbar' }, [title, h('div', { class: 'topbar-actions' }, [settingsButton, langButton])]),
+    h('header', { class: 'topbar' }, [backButton, title, h('div', { class: 'topbar-actions' }, [settingsButton, langButton])]),
     h('main', { class: 'main' }, [h('div', { class: 'search' }, [input, clearButton]), content]),
     footer,
     keypadSlot,
@@ -278,6 +280,8 @@ export function createApp(root: HTMLElement): void {
     title.textContent = t(lang, 'appName');
     langButton.textContent = t(lang, 'switchLang');
     settingsButton.setAttribute('aria-label', t(lang, 'settings'));
+    backButton.textContent = `‹ ${t(lang, 'back')}`;
+    backButton.hidden = state.routeId === undefined || state.settings;
     input.placeholder = t(lang, 'inputPlaceholder');
     input.setAttribute('aria-label', t(lang, 'inputPlaceholder'));
     clearButton.textContent = '×';
@@ -330,7 +334,6 @@ export function createApp(root: HTMLElement): void {
         side: state.side,
         expanded: state.expandedDirections,
         onSelectSide: selectSide,
-        onBack: closeRoute,
         onRetry: () => void ensureDetail(openRouteSummary.id),
         location: state.locationEnabled ? state.location : { kind: 'disabled' },
         onLocation,
