@@ -79,6 +79,7 @@ export function createRouteMap(container: HTMLElement, initial: RouteMapProps): 
     loaded = true;
     addRouteLayers(map, props);
     addStopLayers(map, props);
+    addLineBlockers(map);
     addPositionLayers(map, props);
     fitToRoute(map, props);
   });
@@ -95,6 +96,7 @@ export function createRouteMap(container: HTMLElement, initial: RouteMapProps): 
         map.once('style.load', () => {
           addRouteLayers(map, props);
           addStopLayers(map, props);
+          addLineBlockers(map);
           addPositionLayers(map, props);
         });
         return;
@@ -166,6 +168,31 @@ function addRouteLayers(map: MapLibreMap, props: RouteMapProps): void {
     filter: ['get', 'selected'],
     layout: { 'line-cap': 'round', 'line-join': 'round' },
     paint: { 'line-color': props.accent, 'line-width': 5 },
+  });
+}
+
+const LINE_BLOCKER = 'line-blocker';
+
+/**
+ * MapLibre only keeps symbols apart from other symbols, so the line gets a
+ * chain of invisible ones: labels that would sit on it are pushed to another
+ * anchor or dropped. Added above the label layers so the chain is placed first.
+ */
+function addLineBlockers(map: MapLibreMap): void {
+  if (!map.hasImage(LINE_BLOCKER)) map.addImage(LINE_BLOCKER, { width: 4, height: 4, data: new Uint8Array(4 * 4 * 4) }, { pixelRatio: 1 });
+  map.addLayer({
+    id: 'route-blockers',
+    type: 'symbol',
+    source: ROUTE_SOURCE,
+    filter: ['get', 'selected'],
+    layout: {
+      'symbol-placement': 'line',
+      'symbol-spacing': 8,
+      'icon-image': LINE_BLOCKER,
+      'icon-allow-overlap': false,
+      'icon-ignore-placement': false,
+      'icon-padding': 0,
+    },
   });
 }
 
@@ -243,8 +270,10 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
       'text-font': FONT,
       // The map page's pill is 0.85rem of a 17px root: the labels match it at every zoom.
       'text-size': 13.5,
-      'text-offset': [0, 0.9],
-      'text-anchor': 'top',
+      // Tried in this order until one spot is free of other labels and of the line's blockers.
+      'text-variable-anchor': ['top', 'bottom', 'right', 'left'],
+      'text-radial-offset': 1.6,
+      'text-justify': 'auto',
       'text-max-width': 9,
       'text-optional': true,
       // A translucent dark box behind the text: a stretched 1-colour image sized to the label.
@@ -254,6 +283,9 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
       'icon-text-fit-padding': [3, 7, 4, 7],
       'icon-anchor': 'center',
       'icon-offset': [0, 0],
+      // Only the text is collision-tested: the fitted box is evaluated at the anchor, not where the text went.
+      'icon-allow-overlap': true,
+      'icon-ignore-placement': true,
       'symbol-sort-key': ['match', ['get', 'rank'], 'terminus', 0, 'major', 1, 2],
     },
     paint: {
