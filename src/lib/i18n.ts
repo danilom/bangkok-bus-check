@@ -43,10 +43,10 @@ const STRINGS = {
   senseLeft: { en: '\u21ba', th: 'วนซ้าย' },
   senseRight: { en: '\u21bb', th: 'วนขวา' },
   settings: { en: 'Settings', th: 'ตั้งค่า' },
-  locationButton: { en: 'Show stops from where I am', th: 'แสดงป้ายจากตำแหน่งของฉัน' },
+  locationButton: { en: 'Use my location', th: 'ใช้ตำแหน่งของฉัน' },
   locationExplain: {
-    en: 'Uses your phone\u2019s location once to find the nearest stop on this route. Nothing leaves your phone \u2014 this app has no server.',
-    th: 'ใช้ตำแหน่งของโทรศัพท์ครั้งเดียวเพื่อหาป้ายที่ใกล้ที่สุดบนสายนี้ ข้อมูลไม่ถูกส่งไปไหน แอปนี้ไม่มีเซิร์ฟเวอร์',
+    en: 'Finds the nearest stop on this route and hides the ones you have passed. Your location is read once, on your phone. Nothing is sent anywhere: this app has no server.',
+    th: 'หาป้ายที่ใกล้ที่สุดบนสายนี้และซ่อนป้ายที่ผ่านมาแล้ว อ่านตำแหน่งจากโทรศัพท์ครั้งเดียว ไม่มีการส่งข้อมูลไปที่ใด แอปนี้ไม่มีเซิร์ฟเวอร์',
   },
   locationUse: { en: 'Use location', th: 'ใช้ตำแหน่ง' },
   dontAsk: { en: 'No, don’t ask again', th: 'ไม่ ไม่ต้องถามอีก' },
