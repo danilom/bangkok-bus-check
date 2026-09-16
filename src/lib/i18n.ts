@@ -45,6 +45,7 @@ const STRINGS = {
   frontSign: { en: 'Front sign (Thai)', th: 'ป้ายหน้ารถ' },
   map: { en: 'Map', th: 'แผนที่' },
   mapLoading: { en: 'Loading the map…', th: 'กำลังโหลดแผนที่…' },
+  stopOfTotal: { en: 'stop {i} of {n}', th: 'ป้ายที่ {i} จาก {n}' },
   mapNoWebgl: { en: 'The map needs WebGL2, which this browser has turned off.', th: 'แผนที่ต้องใช้ WebGL2 ซึ่งเบราว์เซอร์นี้ปิดไว้' },
   loop: { en: 'Loop', th: 'วงกลม' },
   to: { en: 'to', th: 'ไป' },

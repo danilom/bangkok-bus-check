@@ -824,33 +824,38 @@ body {
   margin: 24px 16px;
 }
 
-/* MapLibre's popup in the app's colours. */
+/* The tap popup: unlike the label cards, it is accent-bordered with an accent tip, so it reads as an answer to a tap. */
 .map-canvas .maplibregl-popup-content {
   background: var(--surface);
   color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 8px 12px;
+  border: 2px solid var(--accent);
+  border-radius: 12px;
+  padding: 8px 14px;
   font: inherit;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   line-height: 1.35;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.map-popup-position {
+  color: var(--muted);
+  font-size: 0.85rem;
 }
 
 .map-canvas .maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
-  border-top-color: var(--surface);
+  border-top-color: var(--accent);
 }
 
 .map-canvas .maplibregl-popup-anchor-top .maplibregl-popup-tip {
-  border-bottom-color: var(--surface);
+  border-bottom-color: var(--accent);
 }
 
 .map-canvas .maplibregl-popup-anchor-left .maplibregl-popup-tip {
-  border-right-color: var(--surface);
+  border-right-color: var(--accent);
 }
 
 .map-canvas .maplibregl-popup-anchor-right .maplibregl-popup-tip {
-  border-left-color: var(--surface);
+  border-left-color: var(--accent);
 }
 
 .detail-actions {

@@ -338,7 +338,14 @@ function wireStopPopups(map: MapLibreMap, current: () => RouteMapProps): void {
     if (feature.geometry.type !== 'Point') return;
     const { name, index, total } = feature.properties as { name: string; index: number; total: number };
     const props = current();
-    popup.setLngLat(feature.geometry.coordinates as [number, number]).setText(`${name} \u00b7 ${index}/${total} ${t(props.lang, 'stops')}`).addTo(map);
+    const content = document.createElement('div');
+    const title = document.createElement('strong');
+    title.textContent = name;
+    const position = document.createElement('div');
+    position.className = 'map-popup-position';
+    position.textContent = t(props.lang, 'stopOfTotal').replace('{i}', String(index)).replace('{n}', String(total));
+    content.append(title, position);
+    popup.setLngLat(feature.geometry.coordinates as [number, number]).setDOMContent(content).addTo(map);
   };
   for (const layer of ['stops-dot', 'stops-major', 'stops-label', 'stops-label-all']) {
     map.on('click', layer, (event) => {
