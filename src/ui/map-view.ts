@@ -311,7 +311,7 @@ function addLabelBoxImage(map: MapLibreMap, dark: boolean): void {
   canvas.height = size;
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
-  ctx.fillStyle = dark ? 'rgba(30, 30, 30, 0.92)' : 'rgba(255, 255, 255, 0.92)';
+  ctx.fillStyle = dark ? 'rgba(30, 30, 30, 0.84)' : 'rgba(255, 255, 255, 0.84)';
   ctx.strokeStyle = dark ? '#3a3a3a' : '#d6d6d6';
   ctx.lineWidth = scale;
   ctx.beginPath();
