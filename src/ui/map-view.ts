@@ -200,7 +200,7 @@ function stopFeatures(props: RouteMapProps): FeatureCollection<Point> {
 
 function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
   const surface = props.dark ? '#121212' : '#ffffff';
-  const text = props.dark ? '#e0e0e0' : '#212121';
+  addLabelBoxImage(map);
   map.addSource(STOPS_SOURCE, { type: 'geojson', data: stopFeatures(props) });
   map.addLayer({
     id: 'stops-dot',
@@ -246,13 +246,42 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
       'text-anchor': 'top',
       'text-max-width': 9,
       'text-optional': true,
+      // A translucent dark box behind the text: a stretched 1-colour image sized to the label.
+      'icon-image': LABEL_BOX,
+      'icon-text-fit': 'both',
+      // The fit already follows the text's offset; an icon offset of its own would double it.
+      'icon-text-fit-padding': [1, 3, 2, 3],
+      'icon-anchor': 'center',
+      'icon-offset': [0, 0],
       'symbol-sort-key': ['match', ['get', 'rank'], 'terminus', 0, 'major', 1, 2],
     },
     paint: {
-      'text-color': text,
-      'text-halo-color': surface,
-      'text-halo-width': 1.5,
+      'text-color': '#ffffff',
     },
+  });
+}
+
+const LABEL_BOX = 'label-box';
+
+/** The label background: a tiny rounded translucent square the symbol layer stretches to each label. */
+function addLabelBoxImage(map: MapLibreMap): void {
+  if (map.hasImage(LABEL_BOX)) return;
+  const size = 8;
+  const radius = 3;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  ctx.fillStyle = 'rgba(18, 18, 18, 0.72)';
+  ctx.beginPath();
+  ctx.roundRect(0, 0, size, size, radius);
+  ctx.fill();
+  map.addImage(LABEL_BOX, ctx.getImageData(0, 0, size, size), {
+    pixelRatio: 1,
+    stretchX: [[radius, size - radius]],
+    stretchY: [[radius, size - radius]],
+    content: [radius, radius, size - radius, size - radius],
   });
 }
 
