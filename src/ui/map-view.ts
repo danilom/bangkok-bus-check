@@ -267,12 +267,12 @@ function addArrowLayer(map: MapLibreMap, props: RouteMapProps): void {
     type: 'symbol',
     source: ROUTE_SOURCE,
     filter: AHEAD,
-    minzoom: 12,
+    minzoom: 9,
     layout: {
       'symbol-placement': 'line',
-      'symbol-spacing': 140,
+      'symbol-spacing': ['interpolate', ['linear'], ['zoom'], 9, 90, 14, 140],
       'icon-image': ARROW,
-      'icon-size': ['interpolate', ['linear'], ['zoom'], 12, 0.9, 15, 1.2],
+      'icon-size': ['interpolate', ['linear'], ['zoom'], 9, 0.7, 15, 1.2],
       'icon-rotation-alignment': 'map',
       'icon-allow-overlap': true,
       'icon-ignore-placement': true,
@@ -394,8 +394,8 @@ function stopFeatures(props: RouteMapProps): FeatureCollection<Point> {
       type: 'Feature',
       properties: {
         id: stop.id,
-        // The destination reads like the pill's selected half: "to Saphan Phut Bus Station".
-        name: index === named.length - 1 ? `${t(props.lang, 'to')} ${localize(props.lang, stop.name)}` : localize(props.lang, stop.name),
+        name: localize(props.lang, stop.name),
+        // The destination's label is styled like the pill's selected half.
         destination: index === named.length - 1,
         rank,
         index: index + 1,
