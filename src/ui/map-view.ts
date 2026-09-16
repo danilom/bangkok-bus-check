@@ -5,16 +5,16 @@
  */
 
 import { DARK, LIGHT, layers } from '@protomaps/basemaps';
-import type { FeatureCollection } from 'geojson';
-import { addProtocol, GeoJSONSource, Map as MapLibreMap, NavigationControl, setWorkerUrl, type LngLatBoundsLike, type StyleSpecification } from 'maplibre-gl';
+import type { Feature, FeatureCollection, Point } from 'geojson';
+import { addProtocol, GeoJSONSource, Map as MapLibreMap, NavigationControl, Popup, setWorkerUrl, type FilterSpecification, type LngLatBoundsLike, type MapGeoJSONFeature, type StyleSpecification } from 'maplibre-gl';
 // MapLibre finds its worker by a computed URL that bundlers cannot follow; Vite bundles it for us via ?worker&url.
 import mapWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import { Protocol } from 'pmtiles';
 
 import 'maplibre-gl/dist/maplibre-gl.css';
 
-import type { Lang } from '../lib/i18n.ts';
-import type { RouteDetail, RouteSummary } from '../lib/types.ts';
+import { localize, t, type Lang } from '../lib/i18n.ts';
+import type { Direction, RouteDetail, RouteSummary, Stop } from '../lib/types.ts';
 import type { Side } from './direction-pill.ts';
 
 export interface RouteMapProps {
@@ -36,6 +36,8 @@ export interface RouteMap {
 
 const ASSETS = 'https://protomaps.github.io/basemaps-assets';
 const ROUTE_SOURCE = 'route';
+const STOPS_SOURCE = 'stops';
+const FONT = ['Noto Sans Regular'];
 
 let protocolRegistered = false;
 
@@ -72,8 +74,10 @@ export function createRouteMap(container: HTMLElement, initial: RouteMapProps): 
   map.on('load', () => {
     loaded = true;
     addRouteLayers(map, props);
+    addStopLayers(map, props);
     fitToRoute(map, props);
   });
+  wireStopPopups(map, () => props);
 
   return {
     update(next) {
@@ -83,10 +87,14 @@ export function createRouteMap(container: HTMLElement, initial: RouteMapProps): 
       if (!loaded) return;
       if (restyle) {
         map.setStyle(basemapStyle(props));
-        map.once('style.load', () => addRouteLayers(map, props));
+        map.once('style.load', () => {
+          addRouteLayers(map, props);
+          addStopLayers(map, props);
+        });
         return;
       }
       setRouteData(map, props);
+      setStopData(map, props);
       if (sideChanged) fitToRoute(map, props);
     },
     destroy() {
@@ -152,6 +160,117 @@ function addRouteLayers(map: MapLibreMap, props: RouteMapProps): void {
     layout: { 'line-cap': 'round', 'line-join': 'round' },
     paint: { 'line-color': props.accent, 'line-width': 5 },
   });
+}
+
+/** The run the page shows: the one departing from the other terminus. */
+function selectedRun(props: RouteMapProps): Direction | undefined {
+  const departsFrom: Side = props.side === 0 ? 1 : 0;
+  return props.detail.directions.find((direction) => !direction.variant && direction.origin === departsFrom)
+    ?? props.detail.directions.find((direction) => direction.origin === departsFrom);
+}
+
+/**
+ * The selected run's named stops as points. `rank` drives what is drawn:
+ * termini and major landmarks get a filled dot and a label at every zoom,
+ * ordinary stops a small dot and a label only when zoomed in.
+ */
+function stopFeatures(props: RouteMapProps): FeatureCollection<Point> {
+  const run = selectedRun(props);
+  if (!run) return { type: 'FeatureCollection', features: [] };
+  const named = run.stops.map((id) => props.detail.stops[id]).filter((stop): stop is Stop => stop !== undefined && stop.name.th.length > 0);
+  const features = named.flatMap((stop, index): Feature<Point>[] => {
+    if (stop.lon === undefined || stop.lat === undefined) return [];
+    const terminus = index === 0 || index === named.length - 1;
+    const rank = terminus ? 'terminus' : stop.landmark?.rank === 'major' ? 'major' : 'stop';
+    return [{
+      type: 'Feature',
+      properties: { name: localize(props.lang, stop.name), rank, index: index + 1, total: named.length },
+      geometry: { type: 'Point', coordinates: [stop.lon, stop.lat] },
+    }];
+  });
+  return { type: 'FeatureCollection', features };
+}
+
+function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
+  const surface = props.dark ? '#121212' : '#ffffff';
+  const text = props.dark ? '#e0e0e0' : '#212121';
+  map.addSource(STOPS_SOURCE, { type: 'geojson', data: stopFeatures(props) });
+  map.addLayer({
+    id: 'stops-dot',
+    type: 'circle',
+    source: STOPS_SOURCE,
+    filter: ['==', ['get', 'rank'], 'stop'],
+    minzoom: 11,
+    paint: {
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 2, 14, 4, 16, 6],
+      'circle-color': surface,
+      'circle-stroke-color': props.accent,
+      'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 11, 1, 14, 2],
+    },
+  });
+  map.addLayer({
+    id: 'stops-major',
+    type: 'circle',
+    source: STOPS_SOURCE,
+    filter: ['!=', ['get', 'rank'], 'stop'],
+    paint: {
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, 3, 14, 6, 16, 8],
+      'circle-color': props.accent,
+      'circle-stroke-color': surface,
+      'circle-stroke-width': 2,
+    },
+  });
+  // Two label layers rather than a zoom filter: termini and landmarks from zoom 10, the rest once there is room.
+  const labelLayers: { id: string; filter: FilterSpecification; minzoom: number }[] = [
+    { id: 'stops-label', filter: ['!=', ['get', 'rank'], 'stop'], minzoom: 10 },
+    { id: 'stops-label-all', filter: ['==', ['get', 'rank'], 'stop'], minzoom: 14 },
+  ];
+  for (const { id, filter, minzoom } of labelLayers) map.addLayer({
+    id,
+    type: 'symbol',
+    source: STOPS_SOURCE,
+    filter,
+    minzoom,
+    layout: {
+      'text-field': ['get', 'name'],
+      'text-font': FONT,
+      'text-size': ['interpolate', ['linear'], ['zoom'], 10, 11, 15, 13],
+      'text-offset': [0, 0.9],
+      'text-anchor': 'top',
+      'text-max-width': 9,
+      'text-optional': true,
+      'symbol-sort-key': ['match', ['get', 'rank'], 'terminus', 0, 'major', 1, 2],
+    },
+    paint: {
+      'text-color': text,
+      'text-halo-color': surface,
+      'text-halo-width': 1.5,
+    },
+  });
+}
+
+function setStopData(map: MapLibreMap, props: RouteMapProps): void {
+  const source = map.getSource(STOPS_SOURCE);
+  if (source instanceof GeoJSONSource) source.setData(stopFeatures(props));
+}
+
+/** Tapping a stop shows its name and place in the run. */
+function wireStopPopups(map: MapLibreMap, current: () => RouteMapProps): void {
+  const popup = new Popup({ closeButton: false, closeOnClick: true, offset: 10, maxWidth: '260px' });
+  const show = (feature: MapGeoJSONFeature): void => {
+    if (feature.geometry.type !== 'Point') return;
+    const { name, index, total } = feature.properties as { name: string; index: number; total: number };
+    const props = current();
+    popup.setLngLat(feature.geometry.coordinates as [number, number]).setText(`${name} \u00b7 ${index}/${total} ${t(props.lang, 'stops')}`).addTo(map);
+  };
+  for (const layer of ['stops-dot', 'stops-major', 'stops-label', 'stops-label-all']) {
+    map.on('click', layer, (event) => {
+      const feature = event.features?.[0];
+      if (feature) show(feature);
+    });
+    map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = ''; });
+  }
 }
 
 function setRouteData(map: MapLibreMap, props: RouteMapProps): void {
