@@ -30,7 +30,6 @@ const STRINGS = {
   retry: { en: 'Retry', th: 'ลองใหม่' },
   build: { en: 'Build', th: 'บิลด์' },
   buildOn: { en: 'on', th: 'เมื่อ' },
-  dataAsOf: { en: 'Data as of', th: 'ข้อมูล ณ' },
   switchLang: { en: 'ไทย', th: 'EN' },
   moreRoutes: { en: 'Type more digits to narrow down.', th: 'พิมพ์ตัวเลขเพิ่มเพื่อค้นหาให้แคบลง' },
   badgeExpressway: { en: 'Expressway', th: 'ทางด่วน' },

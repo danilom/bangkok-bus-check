@@ -387,9 +387,7 @@ export function createApp(root: HTMLElement): void {
   function renderFooter(): (HTMLElement | false)[] {
     const { lang, index } = state;
     if (!index) return [];
-    const date = index.generatedAt.slice(0, 10);
     return [
-      h('p', { class: 'footer-line', text: `${t(lang, 'dataAsOf')} ${date}` }),
       ...index.attribution.map((line) => h('p', { class: 'footer-line', text: line })),
       h('p', { class: 'footer-line', text: `${t(lang, 'build')} ${__BUILD_COMMIT__} ${t(lang, 'buildOn')} ${__BUILD_TIME__}` }),
     ];
