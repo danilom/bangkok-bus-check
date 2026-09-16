@@ -13,6 +13,8 @@
   --muted: #757575;
   --border: #e0e0e0;
   --chip: #eeeeee;
+  /* Map controls: MapLibre's icons are black; inverted on dark. */
+  --map-icon-invert: 0;
   --warning: #fff59d;
   --footer: #9e9e9e;
   --accent: var(--accent-l);
@@ -96,6 +98,7 @@
   --muted: #9e9e9e;
   --border: #2c2c2c;
   --chip: #2e2e2e;
+  --map-icon-invert: 1;
   --warning: #4d4300;
   --footer: #616161;
   --accent: var(--accent-d);
@@ -111,6 +114,7 @@
     --muted: #9e9e9e;
     --border: #2c2c2c;
     --chip: #2e2e2e;
+    --map-icon-invert: 1;
     --warning: #4d4300;
     --footer: #616161;
     --accent: var(--accent-d);
@@ -824,17 +828,56 @@ body {
   margin: 24px 16px;
 }
 
-/* The stop-names button, styled like MapLibre's zoom buttons; struck through when names are hidden. */
+/* MapLibre's controls in the app's colours: surface boxes, icons inverted on dark. */
+.map-canvas .maplibregl-ctrl-group {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.map-canvas .maplibregl-ctrl-group button {
+  background-color: transparent;
+}
+
+.map-canvas .maplibregl-ctrl-group button + button {
+  border-top-color: var(--border);
+}
+
+.map-canvas .maplibregl-ctrl-group button:hover,
+.map-canvas .maplibregl-ctrl-group button:active {
+  background-color: var(--chip);
+}
+
+.map-canvas .maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+  filter: invert(var(--map-icon-invert));
+}
+
+.map-canvas .maplibregl-ctrl-attrib {
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 10px;
+}
+
+.map-canvas .maplibregl-ctrl-attrib a {
+  color: var(--text);
+}
+
+.map-canvas .maplibregl-ctrl-attrib-button {
+  filter: invert(var(--map-icon-invert));
+}
+
+/* The stop-names button; struck through when names are hidden. */
 .map-canvas .bbc-labels-button {
   font: inherit;
   font-size: 0.85rem;
   font-weight: 700;
-  color: #333;
+  color: var(--text);
 }
 
 .map-canvas .bbc-labels-button.is-off {
   text-decoration: line-through;
-  color: #999;
+  color: var(--muted);
 }
 
 /* The tap popup: unlike the label cards, it is accent-bordered with an accent tip, so it reads as an answer to a tap. */
