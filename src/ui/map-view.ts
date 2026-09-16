@@ -14,6 +14,7 @@ import { Protocol } from 'pmtiles';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 import { localize, t, type Lang } from '../lib/i18n.ts';
+import type { Position } from '../lib/location.ts';
 import type { Direction, RouteDetail, RouteSummary, Stop } from '../lib/types.ts';
 import type { Side } from './direction-pill.ts';
 
@@ -27,6 +28,8 @@ export interface RouteMapProps {
   accent: string;
   /** Absolute URL of the PMTiles file. */
   tilesUrl: string;
+  /** The user's position when location is on and known; drawn as a dot, never used to move the view. */
+  position?: Position;
 }
 
 export interface RouteMap {
@@ -37,6 +40,7 @@ export interface RouteMap {
 const ASSETS = 'https://protomaps.github.io/basemaps-assets';
 const ROUTE_SOURCE = 'route';
 const STOPS_SOURCE = 'stops';
+const POSITION_SOURCE = 'position';
 const FONT = ['Noto Sans Regular'];
 
 let protocolRegistered = false;
@@ -75,6 +79,7 @@ export function createRouteMap(container: HTMLElement, initial: RouteMapProps): 
     loaded = true;
     addRouteLayers(map, props);
     addStopLayers(map, props);
+    addPositionLayers(map, props);
     fitToRoute(map, props);
   });
   wireStopPopups(map, () => props);
@@ -90,11 +95,13 @@ export function createRouteMap(container: HTMLElement, initial: RouteMapProps): 
         map.once('style.load', () => {
           addRouteLayers(map, props);
           addStopLayers(map, props);
+          addPositionLayers(map, props);
         });
         return;
       }
       setRouteData(map, props);
       setStopData(map, props);
+      setPositionData(map, props);
       if (sideChanged) fitToRoute(map, props);
     },
     destroy() {
@@ -271,6 +278,36 @@ function wireStopPopups(map: MapLibreMap, current: () => RouteMapProps): void {
     map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = ''; });
   }
+}
+
+function positionFeatures(props: RouteMapProps): FeatureCollection<Point> {
+  const { position } = props;
+  return {
+    type: 'FeatureCollection',
+    features: position ? [{ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [position.lon, position.lat] } }] : [],
+  };
+}
+
+/** The user's position: a soft halo and a solid dot, above the stops. */
+function addPositionLayers(map: MapLibreMap, props: RouteMapProps): void {
+  map.addSource(POSITION_SOURCE, { type: 'geojson', data: positionFeatures(props) });
+  map.addLayer({
+    id: 'position-halo',
+    type: 'circle',
+    source: POSITION_SOURCE,
+    paint: { 'circle-radius': 16, 'circle-color': props.accent, 'circle-opacity': 0.2 },
+  });
+  map.addLayer({
+    id: 'position-dot',
+    type: 'circle',
+    source: POSITION_SOURCE,
+    paint: { 'circle-radius': 7, 'circle-color': props.accent, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2.5 },
+  });
+}
+
+function setPositionData(map: MapLibreMap, props: RouteMapProps): void {
+  const source = map.getSource(POSITION_SOURCE);
+  if (source instanceof GeoJSONSource) source.setData(positionFeatures(props));
 }
 
 function setRouteData(map: MapLibreMap, props: RouteMapProps): void {

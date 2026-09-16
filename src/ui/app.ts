@@ -410,6 +410,7 @@ export function createApp(root: HTMLElement): void {
       lang: state.lang,
       dark,
       accent: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#7e57c2',
+      ...(state.locationEnabled && state.location.kind === 'ready' ? { position: state.location.position } : {}),
       tilesUrl: new URL(`${import.meta.env.BASE_URL}tiles/bangkok.pmtiles`, location.href).toString(),
     };
   }
