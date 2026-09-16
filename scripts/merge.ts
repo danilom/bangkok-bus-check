@@ -122,6 +122,7 @@ export function operatorKey(name: string | undefined): string | undefined {
   const lower = name.toLowerCase();
   if (/ขสมก|bmta|องค์การขนส่งมวลชน/.test(lower)) return 'bmta';
   if (/ไทยสมายล์|thai ?smile|\btsb\b|สมาร์ทบัส|smart ?bus/.test(lower)) return 'tsb';
+  if (/^กทม\.?$|กรุงเทพมหานคร|^bma$|bangkok metropolitan admin/.test(lower)) return 'bma';
   if (lower === 'dlt') return 'dlt';
   return lower.replace(/บจก\.|บมจ\.|บริษัท|จำกัด|\(มหาชน\)|co\.|ltd\.?|\s+/g, '');
 }
@@ -435,7 +436,12 @@ function agreement(terminals: [LocalizedText, LocalizedText] | [undefined, undef
 const OPERATOR_NAMES: Record<string, LocalizedText> = {
   bmta: { th: 'ขสมก.', en: 'BMTA' },
   tsb: { th: 'ไทยสมายล์บัส', en: 'Thai Smile Bus' },
+  bma: { th: 'กทม.', en: 'BMA' },
 };
+
+/** Wikipedia's generic "private" entry, and the English shown for any private company on the card. */
+const PRIVATE_OPERATOR_TH = 'เอกชน';
+const PRIVATE_OPERATOR_EN = 'Private operator';
 
 /**
  * Big operators by their short name, whichever source names them; private
@@ -445,17 +451,27 @@ const OPERATOR_NAMES: Record<string, LocalizedText> = {
 function pickOperator(primary: GtfsRoute | undefined, wikiBase: WikiRoute | undefined): { short: LocalizedText; detail?: LocalizedText } | undefined {
   const wikiText = wikiBase?.operator;
   const agencyKey = operatorKey(primary?.agencyId);
-  // "DLT" is the licensing department, not an operator: look to Wikipedia instead.
-  const key = (agencyKey === 'dlt' ? undefined : agencyKey) ?? operatorKey(wikiText);
-  const known = key === undefined ? undefined : OPERATOR_NAMES[key];
+  const wikiKey = operatorKey(wikiText);
+  // A big operator counts whichever source names it: the feed files some TSB
+  // routes under subsidiary agencies, and "DLT" is the licensing department.
+  const known = (agencyKey && OPERATOR_NAMES[agencyKey]) ?? (wikiKey && OPERATOR_NAMES[wikiKey]);
   const detail = wikiText && known && wikiText !== known.th ? { th: wikiText } : undefined;
   if (known) return detail ? { short: known, detail } : { short: known };
   if (wikiText) {
+    // Private companies keep their Thai name; the English card says only that
+    // it is a private operator, which is all a non-Thai reader can use.
     const short = wikiText.replace(/\s*\(ให้บริการในนาม[^)]*\)/g, '').trim();
-    return short !== wikiText ? { short: { th: short }, detail: { th: wikiText } } : { short: { th: wikiText } };
+    const shortName: LocalizedText = { th: short || PRIVATE_OPERATOR_TH, en: PRIVATE_OPERATOR_EN };
+    return short !== wikiText ? { short: shortName, detail: { th: wikiText } } : { short: shortName };
   }
-  if (primary && agencyKey !== 'dlt') return { short: primary.agencyName };
+  if (primary && agencyKey !== 'dlt') return { short: englishOrPrivate(primary.agencyName) };
   return undefined;
+}
+
+/** A feed agency name whose "English" half is still Thai gets the generic English. */
+function englishOrPrivate(name: LocalizedText): LocalizedText {
+  const en = name.en && !/[ก-๛]/.test(name.en) ? name.en : PRIVATE_OPERATOR_EN;
+  return { th: name.th, en };
 }
 
 function serviceFlags(key: string, entries: GtfsRoute[], rows: WikiRoute[]): ServiceFlags {
