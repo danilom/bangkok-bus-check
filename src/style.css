@@ -225,6 +225,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  /* Room between the last setting and the footer. */
+  padding-bottom: 32px;
 }
 
 .settings-title {
