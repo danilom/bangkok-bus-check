@@ -726,6 +726,11 @@ body {
   border-left-color: var(--accent);
 }
 
+/* Ordinary stops when the full list is open: readable, but the landmarks lead. */
+.stop.is-secondary {
+  color: var(--muted);
+}
+
 .stop-distance {
   color: var(--accent);
   font-weight: 500;

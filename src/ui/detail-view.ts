@@ -193,12 +193,16 @@ function renderStopList(props: DetailViewProps, direction: Direction, stops: Rec
   const forced = new Map<number, string>();
   if (onRoute) for (let offset = 0; offset < 3 && offset < upcoming.length; offset += 1) forced.set(offset, 'nearest');
   else if (nearest) forced.set(nearest.index, 'nearest');
-  const segments = props.showAllStops ? upcoming.map((stop, index): Segment => ({ kind: 'stop', index, stop, reason: 'all' })) : condenseStops(upcoming, { forced });
-  const condensed = segments.some((segment) => segment.kind === 'gap') || props.showAllStops;
+  const condensedSegments = condenseStops(upcoming, { forced });
+  // With everything shown, the stops the condensed list would keep stay prominent and the rest step back.
+  const prominent = new Set(condensedSegments.flatMap((segment) => (segment.kind === 'stop' ? [segment.index] : [])));
+  const segments = props.showAllStops ? upcoming.map((stop, index): Segment => ({ kind: 'stop', index, stop, reason: prominent.has(index) ? 'kept' : 'all' })) : condensedSegments;
+  const condensed = condensedSegments.some((segment) => segment.kind === 'gap');
 
-  const item = (stop: Stop, index: number): HTMLElement => {
+  const item = (stop: Stop, index: number, secondary = false): HTMLElement => {
     const isNearest = nearest !== undefined && index === nearest.index;
-    return h('li', { class: isNearest ? 'stop is-nearest' : 'stop', attrs: { value: String(index + 1) } }, [
+    const classes = ['stop', isNearest && 'is-nearest', secondary && !isNearest && 'is-secondary'].filter(Boolean).join(' ');
+    return h('li', { class: classes, attrs: { value: String(index + 1) } }, [
       localize(lang, stop.name),
       isNearest && nearest && h('span', { class: 'stop-distance', text: ` \u00b7 ${t(lang, 'nearestStop')}, ${formatDistance(nearest.meters)}` }),
     ]);
@@ -206,7 +210,7 @@ function renderStopList(props: DetailViewProps, direction: Direction, stops: Rec
   const rows: HTMLElement[] = [];
   for (const segment of segments) {
     if (segment.kind === 'stop') {
-      rows.push(item(segment.stop, start + segment.index));
+      rows.push(item(segment.stop, start + segment.index, segment.reason === 'all'));
       continue;
     }
     // One dot per hidden stop: the length of the stretch at a glance, in one short row.
