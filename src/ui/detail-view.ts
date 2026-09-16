@@ -178,7 +178,8 @@ function pinIcon(): SVGSVGElement {
  * stops nearest the user and one per long stretch; a hidden stretch is a row
  * of dots, one per stop, and "Show all" opens everything. With a position, stops already passed collapse
  * behind "n earlier stops" and the nearest is marked with its distance; a
- * position far from the route shows the list from the start and says so.
+ * position far from the route keeps the full list, with the nearest stop
+ * still marked and always shown.
  */
 function renderStopList(props: DetailViewProps, direction: Direction, stops: Record<string, Stop>, position?: Position): HTMLElement {
   const { lang } = props;
@@ -191,11 +192,12 @@ function renderStopList(props: DetailViewProps, direction: Direction, stops: Rec
   const upcoming = named.slice(start);
   const forced = new Map<number, string>();
   if (onRoute) for (let offset = 0; offset < 3 && offset < upcoming.length; offset += 1) forced.set(offset, 'nearest');
+  else if (nearest) forced.set(nearest.index, 'nearest');
   const segments = props.showAllStops ? upcoming.map((stop, index): Segment => ({ kind: 'stop', index, stop, reason: 'all' })) : condenseStops(upcoming, { forced });
   const condensed = segments.some((segment) => segment.kind === 'gap') || props.showAllStops;
 
   const item = (stop: Stop, index: number): HTMLElement => {
-    const isNearest = onRoute && index === start;
+    const isNearest = nearest !== undefined && index === nearest.index;
     return h('li', { class: isNearest ? 'stop is-nearest' : 'stop', attrs: { value: String(index + 1) } }, [
       localize(lang, stop.name),
       isNearest && nearest && h('span', { class: 'stop-distance', text: ` \u00b7 ${t(lang, 'nearestStop')}, ${formatDistance(nearest.meters)}` }),
@@ -217,7 +219,6 @@ function renderStopList(props: DetailViewProps, direction: Direction, stops: Rec
       condensed && h('button', { class: 'text-button stops-toggle', attrs: { type: 'button' }, text: t(lang, props.showAllStops ? 'showFewerStops' : 'showAllStops'), on: { click: props.onToggleAllStops } }),
     ]),
     hailAndRide > 0 && renderHailAndRide(lang, hailAndRide, true),
-    nearest && !onRoute && h('p', { class: 'muted', text: `${t(lang, 'farFromRoute')} ${formatDistance(nearest.meters)} ${t(lang, 'awayFull')}` }),
     earlier.length > 0 &&
       h('details', { class: 'earlier-stops' }, [
         h('summary', { text: `${earlier.length} ${t(lang, 'earlierStops')}` }),

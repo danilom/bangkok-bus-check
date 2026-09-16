@@ -65,8 +65,6 @@ const STRINGS = {
   earlierStops: { en: 'earlier stops', th: 'ป้ายก่อนหน้า' },
   showAllStops: { en: 'Show all', th: 'แสดงทั้งหมด' },
   showFewerStops: { en: 'Show fewer', th: 'แสดงน้อยลง' },
-  farFromRoute: { en: 'The nearest stop on this route is', th: 'ป้ายที่ใกล้ที่สุดบนสายนี้อยู่ห่าง' },
-  awayFull: { en: 'away; showing all stops.', th: 'แสดงป้ายทั้งหมด' },
   locationSetting: { en: 'Location on route pages', th: 'ตำแหน่งในหน้าเส้นทาง' },
   off: { en: 'Off', th: 'ปิด' },
   on: { en: 'On', th: 'เปิด' },
