@@ -667,7 +667,8 @@ body {
 
 .sign-half {
   min-width: 0;
-  padding: 8px 12px;
+  /* More below than above: Thai bodies sit low in a line box that reserves room for tone marks. */
+  padding: 5px 12px 11px;
   font: inherit;
   color: inherit;
   text-align: left;
@@ -687,6 +688,7 @@ body {
   color: var(--accent);
 }
 
+/* A long name fades out at the edge rather than ending in an ellipsis: every character up to the edge stays readable. */
 .sign-th {
   display: block;
   font-size: 2rem;
@@ -694,7 +696,8 @@ body {
   line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
 }
 
 .notes {
