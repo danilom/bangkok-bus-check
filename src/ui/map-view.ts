@@ -6,7 +6,7 @@
 
 import { DARK, LIGHT, layers } from '@protomaps/basemaps';
 import type { Feature, FeatureCollection, Point } from 'geojson';
-import { addProtocol, GeoJSONSource, Map as MapLibreMap, NavigationControl, Popup, setWorkerUrl, type FilterSpecification, type LngLatBoundsLike, type MapGeoJSONFeature, type StyleSpecification } from 'maplibre-gl';
+import { addProtocol, GeoJSONSource, Map as MapLibreMap, NavigationControl, Popup, setWorkerUrl, type FilterSpecification, type IControl, type LngLatBoundsLike, type MapGeoJSONFeature, type StyleSpecification } from 'maplibre-gl';
 // MapLibre finds its worker by a computed URL that bundlers cannot follow; Vite bundles it for us via ?worker&url.
 import mapWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import { Protocol } from 'pmtiles';
@@ -30,6 +30,9 @@ export interface RouteMapProps {
   tilesUrl: string;
   /** The user's position when location is on and known; drawn as a dot, never used to move the view. */
   position?: Position;
+  /** Stop names shown; the map's own button flips it and the app remembers. */
+  labels: boolean;
+  onToggleLabels: () => void;
 }
 
 export interface RouteMap {
@@ -69,6 +72,8 @@ export function createRouteMap(container: HTMLElement, initial: RouteMapProps): 
   });
   map.touchZoomRotate.disableRotation();
   map.addControl(new NavigationControl({ showCompass: false }), 'top-right');
+  const labelsControl = new LabelsControl(() => props);
+  map.addControl(labelsControl, 'top-right');
 
   map.on('error', (event) => console.error('map error', event.error?.message ?? event));
   if (import.meta.env.DEV || location.search.includes('mapdebug')) {
@@ -84,6 +89,7 @@ export function createRouteMap(container: HTMLElement, initial: RouteMapProps): 
     addStopLayers(map, props);
     addLineBlockers(map);
     addPositionLayers(map, props);
+    setLabelsVisible(map, props.labels);
     fitToRoute(map, props);
   });
   wireStopPopups(map, () => props);
@@ -103,12 +109,15 @@ export function createRouteMap(container: HTMLElement, initial: RouteMapProps): 
           addStopLayers(map, props);
           addLineBlockers(map);
           addPositionLayers(map, props);
+          setLabelsVisible(map, props.labels);
         });
         return;
       }
       setRouteData(map, props);
       setStopData(map, props);
       setPositionData(map, props);
+      setLabelsVisible(map, props.labels);
+      labelsControl.refresh();
       if (sideChanged || aheadChanged) fitToRoute(map, props);
     },
     destroy() {
@@ -260,6 +269,50 @@ function addLineBlockers(map: MapLibreMap): void {
       'icon-padding': 0,
     },
   });
+}
+
+const LABEL_LAYERS = ['stops-label', 'stops-label-all'];
+
+function setLabelsVisible(map: MapLibreMap, visible: boolean): void {
+  for (const id of LABEL_LAYERS) {
+    if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none');
+  }
+}
+
+/** A map button under the zoom buttons that shows or hides the stop names. */
+class LabelsControl implements IControl {
+  private button: HTMLButtonElement | undefined;
+  private readonly current: () => RouteMapProps;
+
+  constructor(current: () => RouteMapProps) {
+    this.current = current;
+  }
+
+  onAdd(): HTMLElement {
+    const container = document.createElement('div');
+    container.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+    this.button = document.createElement('button');
+    this.button.type = 'button';
+    this.button.className = 'bbc-labels-button';
+    this.button.addEventListener('click', () => this.current().onToggleLabels());
+    container.append(this.button);
+    this.refresh();
+    return container;
+  }
+
+  onRemove(): void {
+    this.button?.parentElement?.remove();
+    this.button = undefined;
+  }
+
+  refresh(): void {
+    if (!this.button) return;
+    const props = this.current();
+    this.button.textContent = 'Aa';
+    this.button.classList.toggle('is-off', !props.labels);
+    this.button.setAttribute('aria-label', t(props.lang, props.labels ? 'mapLabelsHide' : 'mapLabelsShow'));
+    this.button.title = t(props.lang, props.labels ? 'mapLabelsHide' : 'mapLabelsShow');
+  }
 }
 
 /** The run the page shows: the one departing from the other terminus. */

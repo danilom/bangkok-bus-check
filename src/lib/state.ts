@@ -52,6 +52,7 @@ const LOCATION_ACCEPTED_KEY = 'bbc.locationAccepted';
 const SIMULATED_LOCATION_KEY = 'bbc.simulatedLocation';
 const THEME_KEY = 'bbc.theme';
 const FRONT_SIGN_KEY = 'bbc.frontSign';
+const MAP_LABELS_KEY = 'bbc.mapLabels';
 const ACCENT_KEY = 'bbc.accent';
 const RECENT_KEY = 'bbc.recent';
 const MAX_RECENT = 8;
@@ -93,6 +94,15 @@ export function loadLocationEnabled(): boolean {
 
 export function saveLocationEnabled(enabled: boolean): void {
   write(LOCATION_KEY, enabled ? 'on' : 'off');
+}
+
+/** Stop names on the map: shown unless hidden once. */
+export function loadMapLabels(): boolean {
+  return read(MAP_LABELS_KEY) !== 'off';
+}
+
+export function saveMapLabels(shown: boolean): void {
+  write(MAP_LABELS_KEY, shown ? 'on' : 'off');
 }
 
 /** The "Front sign (Thai)" panel on route pages: open unless closed once. */

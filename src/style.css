@@ -824,6 +824,19 @@ body {
   margin: 24px 16px;
 }
 
+/* The stop-names button, styled like MapLibre's zoom buttons; struck through when names are hidden. */
+.map-canvas .bbc-labels-button {
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #333;
+}
+
+.map-canvas .bbc-labels-button.is-off {
+  text-decoration: line-through;
+  color: #999;
+}
+
 /* The tap popup: unlike the label cards, it is accent-bordered with an accent tip, so it reads as an answer to a tap. */
 .map-canvas .maplibregl-popup-content {
   background: var(--surface);

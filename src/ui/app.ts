@@ -2,7 +2,7 @@ import { loadDetail, loadIndex } from '../lib/data.ts';
 import { detectLang, t, type Lang } from '../lib/i18n.ts';
 import { requestPosition, type Position } from '../lib/location.ts';
 import { findRoutes } from '../lib/matcher.ts';
-import { formatHash, loadAccent, loadFrontSignOpen, loadLang, loadLocationAccepted, loadLocationEnabled, loadRecent, loadSimulatedLocation, loadTheme, pushRecent, readHash, saveAccent, saveFrontSignOpen, saveLang, saveLocationAccepted, saveLocationEnabled, saveSimulatedLocation, saveTheme, type Accent, type Theme } from '../lib/state.ts';
+import { formatHash, loadAccent, loadFrontSignOpen, loadLang, loadMapLabels, loadLocationAccepted, loadLocationEnabled, loadRecent, loadSimulatedLocation, loadTheme, pushRecent, readHash, saveAccent, saveFrontSignOpen, saveLang, saveMapLabels, saveLocationAccepted, saveLocationEnabled, saveSimulatedLocation, saveTheme, type Accent, type Theme } from '../lib/state.ts';
 import type { RouteDetail, RouteIndex, RouteSummary } from '../lib/types.ts';
 import { renderDetailView, type DetailStatus, type LocationStatus } from './detail-view.ts';
 import { renderDirectionPill, type Side } from './direction-pill.ts';
@@ -37,6 +37,8 @@ interface AppState {
   frontSignOpen: boolean;
   /** The route's full-screen map page. */
   map: boolean;
+  /** Stop names on the map; the map page's own button toggles it. */
+  mapLabels: boolean;
 }
 
 /**
@@ -101,6 +103,7 @@ export function createApp(root: HTMLElement): void {
     showAllStops: false,
     frontSignOpen: loadFrontSignOpen(),
     map: initial.map ?? false,
+    mapLabels: loadMapLabels(),
   };
   if (initial.routeId) state.routeId = initial.routeId;
   const useKeypad = keypadEnabled(location.search, matchMedia('(pointer: coarse)').matches);
@@ -407,6 +410,12 @@ export function createApp(root: HTMLElement): void {
       dark,
       accent: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#7e57c2',
       ...(state.locationEnabled && state.location.kind === 'ready' ? { position: state.location.position } : {}),
+      labels: state.mapLabels,
+      onToggleLabels: () => {
+        state.mapLabels = !state.mapLabels;
+        saveMapLabels(state.mapLabels);
+        render();
+      },
       tilesUrl: new URL(`${import.meta.env.BASE_URL}tiles/bangkok.pmtiles`, location.href).toString(),
     };
   }
