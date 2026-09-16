@@ -485,12 +485,12 @@ function setStopData(map: MapLibreMap, props: RouteMapProps): void {
   if (source instanceof GeoJSONSource) source.setData(stopFeatures(props));
 }
 
-/** Centres the map on the focused stop at street zoom (its label is emphasised by the layers); false when there is nothing to focus. */
+/** Centres the map on the focused stop at neighbourhood zoom (a few km of route in view) (its label is emphasised by the layers); false when there is nothing to focus. */
 function focusStop(map: MapLibreMap, props: RouteMapProps): boolean {
   if (!props.focusStop) return false;
   const feature = stopFeatures(props).features.find((candidate) => candidate.properties?.['id'] === props.focusStop);
   if (!feature) return false;
-  map.jumpTo({ center: feature.geometry.coordinates as [number, number], zoom: 15.5 });
+  map.jumpTo({ center: feature.geometry.coordinates as [number, number], zoom: 13.5 });
   return true;
 }
 
