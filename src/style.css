@@ -551,16 +551,19 @@ body {
   font-size: 0.85rem;
 }
 
+/* Outline chips: quiet, so the filled match highlight on the number stays the one thing that pops. */
 .badge {
-  background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--muted);
+  border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 1px 7px;
+  padding: 0 7px;
   font-weight: 600;
 }
 
+/* The data warning is the one badge that should be louder. */
 .badge-warning {
   background: var(--warning);
+  border-color: transparent;
   color: var(--text);
 }
 
