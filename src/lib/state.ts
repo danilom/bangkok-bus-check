@@ -16,7 +16,7 @@ export interface HashState {
   routeId?: string;
   /** The settings page (`#settings`); a hash no bus number can collide with. */
   settings?: boolean;
-  /** Direction shown on the detail view: 0 = departing terminal A, 1 = terminal B. */
+  /** Direction shown on the detail view: 0 = heading to terminal A, 1 = to terminal B. */
   side?: 0 | 1;
 }
 

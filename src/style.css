@@ -438,8 +438,6 @@ body {
 }
 
 .dir-half-0 {
-  justify-content: flex-end;
-  text-align: right;
   border-right: 1px solid var(--border);
 }
 
@@ -455,9 +453,11 @@ body {
   font-weight: 700;
 }
 
-.dir-arrow-svg {
-  width: 1.25em;
-  height: 1.25em;
+.dir-to {
+  flex: none;
+  color: var(--accent);
+  font-weight: 400;
+  font-size: 0.95rem;
 }
 
 .dir-name.is-fallback {

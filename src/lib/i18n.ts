@@ -36,6 +36,7 @@ const STRINGS = {
   hours: { en: 'Hours', th: 'เวลาเดินรถ' },
   variants: { en: 'Variants and other runs', th: 'เที่ยวเสริมและเส้นทางย่อย' },
   loop: { en: 'Loop', th: 'วงกลม' },
+  to: { en: 'to', th: 'ไป' },
   loopLeft: { en: 'Counter-clockwise', th: 'วนซ้าย' },
   loopRight: { en: 'Clockwise', th: 'วนขวา' },
   settings: { en: 'Settings', th: 'ตั้งค่า' },

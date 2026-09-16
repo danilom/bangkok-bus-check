@@ -2,7 +2,7 @@ import { isFallback, localize, t, type Lang } from '../lib/i18n.ts';
 import type { LocalizedText, RouteSummary } from '../lib/types.ts';
 import { h } from './dom.ts';
 
-/** Which terminus the bus departs from: index into `Route.terminals`. */
+/** Which terminus the bus is heading to: index into `Route.terminals`. */
 export type Side = 0 | 1;
 
 /**
@@ -24,8 +24,8 @@ export interface DirectionPillProps {
 
 /**
  * The route as a line with a tappable half per direction of travel:
- * `[ Bueng Kum → ] [ ← Memorial Bridge ]`. Each half is labelled by the
- * terminus the bus departs from; the arrow shows where it is heading.
+ * `[ to Bueng Kum ] [ to Memorial Bridge ]`. Each half names the destination,
+ * as the bus's own front sign does.
  */
 export function renderDirectionPill(props: DirectionPillProps): HTMLElement {
   const { lang, route, selected } = props;
@@ -45,26 +45,16 @@ export function renderDirectionPill(props: DirectionPillProps): HTMLElement {
     ]);
   }
   return h('div', { class: 'dir-pill', attrs: { role: 'group' } }, [
-    renderHalf(props, 0, [terminusLabel(lang, from), arrow('right')], selected === 0),
-    renderHalf(props, 1, [arrow('left'), terminusLabel(lang, to)], selected === 1),
+    renderHalf(props, 0, [toWord(lang), terminusLabel(lang, from)], selected === 0),
+    renderHalf(props, 1, [toWord(lang), terminusLabel(lang, to)], selected === 1),
   ]);
 }
 
-/** A bold arrow with a big head; SVG so it looks the same in every font and never turns into an emoji. */
-function arrow(direction: 'left' | 'right'): SVGSVGElement {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('class', 'dir-arrow dir-arrow-svg');
-  svg.setAttribute('viewBox', '0 0 24 24');
-  svg.setAttribute('aria-hidden', 'true');
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  // Shaft from the left, head filling the right half; mirrored for left.
-  path.setAttribute('d', direction === 'right' ? 'M2 10h10V4l10 8-10 8v-6H2z' : 'M22 10H12V4L2 12l10 8v-6h10z');
-  path.setAttribute('fill', 'currentColor');
-  svg.append(path);
-  return svg;
+function toWord(lang: Lang): HTMLElement {
+  return h('span', { class: 'dir-to', text: t(lang, 'to') });
 }
 
-function renderHalf(props: DirectionPillProps, side: Side, children: Element[], isSelected: boolean): HTMLElement {
+function renderHalf(props: DirectionPillProps, side: Side, children: HTMLElement[], isSelected: boolean): HTMLElement {
   return h('button', {
     class: `dir-half dir-half-${side}${isSelected ? ' is-selected' : ''}`,
     attrs: { type: 'button', 'aria-pressed': String(isSelected) },

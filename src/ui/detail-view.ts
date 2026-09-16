@@ -13,7 +13,7 @@ export interface DetailViewProps {
   lang: Lang;
   route: RouteSummary;
   status: DetailStatus;
-  /** Which direction's stops are shown; the pill is the toggle. */
+  /** Which destination's stops are shown; the pill is the toggle. */
   side: Side;
   /** Variant runs (by trip id) the user has expanded; survives re-renders. */
   expanded: Set<string>;
@@ -57,12 +57,14 @@ function renderStatus(props: DetailViewProps): HTMLElement {
 
 function renderDetailBody(props: DetailViewProps, detail: RouteDetail): HTMLElement {
   const { lang, route, side } = props;
-  const main = detail.directions.find((direction) => !direction.variant && direction.origin === side)
-    ?? detail.directions.find((direction) => direction.origin === side);
-  // Variant runs for this side (short-turns, expressway runs) and trips that
-  // matched neither terminus are listed below; the other side's are behind the toggle.
-  const otherSide: Side = side === 0 ? 1 : 0;
-  const others = detail.directions.filter((direction) => direction !== main && direction.origin !== otherSide);
+  // `side` is the destination; a run heading there departs from the other end.
+  const departsFrom: Side = side === 0 ? 1 : 0;
+  const main = detail.directions.find((direction) => !direction.variant && direction.origin === departsFrom)
+    ?? detail.directions.find((direction) => direction.origin === departsFrom);
+  // Variant runs towards this destination (short-turns, expressway runs) and
+  // trips that matched neither terminus are listed below; the other
+  // destination's are behind the toggle.
+  const others = detail.directions.filter((direction) => direction !== main && direction.origin !== side);
   return h('div', { class: 'detail-body' }, [
     // Vehicle type first: it is what identifies the bus in front of you.
     detail.vehicles.length > 0 && renderFact(t(lang, 'vehicles'), detail.vehicles.map((vehicle) => localize(lang, vehicle)).join(' · ')),
