@@ -125,6 +125,13 @@ function renderHailAndRide(lang: Lang, count: number, named: boolean): HTMLEleme
   return h('p', { class: 'muted hail-and-ride', text });
 }
 
+/** "64 stops · 13 shown", or "46 stops ahead · 11 shown" once the list starts at the nearest stop; no "shown" when nothing is hidden. */
+function countLine(lang: Lang, total: number, shown: number, ahead: boolean, condensed: boolean): string {
+  const count = `${total} ${t(lang, ahead ? 'stopsAhead' : 'stops')}`;
+  if (!condensed) return count;
+  return lang === 'th' ? `${count} \u00b7 ${t(lang, 'shown')} ${shown}` : `${count} \u00b7 ${shown} ${t(lang, 'shown')}`;
+}
+
 /** "A → B", or just "→ B" when the run starts on a hail-and-ride stretch and has no named origin. */
 function directionTitle(lang: Lang, direction: Direction): string {
   const from = localize(lang, direction.from);
@@ -227,7 +234,7 @@ function renderStopList(props: DetailViewProps, direction: Direction, stops: Rec
   const earlier = named.slice(0, start);
   return h('div', { class: 'stops-panel' }, [
     h('div', { class: 'stops-header' }, [
-      h('span', { class: 'direction-count', text: `${named.length} ${t(lang, 'stops')}` }),
+      h('span', { class: 'direction-count', text: countLine(lang, upcoming.length, prominent.size, onRoute, condensed && !props.showAllStops) }),
       condensed && h('button', { class: 'text-button stops-toggle', attrs: { type: 'button' }, text: t(lang, props.showAllStops ? 'showFewerStops' : 'showAllStops'), on: { click: props.onToggleAllStops } }),
     ]),
     hailAndRide > 0 && renderHailAndRide(lang, hailAndRide, true),

@@ -64,6 +64,8 @@ const STRINGS = {
   locationUnsupported: { en: 'This browser cannot provide a location.', th: 'เบราว์เซอร์นี้ไม่รองรับตำแหน่ง' },
   nearestStop: { en: 'nearest stop', th: 'ป้ายใกล้ที่สุด' },
   earlierStops: { en: 'earlier stops', th: 'ป้ายก่อนหน้า' },
+  stopsAhead: { en: 'stops ahead', th: 'ป้ายข้างหน้า' },
+  shown: { en: 'shown', th: 'แสดง' },
   showAllStops: { en: 'Show all stops', th: 'แสดงป้ายทั้งหมด' },
   showFewerStops: { en: 'Show fewer stops', th: 'แสดงป้ายน้อยลง' },
   locationSetting: { en: 'Location on route pages', th: 'ตำแหน่งในหน้าเส้นทาง' },
