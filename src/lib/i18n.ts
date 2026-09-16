@@ -39,6 +39,9 @@ const STRINGS = {
   to: { en: 'to', th: 'ไป' },
   loopLeft: { en: 'Counter-clockwise', th: 'วนซ้าย' },
   loopRight: { en: 'Clockwise', th: 'วนขวา' },
+  // Rotation marker after a place name, as the front sign shows it.
+  senseLeft: { en: '\u21ba', th: 'วนซ้าย' },
+  senseRight: { en: '\u21bb', th: 'วนขวา' },
   settings: { en: 'Settings', th: 'ตั้งค่า' },
   theme: { en: 'Appearance', th: 'ธีม' },
   themeSystem: { en: 'System', th: 'ตามระบบ' },

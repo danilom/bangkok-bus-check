@@ -28,10 +28,11 @@ const SYNONYMS: [RegExp, string][] = [
 ];
 
 /** Loop-route markers in the two languages the feed uses. */
-export const LOOP_LEFT = /วนซ้าย|counter-?clockwise|left loop|turn left/i;
-export const LOOP_RIGHT = /วนขวา|(?<!counter-?)clockwise|right loop|turn right/i;
+export const LOOP_LEFT = /วนซ้าย|counter-?clockwise|left loop|turn left|\s\(?L\)?\s*$/i;
+export const LOOP_RIGHT = /วนขวา|(?<!counter-?)clockwise|right loop|turn right|\s\(?R\)?\s*$/i;
 export const LOOP_PREFIX = /^(?:วงกลม|circle)\s*:?\s*/i;
-const LOOP_SUFFIX = /\s*\(?\s*(?:วนซ้าย|วนขวา|counter-?clockwise|clockwise|left loop|right loop|turn left|turn right)\s*\)?/gi;
+// Operators' English headsigns abbreviate the sense to a trailing "L" / "R" / "(L)".
+const LOOP_SUFFIX = /\s*\(?\s*(?:วนซ้าย|วนขวา|counter-?clockwise|clockwise|left loop|right loop|turn left|turn right)\s*\)?|\s+\(?[LR]\)?\s*$/gi;
 
 /** "วงกลมหมู่บ้านบัวขาว" → "หมู่บ้านบัวขาว"; "มีนบุรี (วนซ้าย)" → "มีนบุรี". */
 export function stripLoopMarkers(text: string): string {

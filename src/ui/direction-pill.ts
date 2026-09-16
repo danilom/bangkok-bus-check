@@ -1,5 +1,5 @@
 import { isFallback, localize, t, type Lang } from '../lib/i18n.ts';
-import type { LocalizedText, RouteSummary } from '../lib/types.ts';
+import type { LoopSide, RouteSummary } from '../lib/types.ts';
 import { h } from './dom.ts';
 
 /** Which terminus the bus is heading to: index into `Route.terminals`. */
@@ -32,22 +32,25 @@ export function renderDirectionPill(props: DirectionPillProps): HTMLElement {
   if (!route.terminals) return h('p', { class: 'terminals-unknown', text: '—' });
   const [from, to] = route.terminals;
   if (route.loop) {
-    // A loop has no termini: the halves are the two rotation senses, labelled
-    // by each run's headsign; a sense with no run is greyed out.
-    let [left, right] = route.sideLabels ?? [null, null];
-    // The same headsign on both senses says nothing; the rotation words do.
-    if (left && right && left.th === right.th) [left, right] = [null, null];
-    const name = (label: LocalizedText | null, fallback: 'loopLeft' | 'loopRight'): HTMLElement =>
-      h('span', { class: label ? 'dir-name' : 'dir-name is-empty', text: label ? localize(lang, label) : t(lang, fallback) });
+    // Loop halves read as the front sign does: "Rama 9 วนซ้าย" when the sign
+    // carries a rotation marker, "to Thewet" when it is signed as a plain
+    // destination. A sense with no run is greyed out.
+    const [left, right] = route.sideLabels ?? [null, null];
     return h('div', { class: 'dir-pill dir-pill-loop', attrs: { role: 'group' } }, [
-      renderHalf(props, 0, [h('span', { class: 'dir-arrow', text: '↺' }), name(left, 'loopLeft')], selected === 0),
-      renderHalf(props, 1, [name(right, 'loopRight'), h('span', { class: 'dir-arrow', text: '↻' })], selected === 1),
+      renderHalf(props, 0, loopHalf(lang, left, 0), selected === 0),
+      renderHalf(props, 1, loopHalf(lang, right, 1), selected === 1),
     ]);
   }
   return h('div', { class: 'dir-pill', attrs: { role: 'group' } }, [
     renderHalf(props, 0, [toWord(lang), terminusLabel(lang, from)], selected === 0),
     renderHalf(props, 1, [toWord(lang), terminusLabel(lang, to)], selected === 1),
   ]);
+}
+
+function loopHalf(lang: Lang, side: LoopSide | null, index: Side): HTMLElement[] {
+  if (!side) return [h('span', { class: 'dir-name is-empty', text: t(lang, index === 0 ? 'loopLeft' : 'loopRight') })];
+  if (!side.marked) return [toWord(lang), terminusLabel(lang, side.name)];
+  return [terminusLabel(lang, side.name), h('span', { class: 'dir-to', text: t(lang, index === 0 ? 'senseLeft' : 'senseRight') })];
 }
 
 function toWord(lang: Lang): HTMLElement {

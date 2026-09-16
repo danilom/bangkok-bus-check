@@ -52,8 +52,8 @@ export interface Route {
   terminals?: [LocalizedText, LocalizedText];
   /** Circular route: sides are counter-clockwise (0, วนซ้าย) and clockwise (1, วนขวา) instead of termini. */
   loop: boolean;
-  /** Loop routes: headsign of each side's main run (null when that side has no run). */
-  sideLabels?: [LocalizedText | null, LocalizedText | null];
+  /** Loop routes: what each side's main run is signed as (null when that side has no run). */
+  sideLabels?: [LoopSide | null, LoopSide | null];
   /** Short operator name for the card. */
   operator?: LocalizedText;
   /** Wikipedia's full wording, e.g. the subsidiary a route is run under; details page only. */
@@ -102,6 +102,16 @@ export interface Direction {
   headsign?: LocalizedText;
   /** A short-turn, expressway or other variant trip rather than the main run. */
   variant: boolean;
+}
+
+/**
+ * A loop run as its front sign shows it: the place, and whether the sign
+ * carries a rotation marker (วนซ้าย / วนขวา). Unmarked runs are signed as
+ * plain destinations and are shown like one.
+ */
+export interface LoopSide {
+  name: LocalizedText;
+  marked: boolean;
 }
 
 export interface RouteSources {

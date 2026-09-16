@@ -42,7 +42,12 @@ export function applyTranslations(dataset: RouteDataset, feed: GtfsFeed, transla
 
   for (const route of dataset.routes) {
     if (route.terminals) route.terminals = [resolvePlace(route.terminals[0], route), resolvePlace(route.terminals[1], route)];
-    if (route.sideLabels) route.sideLabels = [route.sideLabels[0] && resolvePlace(route.sideLabels[0], route), route.sideLabels[1] && resolvePlace(route.sideLabels[1], route)];
+    if (route.sideLabels) {
+      route.sideLabels = [
+        route.sideLabels[0] && { ...route.sideLabels[0], name: resolvePlace(route.sideLabels[0].name, route) },
+        route.sideLabels[1] && { ...route.sideLabels[1], name: resolvePlace(route.sideLabels[1].name, route) },
+      ];
+    }
     if (route.operator) route.operator = resolveOperator(route.operator, route);
     route.vehicles = route.vehicles.map((vehicle) => resolveVehicle(vehicle, route));
     if (route.operatorDetail) route.operatorDetail = resolveOperatorDetail(route.operatorDetail, route);

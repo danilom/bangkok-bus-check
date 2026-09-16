@@ -12,7 +12,7 @@
 
 import { isVanNumber, isZoneNumber, pickPrimaryNumber } from '../src/lib/route-number.ts';
 import { displayPlace, LOOP_LEFT, LOOP_PREFIX, LOOP_RIGHT, placeVariants, stripLoopMarkers } from './lib/places.ts';
-import type { Direction, LocalizedText, Route, RouteDataset, ServiceFlags, SourceAgreement, Stop } from '../src/lib/types.ts';
+import type { Direction, LocalizedText, LoopSide, Route, RouteDataset, ServiceFlags, SourceAgreement, Stop } from '../src/lib/types.ts';
 import type { GtfsFeed, GtfsRoute, GtfsTrip } from './sources/gtfs.ts';
 import type { WikiParseResult, WikiRoute } from './sources/wikipedia.ts';
 
@@ -305,14 +305,15 @@ function loopSense(text: string | undefined): 0 | 1 | undefined {
   return undefined;
 }
 
-function loopSideLabels(directions: Direction[]): [LocalizedText | null, LocalizedText | null] {
-  const label = (side: 0 | 1): LocalizedText | null => {
+/** Each side as its sign reads: the headsign's place, and whether the sign says วนซ้าย/วนขวา. */
+function loopSideLabels(directions: Direction[]): [LoopSide | null, LoopSide | null] {
+  const label = (side: 0 | 1): LoopSide | null => {
     const main = directions.find((direction) => !direction.variant && direction.origin === side);
     const text = main?.headsign ?? main?.to;
     if (!text) return null;
-    const cleaned: LocalizedText = { th: stripLoopMarkers(text.th) };
-    if (text.en) cleaned.en = stripLoopMarkers(text.en);
-    return cleaned;
+    const name: LocalizedText = { th: stripLoopMarkers(text.th) };
+    if (text.en) name.en = stripLoopMarkers(text.en);
+    return { name, marked: LOOP_LEFT.test(text.th) || LOOP_RIGHT.test(text.th) };
   };
   return [label(0), label(1)];
 }
