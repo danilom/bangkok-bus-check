@@ -302,12 +302,27 @@ body {
 #app.is-detail .topbar {
   position: absolute;
   top: 14px;
+  left: 16px;
   right: 16px;
   padding: 0;
+  /* As tall as the Back button beside it, so title and actions centre on the same line. */
+  height: 40px;
+  justify-content: center;
+  pointer-events: none;
+}
+
+#app.is-detail .topbar-actions {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: auto;
 }
 
 #app.is-detail .app-title {
-  display: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--muted);
 }
 
 #app.is-detail .detail {
