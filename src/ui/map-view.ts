@@ -326,6 +326,19 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
       'circle-stroke-width': 2,
     },
   });
+  // The nearest stop: the landmark dot at the position dot's size, so the two read as a pair.
+  map.addLayer({
+    id: 'stops-nearest',
+    type: 'circle',
+    source: STOPS_SOURCE,
+    filter: ['get', 'nearest'],
+    paint: {
+      'circle-radius': 7,
+      'circle-color': props.accent,
+      'circle-stroke-color': surface,
+      'circle-stroke-width': 2.5,
+    },
+  });
   // Two label layers rather than a zoom filter: termini and landmarks from zoom 10, the rest once there is room.
   const labelLayers: { id: string; filter: FilterSpecification; minzoom: number }[] = [
     // Passed stops keep their dots but lose their labels; the nearest stop is always labelled.
@@ -420,7 +433,7 @@ function wireStopPopups(map: MapLibreMap, current: () => RouteMapProps): void {
     content.append(title, position);
     popup.setLngLat(feature.geometry.coordinates as [number, number]).setDOMContent(content).addTo(map);
   };
-  for (const layer of ['stops-dot', 'stops-major', 'stops-label', 'stops-label-all']) {
+  for (const layer of ['stops-dot', 'stops-major', 'stops-nearest', 'stops-label', 'stops-label-all']) {
     map.on('click', layer, (event) => {
       const feature = event.features?.[0];
       if (feature) show(feature);
