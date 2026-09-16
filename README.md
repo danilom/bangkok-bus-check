@@ -66,6 +66,13 @@ the effect on real routes; `bbc landmarks --audit` gives the whole-dataset
 numbers (lit share per direction, hits per keyword, busy unlit stops, lit
 stops only one route serves).
 
+Vehicle names carry their livery colours ("Air-con bus, cream-red"); the
+card shows a small swatch per vehicle, one band per colour word, using the
+word → colour dictionary in `data/overrides/vehicle-colours.json`. The swatch
+is a readable approximation of the livery, not a paint code — the one place
+the app draws something the data does not literally say. A colour word
+missing from the dictionary means no swatch and a build warning.
+
 The feed models hail-and-ride stretches (vans, suburban routes) as chains
 of virtual stops named "visual stop". They are kept with their coordinates
 but no name, so lists show only named stops plus a line saying how many

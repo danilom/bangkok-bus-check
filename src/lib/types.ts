@@ -59,7 +59,7 @@ export interface Route {
   /** Wikipedia's full wording, e.g. the subsidiary a route is run under; details page only. */
   operatorDetail?: LocalizedText;
   /** Vehicle types as listed by Wikipedia ("รถโดยสารประจำทางสีครีม-แดง"), English from translations. */
-  vehicles: LocalizedText[];
+  vehicles: Vehicle[];
   service: ServiceFlags;
   /** Per-direction detail from OSM; may be empty, one, or two entries. */
   directions: Direction[];
@@ -129,6 +129,11 @@ export interface Stop {
   landmark?: Landmark;
   /** A boarding point on a hail-and-ride stretch: a place on the road, not a named stop. The name is empty. */
   hailAndRide?: true;
+}
+
+export interface Vehicle extends LocalizedText {
+  /** Swatch bands, from the colour words of the name via data/overrides/vehicle-colours.json. */
+  colours?: string[];
 }
 
 export interface Landmark {

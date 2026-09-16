@@ -1,0 +1,22 @@
+{
+  "_comment": [
+    "Swatch colours for the colour words in vehicle names (\"Air-con bus, cream-red\").",
+    "A name's colour words are read from its English form at build time; each",
+    "becomes one band of the swatch. A word missing here means no swatch for that",
+    "vehicle and a warning at build. These are readable approximations of the",
+    "liveries, not paint codes."
+  ],
+  "colours": {
+    "blue": "#1f5fbf",
+    "light blue": "#7cc4ea",
+    "cream": "#f2e3b6",
+    "red": "#d13b2f",
+    "orange": "#f28c28",
+    "white": "#f7f7f7",
+    "pink": "#ee7fb1",
+    "green": "#3f9d4b",
+    "yellow": "#f4d03f",
+    "purple": "#7e57c2",
+    "grey": "#9e9e9e"
+  }
+}

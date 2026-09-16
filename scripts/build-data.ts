@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import type { RouteDataset, RouteDetail, RouteIndex, Stop } from '../src/lib/types.ts';
 import { NAMTANG_DIR, WIKI_FILE } from './fetch-raw.ts';
 import { loadLandmarkRules, tagLandmarks } from './landmarks.ts';
+import { loadVehicleColours, tagVehicleColours, VEHICLE_COLOURS_FILE } from './vehicle-colours.ts';
 import { loadTranslations, type Translations } from './lib/translations.ts';
 import { mergeRoutes, type MergeReport } from './merge.ts';
 import { parseGtfs, type GtfsFeed } from './sources/gtfs.ts';
@@ -63,6 +64,8 @@ export async function buildData(options: BuildOptions): Promise<void> {
   const landmarks = tagLandmarks(dataset, await loadLandmarkRules());
   console.log(`Landmarks: ${Object.entries(landmarks).map(([tier, n]) => `${tier} ${n}`).join(', ')}`);
   console.log(`Translations: ${translation.used.places.size} places, ${translation.used.operators.size} operators and ${translation.used.vehicles.size} vehicle types applied, ${translation.feedResolved.size} places resolved from the feed`);
+  const unknownColours = tagVehicleColours(dataset, await loadVehicleColours());
+  warnUnknownColours(unknownColours);
   const untranslated = warnUntranslated(translation);
   if (untranslated > 0 && options.strict) throw new Error(`${untranslated} untranslated items (see warning above); run "bbc extract-places"`);
   await writeOutput(dataset, options.out);
@@ -90,6 +93,14 @@ WARNING: ${total} items will show in Thai on the English UI. Run "bbc extract-pl
   }
   console.log('');
   return total;
+}
+
+/** A vehicle whose colour word is not in the dictionary shows no swatch; add the word to data/overrides/vehicle-colours.json. */
+function warnUnknownColours(unknown: Map<string, Set<string>>): void {
+  if (unknown.size === 0) return;
+  const yellow = (text: string): string => `\u001b[33m${text}\u001b[0m`;
+  console.log(yellow(`WARNING: ${unknown.size} colour words not in ${VEHICLE_COLOURS_FILE}; those vehicles get no swatch.`));
+  for (const [word, names] of unknown) console.log(`    ${word}  (${[...names].slice(0, 3).join('; ')})`);
 }
 
 async function writeOutput(dataset: RouteDataset, outDir: string): Promise<void> {

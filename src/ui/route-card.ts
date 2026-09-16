@@ -1,6 +1,6 @@
 import { agreementBadge, localize, serviceBadges, t, type Lang } from '../lib/i18n.ts';
 import type { RouteMatch } from '../lib/matcher.ts';
-import type { RouteSummary } from '../lib/types.ts';
+import type { RouteSummary, Vehicle } from '../lib/types.ts';
 import { renderDirectionPill, renderLoopLine, sideAt, type Side } from './direction-pill.ts';
 import { h } from './dom.ts';
 
@@ -73,10 +73,24 @@ export function renderRouteCard({ lang, match, onOpen }: RouteCardProps): HTMLEl
  * "(Euro II)") so the colour and type fit; the route page shows it in full.
  */
 export function renderMeta(lang: Lang, route: RouteSummary, full: boolean): HTMLElement | false {
-  const vehicles = route.vehicles.map((vehicle) => (full ? localize(lang, vehicle) : withoutParenthetical(localize(lang, vehicle))));
-  const parts = [route.operator && localize(lang, route.operator), ...vehicles].filter((part): part is string => Boolean(part));
+  const parts: (HTMLElement | string)[][] = [];
+  if (route.operator) parts.push([localize(lang, route.operator)]);
+  for (const vehicle of route.vehicles) {
+    const name = full ? localize(lang, vehicle) : withoutParenthetical(localize(lang, vehicle));
+    parts.push([renderSwatch(vehicle), name].filter((part): part is HTMLElement | string => part !== false));
+  }
   if (parts.length === 0) return false;
-  return h('p', { class: full ? 'route-meta' : 'route-meta is-clipped', text: parts.join(' · ') });
+  const children = parts.flatMap((part, index) => (index === 0 ? part : [' · ', ...part]));
+  return h('p', { class: full ? 'route-meta' : 'route-meta is-clipped' }, children);
+}
+
+/** A small square in the livery's colours, one vertical band per colour word ("cream-red" → two bands). */
+function renderSwatch(vehicle: Vehicle): HTMLElement | false {
+  const colours = vehicle.colours ?? [];
+  if (colours.length === 0) return false;
+  const step = 100 / colours.length;
+  const bands = colours.map((colour, index) => `${colour} ${index * step}% ${(index + 1) * step}%`).join(', ');
+  return h('span', { class: 'swatch', attrs: { style: `background: linear-gradient(to right, ${bands})`, 'aria-hidden': 'true' } });
 }
 
 function withoutParenthetical(text: string): string {
