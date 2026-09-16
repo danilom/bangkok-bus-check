@@ -661,7 +661,6 @@ body {
 
 .chip-quiet {
   font-weight: 400;
-  color: var(--muted);
 }
 
 .earlier-stops summary {
