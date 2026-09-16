@@ -73,24 +73,22 @@ export function renderRouteCard({ lang, match, onOpen }: RouteCardProps): HTMLEl
  * "(Euro II)") so the colour and type fit; the route page shows it in full.
  */
 export function renderMeta(lang: Lang, route: RouteSummary, full: boolean): HTMLElement | false {
-  const parts: (HTMLElement | string)[][] = [];
-  if (route.operator) parts.push([localize(lang, route.operator)]);
-  for (const vehicle of route.vehicles) {
-    const name = full ? localize(lang, vehicle) : withoutParenthetical(localize(lang, vehicle));
-    parts.push([renderSwatch(vehicle), name].filter((part): part is HTMLElement | string => part !== false));
-  }
-  if (parts.length === 0) return false;
-  const children = parts.flatMap((part, index) => (index === 0 ? part : [' · ', ...part]));
-  return h('p', { class: full ? 'route-meta' : 'route-meta is-clipped' }, children);
+  // Swatches lead the line, in the vehicles' order, so every card has its colour cue at the same spot.
+  const swatches = route.vehicles.map(renderSwatch).filter((swatch): swatch is HTMLElement => swatch !== false);
+  const parts: string[] = [];
+  if (route.operator) parts.push(localize(lang, route.operator));
+  for (const vehicle of route.vehicles) parts.push(full ? localize(lang, vehicle) : withoutParenthetical(localize(lang, vehicle)));
+  if (parts.length === 0 && swatches.length === 0) return false;
+  return h('p', { class: full ? 'route-meta' : 'route-meta is-clipped' }, [...swatches, parts.join(' · ')]);
 }
 
-/** A small square in the livery's colours, one vertical band per colour word ("cream-red" → two bands). */
+/** A small square in the livery's colours, one horizontal band per colour word ("cream-red" → cream over red), as on the bus. */
 function renderSwatch(vehicle: Vehicle): HTMLElement | false {
   const colours = vehicle.colours ?? [];
   if (colours.length === 0) return false;
   const step = 100 / colours.length;
   const bands = colours.map((colour, index) => `${colour} ${index * step}% ${(index + 1) * step}%`).join(', ');
-  return h('span', { class: 'swatch', attrs: { style: `background: linear-gradient(to right, ${bands})`, 'aria-hidden': 'true' } });
+  return h('span', { class: 'swatch', attrs: { style: `background: linear-gradient(to bottom, ${bands})`, 'aria-hidden': 'true' } });
 }
 
 function withoutParenthetical(text: string): string {
