@@ -142,8 +142,13 @@ Data-source status, reliability checks and product backlog. Last revised 2026-09
       `?test=…` adds a simulated-position box in settings (Google Maps link).
 - [ ] P3: show the Thai terminus alongside English so it can be matched to
       the front sign.
-- [ ] Phase 2: map — `shapes.txt` from the feed (simplified) + MapLibre +
-      OpenFreeMap; route line and stops as dots.
+- [x] Phase 2: map — feed shapes, MapLibre + self-hosted Protomaps tiles;
+      route line, stops and landmarks labelled, position dot, pill in the
+      top bar. Needs WebGL2 (says so when unavailable).
+- [ ] Map fonts: build our own glyph pack (Protomaps `font-maker`) so the
+      labels stop looking like a near-miss of the UI font and the last
+      third-party runtime asset goes away. First try: Roboto + Sarabun
+      (looped Thai). Copy the sprites too.
 - [ ] Manual English overrides for the Wikipedia-only routes (Thai only).
 - [ ] The `extra` badge has false positives from history notes.
 - [ ] Real Android checks: sticky keypad vs Chrome's collapsing toolbar;
