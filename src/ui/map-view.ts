@@ -261,7 +261,7 @@ const ARROW = 'route-arrow';
  * them, and they yield to labels rather than the other way round.
  */
 function addArrowLayer(map: MapLibreMap, props: RouteMapProps): void {
-  addArrowImage(map);
+  addArrowImage(map, props.dark);
   map.addLayer({
     id: 'route-arrows',
     type: 'symbol',
@@ -281,9 +281,9 @@ function addArrowLayer(map: MapLibreMap, props: RouteMapProps): void {
   });
 }
 
-/** A white chevron pointing right (the line's direction); white shows on the accent line in both themes. */
-function addArrowImage(map: MapLibreMap): void {
-  if (map.hasImage(ARROW)) return;
+/** A chevron pointing right (the line's direction): white on the dark theme, black on the light one. */
+function addArrowImage(map: MapLibreMap, dark: boolean): void {
+  if (map.hasImage(ARROW)) map.removeImage(ARROW);
   const scale = 2;
   const size = 12 * scale;
   const canvas = document.createElement('canvas');
@@ -291,7 +291,7 @@ function addArrowImage(map: MapLibreMap): void {
   canvas.height = size;
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
-  ctx.strokeStyle = '#ffffff';
+  ctx.strokeStyle = dark ? '#ffffff' : '#000000';
   ctx.lineWidth = 2.6 * scale;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
