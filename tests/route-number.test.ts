@@ -45,6 +45,7 @@ describe('isZoneNumber / pickPrimaryNumber', () => {
     assert.equal(isZoneNumber('2-45'), true);
     assert.equal(isZoneNumber('245'), false);
     assert.equal(pickPrimaryNumber(['73', '2-45']), '2-45');
+    assert.equal(pickPrimaryNumber(['554', 'S2']), 'S2');
     assert.equal(pickPrimaryNumber(['73ก']), '73ก');
   });
 });

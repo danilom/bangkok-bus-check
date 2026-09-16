@@ -99,11 +99,15 @@ function toRoute(
   return route;
 }
 
-/** "2-45 (73)" → [2-45, 73]; "ต.99" → [ต.99]; "1-14E" → [1-14E]. */
+/**
+ * "2-45 (73)" → [2-45, 73]; "ต.99" → [ต.99]; "1-14E" → [1-14E].
+ * Loop routes are written "1-64L" / "1-64R" (left/right); the letter is the
+ * rotation sense, not part of the number, so both map to "1-64".
+ */
 export function parseShortName(shortName: string): string[] {
   const numbers: string[] = [];
   for (const token of shortName.split(/[()/,]/)) {
-    const number = canonicalRouteNumber(token);
+    const number = canonicalRouteNumber(token)?.replace(/^(\d+-\d+|\d+)[LR]$/, '$1');
     if (number && !numbers.includes(number)) numbers.push(number);
   }
   return numbers;

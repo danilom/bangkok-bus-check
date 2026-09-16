@@ -55,9 +55,10 @@ export function isZoneNumber(number: string): boolean {
 
 /**
  * Picks the identity for a set of equivalent numbers: the zone-style number
- * when there is one, otherwise the first number given. Zone numbers are unique
- * across operators; old numbers are not (private minibus "2" ≠ TSB "2"/"3-1").
+ * when there is one, then a letter-prefixed one (airport "S2" over its old
+ * "554"), otherwise the first number given. Zone numbers are unique across
+ * operators; old numbers are not (private minibus "2" ≠ TSB "2"/"3-1").
  */
 export function pickPrimaryNumber(numbers: readonly string[]): string | undefined {
-  return numbers.find(isZoneNumber) ?? numbers[0];
+  return numbers.find(isZoneNumber) ?? numbers.find((number) => /^[A-Z]/.test(number)) ?? numbers[0];
 }

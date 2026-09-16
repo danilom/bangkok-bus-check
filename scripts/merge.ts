@@ -59,6 +59,7 @@ export function mergeRoutes(feed: GtfsFeed, wiki: WikiParseResult): { dataset: R
   ].filter((record): record is Record_ => record !== undefined);
 
   const report = emptyReport();
+  foldOldNumbers(records);
   const buckets = bucketRecords(records, report);
   const stops: Record<string, Stop> = {};
   const routes = buckets.map((bucket) => buildRoute(bucket, wiki.reformMapping, stops, report)).sort((a, b) => compareRouteIds(a.id, b.id));
@@ -133,6 +134,35 @@ function operatorsCompatible(a: string | undefined, b: string | undefined): bool
   if (!a || !b || a === b) return true;
   if (BIG_OPERATORS.has(a) || BIG_OPERATORS.has(b)) return false;
   return true; // dlt vs a private name, or two private spellings
+}
+
+/**
+ * A record that only knows an old number ("26") belongs with the zone-number
+ * route that lists it as a former number ("1-36 (26)") when the operator is
+ * compatible — unless an old-number record of its own exists in the feed,
+ * which means the number is genuinely still in use by someone else.
+ */
+function foldOldNumbers(records: Record_[]): void {
+  const zoneByAlias = new Map<string, Record_[]>();
+  const isPrimaryStyle = (key: string): boolean => isZoneNumber(key) || /^[A-Z]/.test(key);
+  for (const record of records) {
+    if (!isPrimaryStyle(record.key)) continue;
+    for (const number of record.numbers) {
+      if (number !== record.key) zoneByAlias.set(number, [...(zoneByAlias.get(number) ?? []), record]);
+    }
+  }
+  const feedOldKeys = new Set(records.filter((r) => r.gtfs && !isPrimaryStyle(r.key)).map((r) => r.key));
+  for (const record of records) {
+    if (record.gtfs || isPrimaryStyle(record.key)) continue;
+    const targets = zoneByAlias.get(record.key);
+    if (!targets) continue;
+    const target = targets.find((candidate) => operatorsCompatible(record.operator, candidate.operator));
+    if (!target) continue;
+    // Both a zone route and a live old-number entry carry this number: keep
+    // the row with whichever the termini match, defaulting to the zone route.
+    if (feedOldKeys.has(record.key) && record.from && record.to && target.from && target.to && terminiSimilarity(record.from, record.to, target.from, target.to) < SAME_PLACE) continue;
+    record.key = target.key;
+  }
 }
 
 /**
