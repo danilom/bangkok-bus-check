@@ -1,5 +1,8 @@
 {
   "places": {
+    "สนามบินสุวรรณภูมิ": { "en": "Suvarnabhumi Airport", "status": "ok", "override": true },
+    "สนามหลวง": { "en": "Sanam Luang", "status": "ok", "override": true },
+    "MRT ท่าพระ": { "en": "MRT Tha Phra", "status": "ok", "override": true },
     "การเคหะร่มเกล้า": { "en": "Rom Klao Housing", "status": "ok", "usedBy": ["1013~6","1314~3"] },
     "คณะแพทยศาสตร์": { "en": "Faculty of Medicine", "status": "ok", "usedBy": ["3~2"] },
     "คอนโดเอื้ออมรสุข": { "en": "Ua Amon Suk Condo", "status": "ok", "usedBy": ["1528~2"] },
