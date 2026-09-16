@@ -35,19 +35,26 @@ export interface RouteCardProps {
 
 export function renderRouteCard({ lang, match, onOpen }: RouteCardProps): HTMLElement {
   const { route } = match;
-  const open = (): void => onOpen(route);
-  return h(
+  // The whole card is a target: its left half opens the left direction, the
+  // right half the right one, so the pill's own buttons are not the only place
+  // a thumb can land.
+  const sideAt = (event: MouseEvent, card: HTMLElement): Side => {
+    const bounds = card.getBoundingClientRect();
+    return event.clientX - bounds.left < bounds.width / 2 ? 0 : 1;
+  };
+  const card = h(
     'article',
     {
       class: 'route-card',
       attrs: { tabindex: '0', role: 'button' },
       on: {
-        click: open,
+        click: (event) => onOpen(route, sideAt(event, card)),
         keydown: (event) => {
           if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
-            open();
+            onOpen(route, 0);
           }
+          if (event.key === 'ArrowRight') onOpen(route, 1);
         },
       },
     },
@@ -61,4 +68,5 @@ export function renderRouteCard({ lang, match, onOpen }: RouteCardProps): HTMLEl
       ]),
     ],
   );
+  return card;
 }
