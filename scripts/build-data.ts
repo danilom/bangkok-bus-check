@@ -57,8 +57,8 @@ export async function buildData(options: BuildOptions): Promise<void> {
 
   const { dataset, report, translation } = compile(sources);
   printReport(report, options.verbose);
-  const unresolved = translation.unresolvedPlaces.size + translation.unresolvedOperators.size;
-  console.log(`Translations: ${translation.used.places.size} places and ${translation.used.operators.size} operators applied, ${translation.feedResolved.size} places resolved from the feed, ${unresolved} still without English (run extract-places)`);
+  const unresolved = translation.unresolvedPlaces.size + translation.unresolvedOperators.size + translation.unresolvedVehicles.size;
+  console.log(`Translations: ${translation.used.places.size} places, ${translation.used.operators.size} operators and ${translation.used.vehicles.size} vehicle types applied, ${translation.feedResolved.size} places resolved from the feed, ${unresolved} still without English (run extract-places)`);
   await writeOutput(dataset, options.out);
 }
 

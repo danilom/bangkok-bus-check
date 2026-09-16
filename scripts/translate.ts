@@ -15,10 +15,12 @@ export interface TranslationReport {
   unresolvedPlaces: Map<string, string[]>;
   /** Thai operator names still without English → routes. */
   unresolvedOperators: Map<string, string[]>;
+  /** Vehicle descriptions still without English → routes. */
+  unresolvedVehicles: Map<string, string[]>;
   /** Place names the feed supplied English for → what it said. */
   feedResolved: Map<string, string>;
   /** Entry keys (by section) that were applied to at least one route. */
-  used: { places: Set<string>; operators: Set<string> };
+  used: { places: Set<string>; operators: Set<string>; vehicles: Set<string> };
 }
 
 /** English shown for private operators when no translation exists; treated as "no English" here. */
@@ -28,17 +30,20 @@ export function applyTranslations(dataset: RouteDataset, feed: GtfsFeed, transla
   const feedEnglish = feedPlaceNames(feed);
   const places = new TranslationIndex(translations.places);
   const operators = new TranslationIndex(translations.operators);
+  const vehicles = new TranslationIndex(translations.vehicles);
   const report: TranslationReport = {
     unresolvedPlaces: new Map(),
     unresolvedOperators: new Map(),
+    unresolvedVehicles: new Map(),
     feedResolved: new Map(),
-    used: { places: new Set(), operators: new Set() },
+    used: { places: new Set(), operators: new Set(), vehicles: new Set() },
   };
 
   for (const route of dataset.routes) {
     if (route.terminals) route.terminals = [resolvePlace(route.terminals[0], route), resolvePlace(route.terminals[1], route)];
     if (route.sideLabels) route.sideLabels = [route.sideLabels[0] && resolvePlace(route.sideLabels[0], route), route.sideLabels[1] && resolvePlace(route.sideLabels[1], route)];
     if (route.operator) route.operator = resolveOperator(route.operator, route);
+    route.vehicles = route.vehicles.map((vehicle) => resolveVehicle(vehicle, route));
   }
   return report;
 
@@ -64,7 +69,15 @@ export function applyTranslations(dataset: RouteDataset, feed: GtfsFeed, transla
     return text;
   }
 
-  function use(section: 'places' | 'operators', key: string, value: LocalizedText): LocalizedText {
+  /** Vehicle descriptions exist only in Wikipedia, so entries are the only source of English. */
+  function resolveVehicle(text: LocalizedText, route: Route): LocalizedText {
+    const hit = vehicles.find(text.th);
+    if (hit?.entry.en) return use('vehicles', hit.th, { th: text.th, en: hit.entry.en });
+    note(report.unresolvedVehicles, text.th, route.id);
+    return text;
+  }
+
+  function use(section: 'places' | 'operators' | 'vehicles', key: string, value: LocalizedText): LocalizedText {
     report.used[section].add(key);
     return value;
   }

@@ -222,7 +222,7 @@ function buildRoute(bucket: Bucket, mapping: Map<string, string[]>, stops: Recor
     number: bucket.key,
     formerNumbers: numbers.filter((n) => n !== bucket.key),
     aliases: [bucket.key, ...numbers.filter((n) => n !== bucket.key)],
-    vehicles: unique(wikiRows.flatMap((row) => row.vehicles)),
+    vehicles: unique(wikiRows.flatMap((row) => row.vehicles)).map((th) => ({ th })),
     service: serviceFlags(bucket.key, gtfsRoutes, wikiRows),
     loop,
     directions: [],

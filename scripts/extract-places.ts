@@ -24,9 +24,11 @@ export async function extractPlaces(options: ExtractOptions): Promise<void> {
   const added = {
     places: addMissing(translations.places, translation.unresolvedPlaces),
     operators: addMissing(translations.operators, translation.unresolvedOperators),
+    vehicles: addMissing(translations.vehicles, translation.unresolvedVehicles),
   };
   refreshUsedBy(translations.places, translation.unresolvedPlaces, translation);
   refreshUsedBy(translations.operators, translation.unresolvedOperators, translation);
+  refreshUsedBy(translations.vehicles, translation.unresolvedVehicles, translation);
 
   await saveTranslations(translations);
   printSummary(translations, added, translation);
@@ -74,7 +76,7 @@ function refreshUsedBy(section: Record<string, TranslationEntry>, unresolved: Ma
   for (const [th, entry] of Object.entries(section)) {
     const needing = unresolved.get(th);
     if (needing) entry.usedBy = needing;
-    else if (report.used.places.has(th) || report.used.operators.has(th)) {
+    else if (report.used.places.has(th) || report.used.operators.has(th) || report.used.vehicles.has(th)) {
       // Applied somewhere; the exact routes are not tracked, keep any hint we had.
     } else {
       delete entry.usedBy;
@@ -82,17 +84,19 @@ function refreshUsedBy(section: Record<string, TranslationEntry>, unresolved: Ma
   }
 }
 
-function printSummary(translations: Translations, added: { places: number; operators: number }, report: TranslationReport): void {
+function printSummary(translations: Translations, added: { places: number; operators: number; vehicles: number }, report: TranslationReport): void {
   const count = (section: Record<string, TranslationEntry>, status: 'draft' | 'ok'): number =>
     Object.values(section).filter((entry) => entry.status === status).length;
   const empty = (section: Record<string, TranslationEntry>): number => Object.values(section).filter((entry) => !entry.en).length;
   const unused = [
     ...Object.keys(translations.places).filter((th) => !report.used.places.has(th) && !report.unresolvedPlaces.has(th)),
     ...Object.keys(translations.operators).filter((th) => !report.used.operators.has(th) && !report.unresolvedOperators.has(th)),
+    ...Object.keys(translations.vehicles).filter((th) => !report.used.vehicles.has(th) && !report.unresolvedVehicles.has(th)),
   ];
   console.log(`${TRANSLATIONS_FILE}`);
   console.log(`  places:    ${added.places} added, ${empty(translations.places)} awaiting English, ${count(translations.places, 'draft')} draft, ${count(translations.places, 'ok')} ok`);
   console.log(`  operators: ${added.operators} added, ${empty(translations.operators)} awaiting English, ${count(translations.operators, 'draft')} draft, ${count(translations.operators, 'ok')} ok`);
+  console.log(`  vehicles:  ${added.vehicles} added, ${empty(translations.vehicles)} awaiting English, ${count(translations.vehicles, 'draft')} draft, ${count(translations.vehicles, 'ok')} ok`);
   console.log(`  resolved from the feed without an entry: ${report.feedResolved.size}`);
   if (unused.length > 0) console.log(`  no longer used by any route: ${unused.join(', ')}`);
 }

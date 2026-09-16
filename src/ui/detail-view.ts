@@ -74,7 +74,7 @@ function renderDetailBody(props: DetailViewProps, detail: RouteDetail): HTMLElem
       ]),
     (detail.operatorDetail ?? route.operator) && renderFact(t(lang, 'operator'), localize(lang, detail.operatorDetail ?? route.operator ?? { th: '' })),
     detail.hours && renderFact(t(lang, 'hours'), detail.hours),
-    detail.vehicles.length > 0 && renderFact(t(lang, 'vehicles'), detail.vehicles.join(' · ')),
+    detail.vehicles.length > 0 && renderFact(t(lang, 'vehicles'), detail.vehicles.map((vehicle) => localize(lang, vehicle)).join(' · ')),
     detail.notes && renderNotes(lang, detail.notes),
   ]);
 }

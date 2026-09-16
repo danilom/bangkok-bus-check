@@ -46,7 +46,7 @@ describe('translations file', () => {
 
   it('returns empty sections for a missing file', async () => {
     const loaded = await loadTranslations(join(tmpdir(), 'does-not-exist', 'translations.json'));
-    assert.deepEqual(loaded, { places: {}, operators: {} });
+    assert.deepEqual(loaded, { places: {}, operators: {}, vehicles: {} });
   });
 });
 
@@ -79,7 +79,7 @@ describe('applyTranslations', () => {
   it('takes English from the feed when it names the same place, else from an entry, and reports the rest', () => {
     const feed = feedWith([feedRoute(['9-9'], { th: 'ก - หัวลำโพง', en: 'A - Hua Lamphong' }, { th: 'หัวลำโพง', en: 'Hua Lamphong' })]);
     const { dataset } = mergeRoutes(feed, wiki);
-    const report = applyTranslations(dataset, feed, { places: {}, operators: {} });
+    const report = applyTranslations(dataset, feed, { places: {}, operators: {}, vehicles: {} });
     const route = dataset.routes.find((r) => r.id === '1063');
     assert.equal(route?.terminals?.[1].en, 'Hua Lamphong');
     assert.equal(route?.terminals?.[0].en, undefined);
@@ -96,6 +96,7 @@ describe('applyTranslations', () => {
         'หัวลำโพง': { en: 'Hua Lamphong', status: 'ok', override: true },
       },
       operators: { 'บจก.บ้านทองบัส': { en: 'Ban Thong Bus', status: 'ok' } },
+      vehicles: {},
     });
     const route = dataset.routes.find((r) => r.id === '1063');
     assert.deepEqual(route?.terminals?.map((t) => t.en), ['Tha Din Daeng Pier', 'Hua Lamphong']);

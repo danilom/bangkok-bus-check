@@ -58,8 +58,8 @@ export interface Route {
   operator?: LocalizedText;
   /** Wikipedia's full wording, e.g. the subsidiary a route is run under; details page only. */
   operatorDetail?: LocalizedText;
-  /** Thai vehicle descriptions as listed by Wikipedia ("รถโดยสารประจำทางสีครีม-แดง"). */
-  vehicles: string[];
+  /** Vehicle types as listed by Wikipedia ("รถโดยสารประจำทางสีครีม-แดง"), English from translations. */
+  vehicles: LocalizedText[];
   service: ServiceFlags;
   /** Per-direction detail from OSM; may be empty, one, or two entries. */
   directions: Direction[];

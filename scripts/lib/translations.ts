@@ -28,13 +28,13 @@ export interface TranslationEntry {
   note?: string;
 }
 
-export type TranslationSection = 'places' | 'operators';
-export const TRANSLATION_SECTIONS: readonly TranslationSection[] = ['places', 'operators'];
+export type TranslationSection = 'places' | 'operators' | 'vehicles';
+export const TRANSLATION_SECTIONS: readonly TranslationSection[] = ['places', 'operators', 'vehicles'];
 
 export type Translations = Record<TranslationSection, Record<string, TranslationEntry>>;
 
 export function emptyTranslations(): Translations {
-  return { places: {}, operators: {} };
+  return { places: {}, operators: {}, vehicles: {} };
 }
 
 export async function loadTranslations(path = TRANSLATIONS_FILE): Promise<Translations> {
