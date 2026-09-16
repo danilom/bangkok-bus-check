@@ -49,7 +49,7 @@ const STRINGS = {
     th: 'ใช้ตำแหน่งของโทรศัพท์ครั้งเดียวเพื่อหาป้ายที่ใกล้ที่สุดบนสายนี้ ข้อมูลไม่ถูกส่งไปไหน แอปนี้ไม่มีเซิร์ฟเวอร์',
   },
   locationUse: { en: 'Use location', th: 'ใช้ตำแหน่ง' },
-  notNow: { en: 'Not now', th: 'ไว้ก่อน' },
+  dontAsk: { en: 'No, don’t ask again', th: 'ไม่ ไม่ต้องถามอีก' },
   locating: { en: 'Finding your position\u2026', th: 'กำลังหาตำแหน่ง\u2026' },
   locationDenied: { en: 'Location is blocked for this site in your browser.', th: 'เบราว์เซอร์ไม่อนุญาตให้เว็บนี้ใช้ตำแหน่ง' },
   locationUnavailable: { en: 'Could not get a position right now.', th: 'ขณะนี้หาตำแหน่งไม่ได้' },

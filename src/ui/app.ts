@@ -210,9 +210,9 @@ export function createApp(root: HTMLElement): void {
     void locate();
   }
 
+  /** "No, don't ask again": the same as turning location off in settings, where it can be turned back on. */
   function onLocationDismiss(): void {
-    state.location = { kind: 'off' };
-    render();
+    setLocationEnabled(false);
   }
 
   async function locate(): Promise<void> {
