@@ -25,8 +25,9 @@ export function renderNumber(lang: Lang, route: RouteSummary, matchedAlias?: str
 
 export function renderBadges(lang: Lang, route: RouteSummary): HTMLElement | false {
   const badges = serviceBadges(lang, route.service).map((badge) => h('span', { class: 'badge', text: badge }));
+  // The data warning outranks the service badges: it goes first.
   const warning = agreementBadge(lang, route.agreement);
-  if (warning) badges.push(h('span', { class: 'badge badge-warning', text: warning }));
+  if (warning) badges.unshift(h('span', { class: 'badge badge-warning', text: warning }));
   return badges.length > 0 && h('div', { class: 'badges' }, badges);
 }
 
