@@ -20,6 +20,8 @@ interface AppState {
   side: Side;
   index?: RouteIndex;
   indexError?: string;
+  /** The number field has focus; the on-screen keypad follows it. */
+  inputActive: boolean;
   details: Map<string, DetailStatus>;
   expandedDirections: Set<string>;
   recent: string[];
@@ -53,6 +55,7 @@ export function createApp(root: HTMLElement): void {
     accent: loadAccent(),
     query: initial.query,
     settings: initial.settings ?? false,
+    inputActive: false,
     side: initial.side ?? 0,
     details: new Map(),
     expandedDirections: new Set(),
@@ -78,7 +81,11 @@ export function createApp(root: HTMLElement): void {
       enterkeyhint: 'search',
       'aria-label': t(state.lang, 'inputPlaceholder'),
     },
-    on: { input: () => setQuery(input.value) },
+    on: {
+      input: () => setQuery(input.value),
+      focus: () => setInputActive(true),
+      blur: () => setInputActive(false),
+    },
   });
   input.value = state.query;
   const clearButton = h('button', { class: 'clear-button', attrs: { type: 'button' }, on: { click: () => { setQuery(''); input.focus(); } } });
@@ -101,6 +108,17 @@ export function createApp(root: HTMLElement): void {
     onBackspace: () => setQuery(state.query.slice(0, -1)),
     onClear: () => setQuery(''),
   };
+
+  function setInputActive(active: boolean): void {
+    if (state.inputActive === active) return;
+    state.inputActive = active;
+    renderKeypadSlot();
+  }
+
+  /** The search screen is ready to type on without a tap. */
+  function focusInput(): void {
+    input.focus({ preventScroll: true });
+  }
 
   function setQuery(query: string): void {
     state.query = query;
@@ -130,6 +148,7 @@ export function createApp(root: HTMLElement): void {
     delete state.routeId;
     history.replaceState(null, '', formatHash({ query: state.query }) || currentUrlWithoutHash());
     render();
+    focusInput();
   }
 
   /** Keeps `?keypad=1`-style settings when the hash is cleared. */
@@ -147,6 +166,7 @@ export function createApp(root: HTMLElement): void {
     state.settings = false;
     history.replaceState(null, '', formatHash({ query: state.query }) || currentUrlWithoutHash());
     render();
+    focusInput();
   }
 
   function setTheme(theme: Theme): void {
@@ -196,9 +216,9 @@ export function createApp(root: HTMLElement): void {
     renderKeypadSlot();
   }
 
-  /** The keypad belongs to the search screen only; the detail view gets the whole screen. */
+  /** The keypad is tied to the number field: shown while it has focus, on any screen. */
   function renderKeypadSlot(): void {
-    const show = useKeypad && state.routeId === undefined && !state.settings && state.index !== undefined;
+    const show = useKeypad && state.inputActive && !state.settings && state.index !== undefined;
     root.classList.toggle('has-keypad', show);
     root.classList.toggle('is-settings', state.settings);
     replaceChildren(keypadSlot, show && renderKeypad(state.lang, keypadHandlers));
@@ -270,7 +290,7 @@ export function createApp(root: HTMLElement): void {
     else state.indexError = result.error;
     if (state.routeId) void ensureDetail(state.routeId);
     render();
-    if (!state.routeId) input.focus();
+    if (!state.routeId && !state.settings) focusInput();
   }
 
   window.addEventListener('popstate', () => {
@@ -285,6 +305,7 @@ export function createApp(root: HTMLElement): void {
       delete state.routeId;
     }
     render();
+    if (!next.routeId && !next.settings) focusInput();
   });
 
   void boot();
