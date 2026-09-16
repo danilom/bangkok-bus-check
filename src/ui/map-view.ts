@@ -6,7 +6,9 @@
 
 import { DARK, LIGHT, layers } from '@protomaps/basemaps';
 import type { FeatureCollection } from 'geojson';
-import { addProtocol, GeoJSONSource, Map as MapLibreMap, NavigationControl, type LngLatBoundsLike, type StyleSpecification } from 'maplibre-gl';
+import { addProtocol, GeoJSONSource, Map as MapLibreMap, NavigationControl, setWorkerUrl, type LngLatBoundsLike, type StyleSpecification } from 'maplibre-gl';
+// MapLibre finds its worker by a computed URL that bundlers cannot follow; Vite bundles it for us via ?worker&url.
+import mapWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import { Protocol } from 'pmtiles';
 
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -39,6 +41,7 @@ let protocolRegistered = false;
 
 function registerProtocol(): void {
   if (protocolRegistered) return;
+  setWorkerUrl(mapWorkerUrl);
   addProtocol('pmtiles', new Protocol().tile);
   protocolRegistered = true;
 }
@@ -59,7 +62,12 @@ export function createRouteMap(container: HTMLElement, initial: RouteMapProps): 
   map.addControl(new NavigationControl({ showCompass: false }), 'top-right');
 
   map.on('error', (event) => console.error('map error', event.error?.message ?? event));
-  if (import.meta.env.DEV) Object.assign(globalThis, { __bbcMap: map });
+  if (import.meta.env.DEV || location.search.includes('mapdebug')) {
+    Object.assign(globalThis, { __bbcMap: map });
+    for (const type of ['load', 'idle', 'styledata', 'sourcedata', 'dataloading', 'render'] as const) {
+      map.on(type, (event: unknown) => console.debug('bbc map', type, (event as { sourceId?: string }).sourceId ?? '', map.getZoom().toFixed(2), map.isStyleLoaded()));
+    }
+  }
   let loaded = false;
   map.on('load', () => {
     loaded = true;
