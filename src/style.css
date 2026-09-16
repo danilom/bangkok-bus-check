@@ -7,7 +7,8 @@
   --border: #e2e0da;
   --accent: #d9481c;
   --accent-soft: #fdece6;
-  --match: #fff2a8;
+  --match: #cfe3ff;
+  --warning: #fff2a8;
   --radius: 14px;
   --footer: #9a9a9f;
   /* Column width on wide screens, matching the reference phone (a 1080px-wide
@@ -25,7 +26,8 @@
     --border: #2e2e35;
     --accent: #ff7a4d;
     --accent-soft: #3a2119;
-    --match: #5a4a00;
+    --match: #1f3f6b;
+    --warning: #5a4a00;
     --footer: #5c5c64;
   }
 }
@@ -325,7 +327,7 @@ body {
 }
 
 .badge-warning {
-  background: var(--match);
+  background: var(--warning);
   color: var(--text);
 }
 
