@@ -127,6 +127,8 @@ export interface Stop {
   lon?: number;
   /** From data/overrides/landmarks.json: major landmarks are always shown, minor ones only to break a long stretch. */
   landmark?: Landmark;
+  /** A boarding point on a hail-and-ride stretch: a place on the road, not a named stop. The name is empty. */
+  hailAndRide?: true;
 }
 
 export interface Landmark {

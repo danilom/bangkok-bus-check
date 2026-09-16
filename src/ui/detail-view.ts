@@ -114,6 +114,22 @@ function namedStops(direction: Direction, stops: Record<string, Stop>): Stop[] {
     .filter((stop): stop is Stop => stop !== undefined && stop.name.th.length > 0);
 }
 
+function hailAndRideCount(direction: Direction, stops: Record<string, Stop>): number {
+  return direction.stops.filter((id) => stops[id]?.hailAndRide).length;
+}
+
+/** "Hail-and-ride: 24 boarding points along the way", or the no-named-stops form when that is all the run has. */
+function renderHailAndRide(lang: Lang, count: number, named: boolean): HTMLElement {
+  const text = named ? `${t(lang, 'hailAndRide')} ${count} ${t(lang, 'boardingPoints')}` : `${t(lang, 'hailAndRideOnly')} ${count} ${t(lang, 'boardingPointsOnly')}`;
+  return h('p', { class: 'muted hail-and-ride', text });
+}
+
+/** "A → B", or just "→ B" when the run starts on a hail-and-ride stretch and has no named origin. */
+function directionTitle(lang: Lang, direction: Direction): string {
+  const from = localize(lang, direction.from);
+  return from ? `${from} → ${localize(lang, direction.to)}` : `→ ${localize(lang, direction.to)}`;
+}
+
 /**
  * The button, the one-time explanation, progress and errors for the
  * location feature. Rendered only when there is a run to trim.
@@ -169,7 +185,8 @@ function pinIcon(): SVGSVGElement {
 function renderStopList(props: DetailViewProps, direction: Direction, stops: Record<string, Stop>, position?: Position): HTMLElement {
   const { lang } = props;
   const named = namedStops(direction, stops);
-  if (named.length === 0) return h('p', { class: 'muted', text: t(lang, 'noStops') });
+  const hailAndRide = hailAndRideCount(direction, stops);
+  if (named.length === 0) return hailAndRide > 0 ? renderHailAndRide(lang, hailAndRide, false) : h('p', { class: 'muted', text: t(lang, 'noStops') });
   const nearest = position ? nearestStop(named, position) : undefined;
   const onRoute = nearest !== undefined && nearest.meters <= NEAR_ROUTE_METERS;
   const start = onRoute ? nearest.index : 0;
@@ -207,9 +224,10 @@ function renderStopList(props: DetailViewProps, direction: Direction, stops: Rec
   const earlier = named.slice(0, start);
   return h('div', { class: 'stops-panel' }, [
     h('div', { class: 'stops-header' }, [
-      h('span', { class: 'direction-count', text: `${direction.stops.length} ${t(lang, 'stops')}` }),
+      h('span', { class: 'direction-count', text: `${named.length} ${t(lang, 'stops')}` }),
       condensed && h('button', { class: 'text-button stops-toggle', attrs: { type: 'button' }, text: t(lang, props.showAllStops ? 'showFewerStops' : 'showAllStops'), on: { click: props.onToggleAllStops } }),
     ]),
+    hailAndRide > 0 && renderHailAndRide(lang, hailAndRide, true),
     nearest && !onRoute && h('p', { class: 'muted', text: `${t(lang, 'farFromRoute')} ${formatDistance(nearest.meters)} ${t(lang, 'awayFull')}` }),
     earlier.length > 0 &&
       h('details', { class: 'earlier-stops' }, [
@@ -224,13 +242,15 @@ function renderStopList(props: DetailViewProps, direction: Direction, stops: Rec
 function renderCollapsibleDirection(props: DetailViewProps, direction: Direction, stops: Record<string, Stop>): HTMLElement {
   const { lang, expanded } = props;
   const named = namedStops(direction, stops);
+  const hailAndRide = hailAndRideCount(direction, stops);
   const details = h('details', { class: 'direction' }, [
     h('summary', { class: 'direction-summary' }, [
-      h('span', { class: 'direction-title', text: `${localize(lang, direction.from)} → ${localize(lang, direction.to)}` }),
-      h('span', { class: 'direction-count', text: `${direction.stops.length} ${t(lang, 'stops')}` }),
+      h('span', { class: 'direction-title', text: directionTitle(lang, direction) }),
+      h('span', { class: 'direction-count', text: named.length === 0 && hailAndRide > 0 ? `${hailAndRide} ${t(lang, 'boardingPointsShort')}` : `${named.length} ${t(lang, 'stops')}` }),
     ]),
+    hailAndRide > 0 && renderHailAndRide(lang, hailAndRide, named.length > 0),
     named.length === 0
-      ? h('p', { class: 'muted', text: t(lang, 'noStops') })
+      ? hailAndRide === 0 && h('p', { class: 'muted', text: t(lang, 'noStops') })
       : h('ol', { class: 'stop-list' }, named.map((stop) => h('li', { class: 'stop', text: localize(lang, stop.name) }))),
   ]);
   details.open = expanded.has(direction.tripId);

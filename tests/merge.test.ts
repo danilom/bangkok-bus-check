@@ -66,6 +66,16 @@ describe('mergeRoutes', () => {
     assert.equal(built?.agreement, 'gtfs-only');
   });
 
+  it('labels a run by its first and last named stops, skipping hail-and-ride points', () => {
+    const point: Stop = { id: 'hail', name: { th: '' }, hailAndRide: true, lat: 13.7, lon: 100.5 };
+    const route = gtfsRoute({ routeId: 'v', numbers: ['ต.1'], agencyId: 'DLT', longName: { th: 'ปิ่นเกล้า - สามพราน' }, trips: [trip('t1', 0, [point, A, MID, B, point])] });
+    const { dataset } = mergeRoutes(feed([route]), wiki());
+    const [direction] = dataset.routes[0]?.directions ?? [];
+    assert.equal(direction?.from.th, A.name.th);
+    assert.equal(direction?.to.th, B.name.th);
+    assert.equal(direction?.stops.length, 5);
+  });
+
   it('folds separate feed entries for each direction into one route', () => {
     const out = gtfsRoute({ routeId: 'a', numbers: ['ต.99'], agencyId: 'DLT', longName: { th: 'สนามหลวง - บางเขน' }, trips: [trip('t1', 0, [B, A], 'บางเขน')] });
     const back = gtfsRoute({ routeId: 'b', numbers: ['ต.99'], agencyId: 'DLT', longName: { th: 'บางเขน - สนามหลวง' }, trips: [trip('t2', 0, [A, B], 'สนามหลวง')] });

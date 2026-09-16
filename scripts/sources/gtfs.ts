@@ -119,13 +119,22 @@ export function localized(raw: string): LocalizedText {
   return en ? { th: th || en, en } : { th };
 }
 
+/**
+ * The feed models hail-and-ride stretches as a chain of virtual stops named
+ * "จุดขึ้นลง;visual stop" (one is spelled "จุดขึ้นรถ"); the English half is
+ * used for nothing else. They keep their coordinates but no name, so the
+ * app never lists them as stops.
+ */
+export const HAIL_AND_RIDE_NAME = 'visual stop';
+
 function parseStops(table: string): Map<string, Stop> {
   const stops = new Map<string, Stop>();
   for (const row of parseCsv(table)) {
     const id = row['stop_id'] ?? '';
     const lat = Number(row['stop_lat']);
     const lon = Number(row['stop_lon']);
-    const stop: Stop = { id: `s${id}`, name: localized(row['stop_name'] ?? '') };
+    const rawName = row['stop_name'] ?? '';
+    const stop: Stop = localized(rawName).en === HAIL_AND_RIDE_NAME ? { id: `s${id}`, name: { th: '' }, hailAndRide: true } : { id: `s${id}`, name: localized(rawName) };
     if (Number.isFinite(lat) && Number.isFinite(lon)) {
       stop.lat = lat;
       stop.lon = lon;

@@ -488,6 +488,11 @@ body {
   margin: 4px 4px 0;
 }
 
+.hail-and-ride {
+  font-size: 0.9rem;
+  margin: 4px 4px 8px;
+}
+
 .stops-header {
   display: flex;
   align-items: center;

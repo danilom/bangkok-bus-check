@@ -408,7 +408,8 @@ function endpointScore({ entry, trip }: TripCandidate, origin: 0 | 1, terminals:
   if (entryFrom && entryTo && !samePair([entryFrom, entryTo], terminals)) {
     score += placeSimilarity(entryFrom, from) + placeSimilarity(entryTo, to);
   }
-  score += 0.5 * (placeSimilarity(trip.stops[0]?.name ?? { th: '' }, from) + placeSimilarity(trip.stops.at(-1)?.name ?? { th: '' }, to));
+  const [first, last] = namedEnds(trip);
+  score += 0.5 * (placeSimilarity(first, from) + placeSimilarity(last, to));
   return score;
 }
 
@@ -442,9 +443,14 @@ function assignOrigins(candidates: TripCandidate[], primary: GtfsRoute | undefin
   return origins;
 }
 
+/** A run's first and last named stops; hail-and-ride points at either end say nothing about where it goes. */
+function namedEnds(trip: GtfsTrip): [LocalizedText, LocalizedText] {
+  const named = trip.stops.filter((stop) => !stop.hailAndRide);
+  return [named[0]?.name ?? { th: '' }, named.at(-1)?.name ?? { th: '' }];
+}
+
 function toDirection(trip: GtfsTrip, origin: 0 | 1 | undefined, variant: boolean): Direction {
-  const first = trip.stops[0]?.name ?? { th: '' };
-  const last = trip.stops.at(-1)?.name ?? { th: '' };
+  const [first, last] = namedEnds(trip);
   const direction: Direction = {
     from: first,
     to: trip.headsign ?? last,

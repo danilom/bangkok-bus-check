@@ -49,7 +49,7 @@ function printRoute(route: Route, stops: Record<string, Stop>, rules: LandmarkRu
   const ends = route.terminals?.map((t) => t.en ?? t.th).join(' – ') ?? '';
   console.log(`\n${style.bold(style.cyan(route.id))}  ${ends}`);
   for (const direction of route.directions.filter((d) => !d.variant)) {
-    const list = direction.stops.map((stopId) => stops[stopId]).filter((s): s is Stop => s !== undefined);
+    const list = direction.stops.map((stopId) => stops[stopId]).filter((s): s is Stop => s !== undefined && !s.hailAndRide);
     const segments = condenseStops(list);
     const kept = new Map(segments.flatMap((s) => (s.kind === 'stop' ? [[s.index, s.reason] as const] : [])));
     console.log(`  ${style.bold(`→ ${direction.to.en ?? direction.to.th}`)}  ${style.dim(`(${kept.size} of ${list.length} stops shown)`)}`);

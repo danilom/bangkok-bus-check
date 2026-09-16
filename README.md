@@ -63,6 +63,11 @@ the effect on real routes; `bbc landmarks --audit` gives the whole-dataset
 numbers (lit share per direction, hits per keyword, busy unlit stops, lit
 stops only one route serves).
 
+The feed models hail-and-ride stretches (vans, suburban routes) as chains
+of virtual stops named "visual stop". They are kept with their coordinates
+but no name, so lists show only named stops plus a line saying how many
+boarding points the run has.
+
 Routes are keyed by (number, operator): an old number can belong to a BMTA
 route, a songthaew and a private minibus at once. The feed's separate
 entries for sections, expressway runs and return directions fold into one
