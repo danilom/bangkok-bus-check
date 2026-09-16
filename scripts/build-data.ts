@@ -51,7 +51,7 @@ async function writeOutput(dataset: RouteDataset, outDir: string): Promise<void>
   const index: RouteIndex = {
     generatedAt: dataset.generatedAt,
     attribution: dataset.attribution,
-    routes: dataset.routes.map(({ directions, notes, vehicles, hours, ...summary }) => ({ ...summary, directionCount: directions.length })),
+    routes: dataset.routes.map(({ directions, notes, vehicles, hours, operatorDetail, ...summary }) => ({ ...summary, directionCount: directions.length })),
   };
   const indexPath = join(outDir, 'index.json');
   await writeFile(indexPath, JSON.stringify(index), 'utf8');
@@ -65,6 +65,7 @@ async function writeOutput(dataset: RouteDataset, outDir: string): Promise<void>
     };
     if (route.notes !== undefined) detail.notes = route.notes;
     if (route.hours !== undefined) detail.hours = route.hours;
+    if (route.operatorDetail !== undefined) detail.operatorDetail = route.operatorDetail;
     await writeFile(join(routesDir, `${route.id}.json`), JSON.stringify(detail), 'utf8');
   }
   const indexSize = Buffer.byteLength(JSON.stringify(index));

@@ -204,7 +204,8 @@ function buildRoute(bucket: Bucket, mapping: Map<string, string[]>, stops: Recor
     if (loop) route.sideLabels = loopSideLabels(route.directions);
   }
   const operator = pickOperator(primary, wikiBase);
-  if (operator) route.operator = operator;
+  if (operator) route.operator = operator.short;
+  if (operator?.detail) route.operatorDetail = operator.detail;
   const hours = primary?.hours;
   if (hours) route.hours = hours.start === '00:00' && hours.end >= '23:5' ? '24 h' : `${hours.start}–${hours.end}`;
   const notes = unique(wikiRows.map((row) => row.notes ?? '').filter(Boolean)).join('\n');
@@ -436,12 +437,24 @@ const OPERATOR_NAMES: Record<string, LocalizedText> = {
   tsb: { th: 'ไทยสมายล์บัส', en: 'Thai Smile Bus' },
 };
 
-/** Big operators by name; private ones from Wikipedia, since the feed only says "DLT". */
-function pickOperator(primary: GtfsRoute | undefined, wikiBase: WikiRoute | undefined): LocalizedText | undefined {
-  const key = operatorKey(primary?.agencyId);
-  if (key && OPERATOR_NAMES[key]) return OPERATOR_NAMES[key];
-  if (wikiBase?.operator) return { th: wikiBase.operator };
-  if (primary && key !== 'dlt') return primary.agencyName;
+/**
+ * Big operators by their short name, whichever source names them; private
+ * ones from Wikipedia, since the feed only says "DLT". Wikipedia's full
+ * wording ("operating under the name …") is kept for the details page.
+ */
+function pickOperator(primary: GtfsRoute | undefined, wikiBase: WikiRoute | undefined): { short: LocalizedText; detail?: LocalizedText } | undefined {
+  const wikiText = wikiBase?.operator;
+  const agencyKey = operatorKey(primary?.agencyId);
+  // "DLT" is the licensing department, not an operator: look to Wikipedia instead.
+  const key = (agencyKey === 'dlt' ? undefined : agencyKey) ?? operatorKey(wikiText);
+  const known = key === undefined ? undefined : OPERATOR_NAMES[key];
+  const detail = wikiText && known && wikiText !== known.th ? { th: wikiText } : undefined;
+  if (known) return detail ? { short: known, detail } : { short: known };
+  if (wikiText) {
+    const short = wikiText.replace(/\s*\(ให้บริการในนาม[^)]*\)/g, '').trim();
+    return short !== wikiText ? { short: { th: short }, detail: { th: wikiText } } : { short: { th: wikiText } };
+  }
+  if (primary && agencyKey !== 'dlt') return { short: primary.agencyName };
   return undefined;
 }
 

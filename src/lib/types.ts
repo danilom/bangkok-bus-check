@@ -27,11 +27,11 @@ export interface RouteIndex {
 }
 
 /** What the search screen needs; long text and per-direction data live in `RouteDetail`. */
-export interface RouteSummary extends Omit<Route, 'directions' | 'notes' | 'vehicles' | 'hours'> {
+export interface RouteSummary extends Omit<Route, 'directions' | 'notes' | 'vehicles' | 'hours' | 'operatorDetail'> {
   directionCount: number;
 }
 
-export interface RouteDetail extends Pick<Route, 'id' | 'directions' | 'notes' | 'vehicles' | 'hours'> {
+export interface RouteDetail extends Pick<Route, 'id' | 'directions' | 'notes' | 'vehicles' | 'hours' | 'operatorDetail'> {
   /** Only the stops this route's directions reference. */
   stops: Record<string, Stop>;
 }
@@ -54,7 +54,10 @@ export interface Route {
   loop: boolean;
   /** Loop routes: headsign of each side's main run (null when that side has no run). */
   sideLabels?: [LocalizedText | null, LocalizedText | null];
+  /** Short operator name for the card. */
   operator?: LocalizedText;
+  /** Wikipedia's full wording, e.g. the subsidiary a route is run under; details page only. */
+  operatorDetail?: LocalizedText;
   /** Thai vehicle descriptions as listed by Wikipedia ("รถโดยสารประจำทางสีครีม-แดง"). */
   vehicles: string[];
   service: ServiceFlags;
