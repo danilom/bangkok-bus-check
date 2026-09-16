@@ -57,11 +57,27 @@ export function renderRouteCard({ lang, match, onOpen }: RouteCardProps): HTMLEl
       renderNumber(lang, route, match.alias),
       renderLoopLine(lang, route),
       renderDirectionPill({ lang, route, onSelect: (side) => onOpen(route, side) }),
-      h('div', { class: 'route-meta' }, [
-        renderBadges(lang, route),
-        route.operator && h('span', { class: 'operator', text: localize(lang, route.operator) }),
-      ]),
+      renderVehicles(lang, route, false),
+      renderMeta(lang, route),
     ],
   );
   return card;
+}
+
+/**
+ * What the bus looks like, the fact that identifies it at the kerb. One line
+ * with an ellipsis on a results card (space matters there); the route page
+ * shows it in full.
+ */
+export function renderVehicles(lang: Lang, route: RouteSummary, full: boolean): HTMLElement | false {
+  if (route.vehicles.length === 0) return false;
+  return h('p', { class: full ? 'route-vehicles' : 'route-vehicles is-clipped', text: route.vehicles.map((vehicle) => localize(lang, vehicle)).join(' · ') });
+}
+
+/** Badges and the operator, on one line under the pill. */
+export function renderMeta(lang: Lang, route: RouteSummary): HTMLElement {
+  return h('div', { class: 'route-meta' }, [
+    renderBadges(lang, route),
+    route.operator && h('span', { class: 'operator', text: localize(lang, route.operator) }),
+  ]);
 }

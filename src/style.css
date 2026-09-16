@@ -528,6 +528,18 @@ body {
   letter-spacing: 0.1em;
 }
 
+.route-vehicles {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.route-vehicles.is-clipped {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .route-meta {
   display: flex;
   align-items: center;

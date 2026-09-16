@@ -14,6 +14,7 @@ function route(id: string, formerNumbers: string[] = [], extra: Partial<RouteSum
     loop: false,
     agreement: 'agree',
     sources: { wikipedia: true, gtfsRouteIds: ['x'] },
+    vehicles: [],
     directionCount: 0,
     ...extra,
   };

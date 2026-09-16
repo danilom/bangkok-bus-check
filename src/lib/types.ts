@@ -26,12 +26,12 @@ export interface RouteIndex {
   routes: RouteSummary[];
 }
 
-/** What the search screen needs; long text and per-direction data live in `RouteDetail`. */
-export interface RouteSummary extends Omit<Route, 'directions' | 'notes' | 'vehicles' | 'hours' | 'operatorDetail'> {
+/** What the search screen and the card need; long text and per-direction data live in `RouteDetail`. */
+export interface RouteSummary extends Omit<Route, 'directions' | 'notes' | 'hours' | 'operatorDetail'> {
   directionCount: number;
 }
 
-export interface RouteDetail extends Pick<Route, 'id' | 'directions' | 'notes' | 'vehicles' | 'hours' | 'operatorDetail'> {
+export interface RouteDetail extends Pick<Route, 'id' | 'directions' | 'notes' | 'hours' | 'operatorDetail'> {
   /** Only the stops this route's directions reference. */
   stops: Record<string, Stop>;
 }

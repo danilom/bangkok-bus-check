@@ -101,7 +101,7 @@ async function writeOutput(dataset: RouteDataset, outDir: string): Promise<void>
   const index: RouteIndex = {
     generatedAt: dataset.generatedAt,
     attribution: dataset.attribution,
-    routes: dataset.routes.map(({ directions, notes, vehicles, hours, operatorDetail, ...summary }) => ({ ...summary, directionCount: directions.length })),
+    routes: dataset.routes.map(({ directions, notes, hours, operatorDetail, ...summary }) => ({ ...summary, directionCount: directions.length })),
   };
   const indexPath = join(outDir, 'index.json');
   await writeFile(indexPath, JSON.stringify(index), 'utf8');
@@ -110,7 +110,6 @@ async function writeOutput(dataset: RouteDataset, outDir: string): Promise<void>
     const detail: RouteDetail = {
       id: route.id,
       directions: route.directions,
-      vehicles: route.vehicles,
       stops: pickStops(dataset.stops, route),
     };
     if (route.notes !== undefined) detail.notes = route.notes;

@@ -7,7 +7,10 @@ export type LoadResult<T> = { ok: true; value: T } | { ok: false; error: string 
 const DATA_BASE = `${import.meta.env.BASE_URL}data/`;
 
 export async function loadIndex(): Promise<LoadResult<RouteIndex>> {
-  return fetchJson(`${DATA_BASE}index.json`, isRouteIndex);
+  const result = await fetchJson(`${DATA_BASE}index.json`, isRouteIndex);
+  // The service worker may serve an index from before vehicles moved into it; a missing list is an empty one, not a broken file.
+  if (result.ok) for (const route of result.value.routes) route.vehicles ??= [];
+  return result;
 }
 
 export async function loadDetail(id: string): Promise<LoadResult<RouteDetail>> {
@@ -52,6 +55,7 @@ function isRouteSummary(value: unknown): boolean {
     isRecord(value['service']) &&
     typeof value['agreement'] === 'string' &&
     typeof value['loop'] === 'boolean' &&
+    (value['vehicles'] === undefined || Array.isArray(value['vehicles'])) &&
     isRecord(value['sources'])
   );
 }
@@ -61,7 +65,6 @@ function isRouteDetail(value: unknown): value is RouteDetail {
     isRecord(value) &&
     typeof value['id'] === 'string' &&
     Array.isArray(value['directions']) &&
-    Array.isArray(value['vehicles']) &&
     isRecord(value['stops'])
   );
 }

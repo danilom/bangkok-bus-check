@@ -4,7 +4,7 @@ import { formatDistance, NEAR_ROUTE_METERS, nearestStop, type Position } from '.
 import type { Direction, RouteDetail, RouteSummary, Stop } from '../lib/types.ts';
 import { renderDirectionPill, renderLoopLine, sideAt, type Side } from './direction-pill.ts';
 import { h } from './dom.ts';
-import { renderBadges, renderNumber } from './route-card.ts';
+import { renderMeta, renderNumber, renderVehicles } from './route-card.ts';
 
 /** Where the location feature stands for this view. */
 export type LocationStatus =
@@ -59,7 +59,8 @@ function renderHeader(props: DetailViewProps): HTMLElement {
     renderNumber(lang, route),
     renderLoopLine(lang, route),
     renderDirectionPill({ lang, route, selected: side, onSelect: props.onSelectSide }),
-    renderBadges(lang, route),
+    renderVehicles(lang, route, true),
+    renderMeta(lang, route),
   ]);
   return header;
 }
@@ -87,8 +88,6 @@ function renderDetailBody(props: DetailViewProps, detail: RouteDetail): HTMLElem
   // destination's are behind the toggle.
   const others = detail.directions.filter((direction) => direction !== main && direction.origin !== side);
   return h('div', { class: 'detail-body' }, [
-    // Vehicle type first: it is what identifies the bus in front of you.
-    detail.vehicles.length > 0 && renderFact(t(lang, 'vehicles'), detail.vehicles.map((vehicle) => localize(lang, vehicle)).join(' · ')),
     main && renderLocationPanel(props),
     main
       ? renderStopList(props, main, detail.stops, props.location.kind === 'ready' ? props.location.position : undefined)
@@ -98,7 +97,8 @@ function renderDetailBody(props: DetailViewProps, detail: RouteDetail): HTMLElem
         h('p', { class: 'recent-label', text: t(lang, 'variants') }),
         ...others.map((direction) => renderCollapsibleDirection(props, direction, detail.stops)),
       ]),
-    (detail.operatorDetail ?? route.operator) && renderFact(t(lang, 'operator'), localize(lang, detail.operatorDetail ?? route.operator ?? { th: '' })),
+    // The card carries the operator; the fuller "A (operating as B)" form is worth its own line when there is one.
+    detail.operatorDetail && renderFact(t(lang, 'operator'), localize(lang, detail.operatorDetail)),
     detail.hours && renderFact(t(lang, 'hours'), detail.hours),
     detail.notes && renderNotes(lang, detail.notes),
   ]);
