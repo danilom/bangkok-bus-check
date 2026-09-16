@@ -15,6 +15,7 @@
   --chip: #eeeeee;
   /* Map controls: MapLibre's icons are black; inverted on dark. */
   --map-icon-invert: 0;
+  --map-control-border: #bdbdbd;
   --warning: #fff59d;
   --footer: #9e9e9e;
   --accent: var(--accent-l);
@@ -99,6 +100,7 @@
   --border: #2c2c2c;
   --chip: #2e2e2e;
   --map-icon-invert: 1;
+  --map-control-border: #5a5a5a;
   --warning: #4d4300;
   --footer: #616161;
   --accent: var(--accent-d);
@@ -115,6 +117,7 @@
     --border: #2c2c2c;
     --chip: #2e2e2e;
     --map-icon-invert: 1;
+    --map-control-border: #5a5a5a;
     --warning: #4d4300;
     --footer: #616161;
     --accent: var(--accent-d);
@@ -828,12 +831,12 @@ body {
   margin: 24px 16px;
 }
 
-/* MapLibre's controls in the app's colours: surface boxes, icons inverted on dark. */
+/* MapLibre's controls in the app's colours: surface boxes with a lighter border than the cards so they stand off the map, icons inverted on dark. */
 .map-canvas .maplibregl-ctrl-group {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--map-control-border);
   border-radius: 10px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 
 .map-canvas .maplibregl-ctrl-group button {
@@ -841,7 +844,7 @@ body {
 }
 
 .map-canvas .maplibregl-ctrl-group button + button {
-  border-top-color: var(--border);
+  border-top-color: var(--map-control-border);
 }
 
 .map-canvas .maplibregl-ctrl-group button:hover,
@@ -856,6 +859,7 @@ body {
 .map-canvas .maplibregl-ctrl-attrib {
   background: var(--surface);
   color: var(--muted);
+  border: 1px solid var(--map-control-border);
   border-radius: 10px;
 }
 
