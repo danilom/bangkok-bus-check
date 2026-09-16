@@ -4,6 +4,8 @@
  * name the big terminals several ways; these are fixed synonyms, not guesses.
  */
 
+import type { LocalizedText } from '../../src/lib/types.ts';
+
 const ABBREVIATIONS: [RegExp, string][] = [
   [/มทร\.\s*/g, 'มหาวิทยาลัยเทคโนโลยีราชมงคล'],
   [/มธ\.\s*/g, 'มหาวิทยาลัยธรรมศาสตร์'],
@@ -46,6 +48,12 @@ const NOISE = [
 ];
 
 const STATION_PREFIX = /^(?:BTS|MRT|ARL|SRT|สถานีรถไฟฟ้า|สถานี|ท่ารถ|ท่าน้ำ|ท่าเรือ|อู่)\s*/i;
+
+/** The feed's English is inconsistently cased ("bangkhen"); a name starts with a capital, and only the first letter is touched. */
+export function capitalizeEnglish(text: LocalizedText): LocalizedText {
+  if (!text.en || text.en[0] === text.en[0]?.toUpperCase()) return text;
+  return { ...text, en: text.en[0]?.toUpperCase() + text.en.slice(1) };
+}
 
 /** Display form of a terminus: the place name without route-description markers. */
 export function displayPlace(text: string): string {

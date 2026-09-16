@@ -6,7 +6,7 @@
  */
 
 import type { LocalizedText, Route, RouteDataset } from '../src/lib/types.ts';
-import { normalizePlace } from './lib/places.ts';
+import { capitalizeEnglish, normalizePlace } from './lib/places.ts';
 import { TranslationIndex, type Translations } from './lib/translations.ts';
 import { OPERATING_AS, OPERATOR_NAMES, operatorKey } from './merge.ts';
 import type { GtfsFeed } from './sources/gtfs.ts';
@@ -51,7 +51,15 @@ export function applyTranslations(dataset: RouteDataset, feed: GtfsFeed, transla
     if (route.operator) route.operator = resolveOperator(route.operator, route);
     route.vehicles = route.vehicles.map((vehicle) => resolveVehicle(vehicle, route));
     if (route.operatorDetail) route.operatorDetail = resolveOperatorDetail(route.operatorDetail, route);
+    if (route.terminals) route.terminals = [capitalizeEnglish(route.terminals[0]), capitalizeEnglish(route.terminals[1])];
+    if (route.sideLabels) route.sideLabels = [route.sideLabels[0] && { ...route.sideLabels[0], name: capitalizeEnglish(route.sideLabels[0].name) }, route.sideLabels[1] && { ...route.sideLabels[1], name: capitalizeEnglish(route.sideLabels[1].name) }];
+    for (const direction of route.directions) {
+      direction.from = capitalizeEnglish(direction.from);
+      direction.to = capitalizeEnglish(direction.to);
+      if (direction.headsign) direction.headsign = capitalizeEnglish(direction.headsign);
+    }
   }
+  for (const stop of Object.values(dataset.stops)) stop.name = capitalizeEnglish(stop.name);
   return report;
 
   function resolvePlace(text: LocalizedText, route: Route): LocalizedText {
