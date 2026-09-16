@@ -519,13 +519,13 @@ body {
 
 .stop-gap-dots {
   position: absolute;
-  left: calc(2.4em + 8px);
+  left: 6px;
   top: 0;
   transform: translateY(-50%);
   line-height: 1;
-  color: var(--muted);
+  color: var(--text);
   font-size: 0.7rem;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.1em;
 }
 
 .route-meta {
@@ -650,16 +650,15 @@ body {
 /* Number in a fixed column so the names line up; the stop numbers are the quietest thing on the line. */
 .stop {
   display: grid;
-  grid-template-columns: 2.4em 1fr;
-  column-gap: 6px;
-  padding: 5px 0;
+  grid-template-columns: 1.6em 1fr;
+  column-gap: 12px;
+  padding: 5px 0 5px 6px;
   border-left: 2px solid var(--border);
 }
 
 .stop-number {
   text-align: right;
   color: var(--muted);
-  font-size: 0.85em;
   font-variant-numeric: tabular-nums;
   align-self: baseline;
 }
