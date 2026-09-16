@@ -42,6 +42,7 @@ const ROUTE_SOURCE = 'route';
 const STOPS_SOURCE = 'stops';
 const POSITION_SOURCE = 'position';
 const FONT = ['Noto Sans Regular'];
+const FONT_MEDIUM = ['Noto Sans Medium'];
 /** The blue every map app uses for "you are here"; deliberately not the accent, so it reads the same on any theme. */
 const POSITION_BLUE = '#1a73e8';
 
@@ -299,7 +300,8 @@ function stopFeatures(props: RouteMapProps): FeatureCollection<Point> {
 function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
   const surface = props.dark ? '#121212' : '#ffffff';
   const grey = props.dark ? '#9e9e9e' : '#757575';
-  addLabelBoxImage(map, props.dark);
+  addLabelBoxImage(map, LABEL_BOX, props.dark, props.dark ? '#3a3a3a' : '#d6d6d6');
+  addLabelBoxImage(map, LABEL_BOX_NEAREST, props.dark, props.accent);
   map.addSource(STOPS_SOURCE, { type: 'geojson', data: stopFeatures(props) });
   map.addLayer({
     id: 'stops-dot',
@@ -353,7 +355,8 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
     minzoom,
     layout: {
       'text-field': ['get', 'name'],
-      'text-font': FONT,
+      // The nearest stop's label: medium weight on an accent-bordered card.
+      'text-font': ['case', ['get', 'nearest'], ['literal', FONT_MEDIUM], ['literal', FONT]],
       // The map page's pill is 0.85rem of a 17px root: the labels match it at every zoom.
       'text-size': 13.5,
       // Tried in this order until one spot is free of other labels and of the line's blockers.
@@ -363,7 +366,7 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
       'text-max-width': 9,
       'text-optional': true,
       // A translucent dark box behind the text: a stretched 1-colour image sized to the label.
-      'icon-image': LABEL_BOX,
+      'icon-image': ['case', ['get', 'nearest'], LABEL_BOX_NEAREST, LABEL_BOX],
       'icon-text-fit': 'both',
       // The fit already follows the text's offset; an icon offset of its own would double it.
       'icon-text-fit-padding': [3, 7, 4, 7],
@@ -381,14 +384,15 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
 }
 
 const LABEL_BOX = 'label-box';
+const LABEL_BOX_NEAREST = 'label-box-nearest';
 
 /**
  * The label background: a small card in the app's terms (surface colour,
  * 1px border, rounded), drawn at 2x for crisp corners and stretched to each
  * label; the stretch zones keep the border and corners at their size.
  */
-function addLabelBoxImage(map: MapLibreMap, dark: boolean): void {
-  if (map.hasImage(LABEL_BOX)) map.removeImage(LABEL_BOX);
+function addLabelBoxImage(map: MapLibreMap, name: string, dark: boolean, border: string): void {
+  if (map.hasImage(name)) map.removeImage(name);
   const scale = 2;
   const radius = 8 * scale;
   const size = radius * 2 + 4 * scale;
@@ -398,13 +402,13 @@ function addLabelBoxImage(map: MapLibreMap, dark: boolean): void {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
   ctx.fillStyle = dark ? 'rgba(30, 30, 30, 0.6)' : 'rgba(255, 255, 255, 0.6)';
-  ctx.strokeStyle = dark ? '#3a3a3a' : '#d6d6d6';
+  ctx.strokeStyle = border;
   ctx.lineWidth = scale;
   ctx.beginPath();
   ctx.roundRect(scale / 2, scale / 2, size - scale, size - scale, radius);
   ctx.fill();
   ctx.stroke();
-  map.addImage(LABEL_BOX, ctx.getImageData(0, 0, size, size), {
+  map.addImage(name, ctx.getImageData(0, 0, size, size), {
     pixelRatio: scale,
     stretchX: [[radius, size - radius]],
     stretchY: [[radius, size - radius]],
