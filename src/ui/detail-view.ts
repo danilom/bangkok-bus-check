@@ -69,47 +69,57 @@ function renderHeader(props: DetailViewProps): HTMLElement {
   return header;
 }
 
+/**
+ * The body renders from the summary straight away — front sign from the
+ * terminals, Map button, location — and only the stops wait for the route
+ * file, showing "Loading…" (or the error) in their place.
+ */
 function renderStatus(props: DetailViewProps): HTMLElement {
-  const { lang, status } = props;
-  if (status.kind === 'loading') return h('p', { class: 'muted', text: t(lang, 'loading') });
-  if (status.kind === 'error') {
-    return h('div', { class: 'error' }, [
-      h('p', { text: t(lang, 'loadFailed') }),
-      h('button', { class: 'text-button', attrs: { type: 'button' }, text: t(lang, 'retry'), on: { click: props.onRetry } }),
-    ]);
-  }
-  return renderDetailBody(props, status.detail);
+  const { status } = props;
+  return renderDetailBody(props, status.kind === 'ready' ? status.detail : undefined);
 }
 
-function renderDetailBody(props: DetailViewProps, detail: RouteDetail): HTMLElement {
+function renderDetailBody(props: DetailViewProps, detail: RouteDetail | undefined): HTMLElement {
   const { lang, route, side } = props;
   // `side` is the destination; a run heading there departs from the other end.
   const departsFrom: Side = side === 0 ? 1 : 0;
-  const main = detail.directions.find((direction) => !direction.variant && direction.origin === departsFrom)
-    ?? detail.directions.find((direction) => direction.origin === departsFrom);
+  const main = detail?.directions.find((direction) => !direction.variant && direction.origin === departsFrom)
+    ?? detail?.directions.find((direction) => direction.origin === departsFrom);
   // Variant runs towards this destination (short-turns, expressway runs) and
   // trips that matched neither terminus are listed below; the other
   // destination's are behind the toggle.
-  const others = detail.directions.filter((direction) => direction !== main && direction.origin !== side);
+  const others = detail?.directions.filter((direction) => direction !== main && direction.origin !== side) ?? [];
   return h('div', { class: 'detail-body' }, [
     lang === 'en' && renderFrontSign(props, detail),
     h('div', { class: 'detail-actions' }, [
-      main?.shape && h('button', { class: 'text-button map-button', attrs: { type: 'button' }, on: { click: () => props.onMap() } }, [mapIcon(), t(lang, 'map')]),
-      main && renderLocationPanel(props),
+      (detail === undefined || main?.shape) && h('button', { class: 'text-button map-button', attrs: { type: 'button' }, on: { click: () => props.onMap() } }, [mapIcon(), t(lang, 'map')]),
+      (detail === undefined || main) && renderLocationPanel(props),
     ]),
-    main
-      ? renderStopList(props, main, detail.stops, props.location.kind === 'ready' ? props.location.position : undefined)
-      : h('p', { class: 'muted', text: t(lang, detail.directions.length === 0 ? 'noDirections' : 'noStops') }),
-    others.length > 0 &&
+    renderStopsSlot(props, detail, main),
+    detail && others.length > 0 &&
       h('div', { class: 'directions' }, [
         h('p', { class: 'recent-label', text: t(lang, 'variants') }),
         ...others.map((direction) => renderCollapsibleDirection(props, direction, detail.stops)),
       ]),
     // The card carries the operator; the fuller "A (operating as B)" form is worth its own line when there is one.
-    detail.operatorDetail && renderFact(t(lang, 'operator'), localize(lang, detail.operatorDetail)),
-    detail.hours && renderFact(t(lang, 'hours'), detail.hours),
-    detail.notes && renderNotes(lang, detail.notes),
+    detail?.operatorDetail && renderFact(t(lang, 'operator'), localize(lang, detail.operatorDetail)),
+    detail?.hours && renderFact(t(lang, 'hours'), detail.hours),
+    detail?.notes && renderNotes(lang, detail.notes),
   ]);
+}
+
+/** The stop list, or what stands in for it while the route file loads or after it failed. */
+function renderStopsSlot(props: DetailViewProps, detail: RouteDetail | undefined, main: Direction | undefined): HTMLElement {
+  const { lang, status } = props;
+  if (status.kind === 'loading') return h('p', { class: 'muted', text: t(lang, 'loading') });
+  if (status.kind === 'error' || !detail) {
+    return h('div', { class: 'error' }, [
+      h('p', { text: t(lang, 'loadFailed') }),
+      h('button', { class: 'text-button', attrs: { type: 'button' }, text: t(lang, 'retry'), on: { click: props.onRetry } }),
+    ]);
+  }
+  if (!main) return h('p', { class: 'muted', text: t(lang, detail.directions.length === 0 ? 'noDirections' : 'noStops') });
+  return renderStopList(props, main, detail.stops, props.location.kind === 'ready' ? props.location.position : undefined);
 }
 
 /**
@@ -119,7 +129,7 @@ function renderDetailBody(props: DetailViewProps, detail: RouteDetail): HTMLElem
  * the terminus. No English: the pill above labels the same two positions.
  * Tapping a half selects that side, like the pill.
  */
-function renderFrontSign(props: DetailViewProps, detail: RouteDetail): HTMLElement | false {
+function renderFrontSign(props: DetailViewProps, detail: RouteDetail | undefined): HTMLElement | false {
   const { lang, route, side } = props;
   if (!route.terminals) return false;
   const rows = ([0, 1] as const).map((destination) => {
@@ -140,10 +150,10 @@ function renderFrontSign(props: DetailViewProps, detail: RouteDetail): HTMLEleme
 }
 
 /** The Thai a bus heading for `destination` carries on its sign. */
-function signText(route: RouteSummary, detail: RouteDetail, destination: Side): string | undefined {
+function signText(route: RouteSummary, detail: RouteDetail | undefined, destination: Side): string | undefined {
   const departsFrom: Side = destination === 0 ? 1 : 0;
-  const run = detail.directions.find((direction) => !direction.variant && direction.origin === departsFrom)
-    ?? detail.directions.find((direction) => direction.origin === departsFrom);
+  const run = detail?.directions.find((direction) => !direction.variant && direction.origin === departsFrom)
+    ?? detail?.directions.find((direction) => direction.origin === departsFrom);
   if (run?.headsign?.th) return run.headsign.th;
   if (route.loop) {
     const label = route.sideLabels?.[destination];
