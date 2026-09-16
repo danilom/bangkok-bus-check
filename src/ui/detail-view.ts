@@ -40,8 +40,8 @@ export interface DetailViewProps {
   onToggleAllStops: () => void;
 }
 
-/** Dots in a hidden-stretch row; longer stretches light them all. */
-const GAP_DOTS = 10;
+/** Dots in a hidden-stretch row. Stretches run up to max(6, n/10) stops, so only the longest routes light them all. */
+const GAP_DOTS = 9;
 
 export function renderDetailView(props: DetailViewProps): HTMLElement {
   const { lang, route, side } = props;
