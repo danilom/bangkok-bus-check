@@ -12,6 +12,7 @@
   --text: #212121;
   --muted: #757575;
   --border: #e0e0e0;
+  --chip: #eeeeee;
   --warning: #fff59d;
   --footer: #9e9e9e;
   --accent: var(--accent-l);
@@ -94,6 +95,7 @@
   --text: #e0e0e0;
   --muted: #9e9e9e;
   --border: #2c2c2c;
+  --chip: #2e2e2e;
   --warning: #4d4300;
   --footer: #616161;
   --accent: var(--accent-d);
@@ -108,6 +110,7 @@
     --text: #e0e0e0;
     --muted: #9e9e9e;
     --border: #2c2c2c;
+    --chip: #2e2e2e;
     --warning: #4d4300;
     --footer: #616161;
     --accent: var(--accent-d);
@@ -551,19 +554,18 @@ body {
   font-size: 0.85rem;
 }
 
-/* Outline chips: quiet, so the filled match highlight on the number stays the one thing that pops. */
+/* Grey chips: quiet, so the filled match highlight on the number stays the one thing that pops. */
 .badge {
   color: var(--muted);
-  border: 1px solid var(--border);
+  background: var(--chip);
   border-radius: 6px;
-  padding: 0 7px;
+  padding: 1px 7px;
   font-weight: 600;
 }
 
 /* The data warning is the one badge that should be louder. */
 .badge-warning {
   background: var(--warning);
-  border-color: transparent;
   color: var(--text);
 }
 
