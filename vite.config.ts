@@ -20,6 +20,6 @@ export default defineConfig({
   build: { target: 'es2022' },
   define: {
     __BUILD_COMMIT__: JSON.stringify(buildCommit()),
-    __BUILD_TIME__: JSON.stringify(new Date().toISOString().slice(0, 16).replace('T', ' ')),
+    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
   },
 });

@@ -60,6 +60,13 @@ function trackVisibleHeight(): void {
   apply();
 }
 
+/** "2026-09-17 00:43" in the viewer's time zone. */
+function formatLocalTime(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number): string => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 /** Theme and accent are attributes on <html> that the stylesheet keys off; the browser chrome colour follows. */
 function applyAppearance(theme: Theme, accent: Accent): void {
   const html = document.documentElement;
@@ -389,7 +396,7 @@ export function createApp(root: HTMLElement): void {
     if (!index) return [];
     return [
       ...index.attribution.map((line) => h('p', { class: 'footer-line', text: line })),
-      h('p', { class: 'footer-line', text: `${t(lang, 'build')} ${__BUILD_COMMIT__} ${t(lang, 'buildOn')} ${__BUILD_TIME__}` }),
+      h('p', { class: 'footer-line', text: `${t(lang, 'build')} ${__BUILD_COMMIT__} ${t(lang, 'buildOn')} ${formatLocalTime(__BUILD_TIME__)}` }),
     ];
   }
 
