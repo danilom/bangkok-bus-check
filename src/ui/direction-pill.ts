@@ -45,12 +45,26 @@ export function renderDirectionPill(props: DirectionPillProps): HTMLElement {
     ]);
   }
   return h('div', { class: 'dir-pill', attrs: { role: 'group' } }, [
-    renderHalf(props, 0, [terminusLabel(lang, from), h('span', { class: 'dir-arrow', text: '→' })], selected === 0),
-    renderHalf(props, 1, [h('span', { class: 'dir-arrow', text: '←' }), terminusLabel(lang, to)], selected === 1),
+    renderHalf(props, 0, [terminusLabel(lang, from), arrow('right')], selected === 0),
+    renderHalf(props, 1, [arrow('left'), terminusLabel(lang, to)], selected === 1),
   ]);
 }
 
-function renderHalf(props: DirectionPillProps, side: Side, children: HTMLElement[], isSelected: boolean): HTMLElement {
+/** A bold arrow with a big head; SVG so it looks the same in every font and never turns into an emoji. */
+function arrow(direction: 'left' | 'right'): SVGSVGElement {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'dir-arrow dir-arrow-svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  // Shaft from the left, head filling the right half; mirrored for left.
+  path.setAttribute('d', direction === 'right' ? 'M2 10h10V4l10 8-10 8v-6H2z' : 'M22 10H12V4L2 12l10 8v-6h10z');
+  path.setAttribute('fill', 'currentColor');
+  svg.append(path);
+  return svg;
+}
+
+function renderHalf(props: DirectionPillProps, side: Side, children: Element[], isSelected: boolean): HTMLElement {
   return h('button', {
     class: `dir-half dir-half-${side}${isSelected ? ' is-selected' : ''}`,
     attrs: { type: 'button', 'aria-pressed': String(isSelected) },
