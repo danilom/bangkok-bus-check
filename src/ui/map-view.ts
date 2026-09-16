@@ -326,19 +326,6 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
       'circle-stroke-width': 2,
     },
   });
-  // The nearest stop: a ring in the position dot's blue, tying the two together.
-  map.addLayer({
-    id: 'stops-nearest',
-    type: 'circle',
-    source: STOPS_SOURCE,
-    filter: ['get', 'nearest'],
-    paint: {
-      'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, 7, 14, 11, 16, 14],
-      'circle-color': 'rgba(0, 0, 0, 0)',
-      'circle-stroke-color': POSITION_BLUE,
-      'circle-stroke-width': 3,
-    },
-  });
   // Two label layers rather than a zoom filter: termini and landmarks from zoom 10, the rest once there is room.
   const labelLayers: { id: string; filter: FilterSpecification; minzoom: number }[] = [
     // Passed stops keep their dots but lose their labels; the nearest stop is always labelled.
