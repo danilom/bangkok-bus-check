@@ -6,7 +6,7 @@
 
 import { DARK, LIGHT, layers } from '@protomaps/basemaps';
 import type { Feature, FeatureCollection, Point } from 'geojson';
-import { addProtocol, GeoJSONSource, Map as MapLibreMap, NavigationControl, Popup, setWorkerUrl, type FilterSpecification, type IControl, type LngLatBoundsLike, type MapGeoJSONFeature, type StyleSpecification } from 'maplibre-gl';
+import { addProtocol, GeoJSONSource, Map as MapLibreMap, NavigationControl, Popup, setWorkerUrl, type FilterSpecification, type IControl, type LngLatBoundsLike, type StyleSpecification } from 'maplibre-gl';
 // MapLibre finds its worker by a computed URL that bundlers cannot follow; Vite bundles it for us via ?worker&url.
 import mapWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import { Protocol } from 'pmtiles';
@@ -30,6 +30,8 @@ export interface RouteMapProps {
   tilesUrl: string;
   /** The user's position when location is on and known; drawn as a dot, never used to move the view. */
   position?: Position;
+  /** A stop to open on (centred at street zoom, popup shown) instead of fitting the route; from a tap in the list. */
+  focusStop?: string;
   /** Stop names shown; the map's own button flips it and the app remembers. */
   labels: boolean;
   onToggleLabels: () => void;
@@ -82,6 +84,7 @@ export function createRouteMap(container: HTMLElement, initial: RouteMapProps): 
       map.on(type, (event: unknown) => console.debug('bbc map', type, (event as { sourceId?: string }).sourceId ?? '', map.getZoom().toFixed(2), map.isStyleLoaded()));
     }
   }
+  const showPopup = wireStopPopups(map, () => props);
   let loaded = false;
   map.on('load', () => {
     loaded = true;
@@ -90,9 +93,8 @@ export function createRouteMap(container: HTMLElement, initial: RouteMapProps): 
     addLineBlockers(map);
     addPositionLayers(map, props);
     setLabelsVisible(map, props.labels);
-    fitToRoute(map, props);
+    if (!focusStop(map, props, showPopup)) fitToRoute(map, props);
   });
-  wireStopPopups(map, () => props);
 
   return {
     update(next) {
@@ -100,6 +102,7 @@ export function createRouteMap(container: HTMLElement, initial: RouteMapProps): 
       const restyle = next.dark !== props.dark || next.lang !== props.lang;
       // A position arriving (or going) changes what "ahead" means; a fix moving along the route does not refit.
       const aheadChanged = (aheadFrom(next) === undefined) !== (aheadFrom(props) === undefined);
+      const previousFocus = props.focusStop;
       props = next;
       if (!loaded) return;
       if (restyle) {
@@ -118,7 +121,8 @@ export function createRouteMap(container: HTMLElement, initial: RouteMapProps): 
       setPositionData(map, props);
       setLabelsVisible(map, props.labels);
       labelsControl.refresh();
-      if (sideChanged || aheadChanged) fitToRoute(map, props);
+      if (next.focusStop && next.focusStop !== previousFocus) focusStop(map, props, showPopup);
+      else if (sideChanged || aheadChanged) fitToRoute(map, props);
     },
     destroy() {
       map.remove();
@@ -337,6 +341,7 @@ function stopFeatures(props: RouteMapProps): FeatureCollection<Point> {
     return [{
       type: 'Feature',
       properties: {
+        id: stop.id,
         name: localize(props.lang, stop.name),
         rank,
         index: index + 1,
@@ -474,12 +479,26 @@ function setStopData(map: MapLibreMap, props: RouteMapProps): void {
   if (source instanceof GeoJSONSource) source.setData(stopFeatures(props));
 }
 
-/** Tapping a stop shows its name and place in the run. */
-function wireStopPopups(map: MapLibreMap, current: () => RouteMapProps): void {
+/** Centres the map on the focused stop at street zoom and opens its popup; false when there is nothing to focus. */
+function focusStop(map: MapLibreMap, props: RouteMapProps, showPopup: (feature: StopFeature) => void): boolean {
+  if (!props.focusStop) return false;
+  const feature = stopFeatures(props).features.find((candidate) => candidate.properties?.['id'] === props.focusStop);
+  if (!feature) return false;
+  map.jumpTo({ center: feature.geometry.coordinates as [number, number], zoom: 15.5 });
+  showPopup({ geometry: feature.geometry, properties: feature.properties as StopFeature['properties'] });
+  return true;
+}
+
+interface StopFeature {
+  geometry: Point;
+  properties: { name: string; index: number; total: number };
+}
+
+/** Tapping a stop shows its name and place in the run. Returns the function that shows the popup for a stop feature. */
+function wireStopPopups(map: MapLibreMap, current: () => RouteMapProps): (feature: StopFeature) => void {
   const popup = new Popup({ closeButton: false, closeOnClick: true, offset: 10, maxWidth: '260px' });
-  const show = (feature: MapGeoJSONFeature): void => {
-    if (feature.geometry.type !== 'Point') return;
-    const { name, index, total } = feature.properties as { name: string; index: number; total: number };
+  const show = (feature: StopFeature): void => {
+    const { name, index, total } = feature.properties;
     const props = current();
     const content = document.createElement('div');
     const title = document.createElement('strong');
@@ -493,11 +512,12 @@ function wireStopPopups(map: MapLibreMap, current: () => RouteMapProps): void {
   for (const layer of ['stops-dot', 'stops-major', 'stops-nearest', 'stops-label', 'stops-label-all']) {
     map.on('click', layer, (event) => {
       const feature = event.features?.[0];
-      if (feature) show(feature);
+      if (feature && feature.geometry.type === 'Point') show({ geometry: feature.geometry, properties: feature.properties as StopFeature['properties'] });
     });
     map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = ''; });
   }
+  return show;
 }
 
 function positionFeatures(props: RouteMapProps): FeatureCollection<Point> {

@@ -754,6 +754,15 @@ body {
   border-left: 2px solid var(--border);
 }
 
+/* A stop opens the map on itself. */
+.stop {
+  cursor: pointer;
+}
+
+.stop:active .stop-name {
+  color: var(--accent);
+}
+
 .stop-number {
   text-align: right;
   color: var(--footer);

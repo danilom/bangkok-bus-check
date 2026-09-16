@@ -41,7 +41,8 @@ export interface DetailViewProps {
   /** The "Front sign (Thai)" panel, English UI only; its open state is remembered. */
   frontSignOpen: boolean;
   onFrontSignToggle: (open: boolean) => void;
-  onMap: () => void;
+  /** Opens the map; with a stop id, centred on that stop. */
+  onMap: (stopId?: string) => void;
 }
 
 /** A hidden stretch is a fixed row of dots; the count is in the row's title only. */
@@ -93,7 +94,7 @@ function renderDetailBody(props: DetailViewProps, detail: RouteDetail): HTMLElem
   return h('div', { class: 'detail-body' }, [
     lang === 'en' && renderFrontSign(props, detail),
     h('div', { class: 'detail-actions' }, [
-      main?.shape && h('button', { class: 'text-button map-button', attrs: { type: 'button' }, on: { click: props.onMap } }, [mapIcon(), t(lang, 'map')]),
+      main?.shape && h('button', { class: 'text-button map-button', attrs: { type: 'button' }, on: { click: () => props.onMap() } }, [mapIcon(), t(lang, 'map')]),
       main && renderLocationPanel(props),
     ]),
     main
@@ -276,7 +277,7 @@ function renderStopList(props: DetailViewProps, direction: Direction, stops: Rec
   const item = (stop: Stop, index: number, secondary = false): HTMLElement => {
     const isNearest = nearest !== undefined && index === nearest.index;
     const classes = ['stop', isNearest && 'is-nearest', secondary && !isNearest && 'is-secondary'].filter(Boolean).join(' ');
-    return h('li', { class: classes, attrs: { value: String(index + 1) } }, [
+    return h('li', { class: classes, attrs: { value: String(index + 1), role: 'button', tabindex: '0' }, on: { click: () => props.onMap(stop.id), keydown: (event) => { if (event.key === 'Enter') props.onMap(stop.id); } } }, [
       h('span', { class: 'stop-number', text: String(index + 1) }),
       h('span', { class: 'stop-name' }, [
         localize(lang, stop.name),

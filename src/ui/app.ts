@@ -35,8 +35,9 @@ interface AppState {
   simulatedLocation: Position | undefined;
   showAllStops: boolean;
   frontSignOpen: boolean;
-  /** The route's full-screen map page. */
+  /** The route's full-screen map page, optionally opened on one stop. */
   map: boolean;
+  focusStop?: string;
   /** Stop names on the map; the map page's own button toggles it. */
   mapLabels: boolean;
 }
@@ -103,6 +104,7 @@ export function createApp(root: HTMLElement): void {
     showAllStops: false,
     frontSignOpen: loadFrontSignOpen(),
     map: initial.map ?? false,
+    ...(initial.focusStop ? { focusStop: initial.focusStop } : {}),
     mapLabels: loadMapLabels(),
   };
   if (initial.routeId) state.routeId = initial.routeId;
@@ -194,16 +196,19 @@ export function createApp(root: HTMLElement): void {
     render();
   }
 
-  function openMap(): void {
+  function openMap(stopId?: string): void {
     if (state.routeId === undefined) return;
     state.map = true;
-    history.pushState(null, '', formatHash({ query: state.query, routeId: state.routeId, side: state.side, map: true }));
+    if (stopId) state.focusStop = stopId;
+    else delete state.focusStop;
+    history.pushState(null, '', formatHash({ query: state.query, routeId: state.routeId, side: state.side, map: true, ...(stopId ? { focusStop: stopId } : {}) }));
     render();
   }
 
   function closeMap(): void {
     if (state.routeId === undefined) return;
     state.map = false;
+    delete state.focusStop;
     history.replaceState(null, '', formatHash({ query: state.query, routeId: state.routeId, side: state.side }));
     render();
   }
@@ -410,6 +415,7 @@ export function createApp(root: HTMLElement): void {
       dark,
       accent: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#7e57c2',
       ...(state.locationEnabled && state.location.kind === 'ready' ? { position: state.location.position } : {}),
+      ...(state.focusStop ? { focusStop: state.focusStop } : {}),
       labels: state.mapLabels,
       onToggleLabels: () => {
         state.mapLabels = !state.mapLabels;
@@ -529,6 +535,8 @@ export function createApp(root: HTMLElement): void {
     state.settings = next.settings ?? false;
     state.side = next.side ?? 0;
     state.map = next.map ?? false;
+    if (next.focusStop) state.focusStop = next.focusStop;
+    else delete state.focusStop;
     if (next.routeId) {
       const changed = state.routeId !== next.routeId;
       state.routeId = next.routeId;
