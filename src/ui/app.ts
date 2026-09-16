@@ -294,6 +294,8 @@ export function createApp(root: HTMLElement): void {
     const show = useKeypad && state.inputActive && !state.settings && state.index !== undefined;
     root.classList.toggle('has-keypad', show);
     root.classList.toggle('is-settings', state.settings);
+    // The number field is redundant on a route page (the number is the header); Back returns to it focused.
+    root.classList.toggle('is-detail', state.routeId !== undefined && !state.settings);
     replaceChildren(keypadSlot, show && renderKeypad(state.lang, keypadHandlers));
   }
 

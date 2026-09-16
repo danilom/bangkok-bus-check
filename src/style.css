@@ -289,7 +289,8 @@ body {
   margin: 6px 0 14px;
 }
 
-#app.is-settings .search {
+#app.is-settings .search,
+#app.is-detail .search {
   display: none;
 }
 
