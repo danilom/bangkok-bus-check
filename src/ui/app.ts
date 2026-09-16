@@ -90,7 +90,7 @@ export function createApp(root: HTMLElement): void {
   const keypadSlot = h('div', { class: 'keypad-slot' });
 
   root.append(
-    h('header', { class: 'topbar' }, [title, h('div', { class: 'topbar-actions' }, [langButton, settingsButton])]),
+    h('header', { class: 'topbar' }, [title, h('div', { class: 'topbar-actions' }, [settingsButton, langButton])]),
     h('main', { class: 'main' }, [h('div', { class: 'search' }, [input, clearButton]), content]),
     footer,
     keypadSlot,
