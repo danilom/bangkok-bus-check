@@ -35,11 +35,9 @@ export interface DetailViewProps {
   /** The location button: first tap explains, then asks. */
   onLocation: () => void;
   onLocationDismiss: () => void;
-  /** Hidden stretches the user has opened ("tripId:from"), and the show-everything switch. */
-  expandedGaps: Set<string>;
+  /** The show-everything switch for the condensed stop list. */
   showAllStops: boolean;
   onToggleAllStops: () => void;
-  onExpandGap: (key: string) => void;
 }
 
 export function renderDetailView(props: DetailViewProps): HTMLElement {
@@ -177,8 +175,8 @@ function pinIcon(): SVGSVGElement {
 
 /**
  * The run's stops, in travel order, condensed to termini, landmarks, the
- * stops nearest the user and one per long stretch; hidden stretches open on
- * a tap, or all at once. With a position, stops already passed collapse
+ * stops nearest the user and one per long stretch; a hidden stretch is a row
+ * of dots, one per stop, and "Show all" opens everything. With a position, stops already passed collapse
  * behind "n earlier stops" and the nearest is marked with its distance; a
  * position far from the route shows the list from the start and says so.
  */
@@ -209,17 +207,8 @@ function renderStopList(props: DetailViewProps, direction: Direction, stops: Rec
       rows.push(item(segment.stop, start + segment.index));
       continue;
     }
-    const key = `${direction.tripId}:${start + segment.from}`;
-    if (props.expandedGaps.has(key)) {
-      for (let index = segment.from; index <= segment.to; index += 1) {
-        const stop = upcoming[index];
-        if (stop) rows.push(item(stop, start + index));
-      }
-    } else {
-      rows.push(h('li', { class: 'stop-gap' }, [
-        h('button', { class: 'stop-gap-button', attrs: { type: 'button' }, text: `\u00b7 \u00b7 \u00b7 ${segment.count} ${t(lang, segment.count === 1 ? 'stopOne' : 'stops')} \u00b7 \u00b7 \u00b7`, on: { click: () => props.onExpandGap(key) } }),
-      ]));
-    }
+    // One dot per hidden stop: the length of the stretch at a glance, in one short row.
+    rows.push(h('li', { class: 'stop-gap', attrs: { title: `${segment.count} ${t(lang, segment.count === 1 ? 'stopOne' : 'stops')}` }, text: '\u00b7'.repeat(segment.count) }));
   }
   const earlier = named.slice(0, start);
   return h('div', { class: 'stops-panel' }, [
