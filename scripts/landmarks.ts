@@ -47,24 +47,19 @@ function strings(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.length > 0) : [];
 }
 
-export interface LandmarkMatch extends Landmark {
-  /** The fragment (or listed name) that matched, for the review command. */
-  fragment: string;
-}
-
 /** Why a stop counts as a landmark, or undefined when it is an ordinary stop. */
-export function landmarkMatch(stop: Stop, rules: LandmarkRules): LandmarkMatch | undefined {
+export function landmarkMatch(stop: Stop, rules: LandmarkRules): Landmark | undefined {
   const names = [stop.name.th, stop.name.en ?? ''].map(fixThaiTypos);
   if (rules.exclude.some((name) => names.includes(name))) return undefined;
   const listed = rules.include.find((name) => names.includes(name));
-  if (listed) return { tier: 'listed', rank: 'major', fragment: listed };
+  if (listed) return { tier: 'listed', rank: 'major', keyword: listed };
   const lower = names.map((name) => name.toLowerCase());
   const contains = (fragment: string): boolean => lower.some((name) => name.includes(fragment.toLowerCase()));
   if (rules.never.some(contains)) return undefined;
   for (const rank of ['major', 'minor'] as const) {
     for (const [tier, fragments] of Object.entries(rules[rank])) {
       const fragment = fragments.find(contains);
-      if (fragment) return { tier, rank, fragment };
+      if (fragment) return { tier, rank, keyword: fragment };
     }
   }
   return undefined;
@@ -76,7 +71,7 @@ export function tagLandmarks(dataset: RouteDataset, rules: LandmarkRules): Recor
   for (const stop of Object.values(dataset.stops)) {
     const match = landmarkMatch(stop, rules);
     if (match) {
-      stop.landmark = { tier: match.tier, rank: match.rank };
+      stop.landmark = match;
       counts[match.tier] = (counts[match.tier] ?? 0) + 1;
     } else {
       delete stop.landmark;

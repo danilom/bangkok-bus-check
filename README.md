@@ -56,9 +56,12 @@ Long stop lists are condensed in the app to termini, landmarks, the stops
 nearest the user and one stop per long stretch, with hidden stretches a tap
 away. Which stops count as landmarks is decided by the keyword tiers in
 `data/overrides/landmarks.json`, applied at build time: major tiers (rail,
-terminals, piers, named landmarks) are always shown; minor tiers (junctions,
-hospitals, universities) only stand in for the arbitrary stop a long stretch
-would otherwise get. Edit the file and rebuild. `bbc landmarks <route>` shows
+terminals, piers, named landmarks) are always shown, two consecutive stops
+of one landmark counting once; minor tiers (junctions, hospitals, markets,
+big-box stores) only stand in for the arbitrary stop a long stretch would
+otherwise get. The stretch length grows with the route (a tenth of the
+list, at least 6), so spacing adds about ten stops at most. Edit the file
+and rebuild. `bbc landmarks <route>` shows
 the effect on real routes; `bbc landmarks --audit` gives the whole-dataset
 numbers (lit share per direction, hits per keyword, busy unlit stops, lit
 stops only one route serves).

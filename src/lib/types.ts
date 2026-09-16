@@ -134,4 +134,6 @@ export interface Stop {
 export interface Landmark {
   tier: string;
   rank: 'major' | 'minor';
+  /** The keyword that matched, so consecutive stops of one landmark can be folded. */
+  keyword: string;
 }

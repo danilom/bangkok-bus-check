@@ -3,15 +3,24 @@
     "Which stops count as landmarks in the condensed stop list. A stop is a",
     "landmark when its Thai or English name contains one of the strings",
     "below (case-insensitive), unless it also contains one of `never`.",
-    "`major` tiers are always shown. `minor` tiers are shown only where a",
-    "long stretch would otherwise need an arbitrary stop for spacing: a",
-    "junction beats 'Soi Lat Phrao 112', but is not worth a line of its own",
-    "next to a rail station. Tiers are tried in order; the tier name and the",
+    "`major` tiers are always shown, except that a stop matching the same",
+    "keyword as the stop right before it is folded into it (two exits of",
+    "one station). `minor` tiers are shown only where a long stretch would",
+    "otherwise need an arbitrary stop for spacing: a junction or a market",
+    "beats 'Soi Lat Phrao 112', but is not worth a line of its own next to",
+    "a rail station. Tiers are tried in order; the tier name and the",
     "matched keyword are what `bbc landmarks <route>` prints.",
     "Termini and the stops nearest the user are always shown.",
     "`include` / `exclude` force a stop by exact name."
   ],
   "major": {
+    "terminal": [
+      "สถานีขนส่ง",
+      "หมอชิต 2",
+      "สายใต้ใหม่",
+      "ท่าอากาศยาน",
+      "สนามบิน"
+    ],
     "rail": [
       "BTS",
       "MRT",
@@ -19,14 +28,7 @@
       "SRT",
       "สถานีรถไฟ",
       "รถไฟฟ้า",
-      "Station"
-    ],
-    "terminal": [
-      "สถานีขนส่ง",
-      "หมอชิต 2",
-      "สายใต้ใหม่",
-      "ท่าอากาศยาน",
-      "สนามบิน"
+      "สถานี"
     ],
     "pier": [
       "ท่าเรือ",
@@ -40,10 +42,28 @@
       "สวนลุมพินี",
       "เซ็นทรัล",
       "เดอะมอลล์",
-      "ฟิวเจอร์พาร์ค",
+      "ฟิวเจอร์",
       "เมกาบางนา",
       "ไอคอนสยาม",
-      "สยามพารากอน"
+      "สยามพารากอน",
+      "สยามสแควร์",
+      "สนามกีฬาแห่งชาติ",
+      "หอศิลป",
+      "ประตูน้ำ",
+      "เยาวราช",
+      "ปากคลองตลาด",
+      "พระบรมมหาราชวัง",
+      "สวนจตุจักร",
+      "ตลาดนัดจตุจักร",
+      "สวนรถไฟ",
+      "สวนหลวง ร.9",
+      "กรมการขนส่งทางบก",
+      "พาต้า",
+      "เซียร์",
+      "สี่มุมเมือง",
+      "ตลาดมีนบุรี",
+      "ซีคอน",
+      "แฟชั่นไอส์แลนด์"
     ]
   },
   "minor": {
@@ -58,12 +78,33 @@
     ],
     "university": [
       "มหาวิทยาลัย"
+    ],
+    "market": [
+      "ตลาด"
+    ],
+    "store": [
+      "โลตัส",
+      "บิ๊กซี",
+      "แม็คโคร",
+      "โรบินสัน"
+    ],
+    "ministry": [
+      "กระทรวง"
     ]
   },
   "never": [
     "Police Station",
     "สถานีตำรวจ",
-    "สน."
+    "สน.",
+    "สถานีวิทยุ",
+    "สถานีดับเพลิง",
+    "สถานีไฟฟ้า",
+    "สถานีพัฒนา",
+    "ซอยสถานี",
+    "สเตชั่น",
+    "สเตชัน",
+    "ปั๊ม",
+    "ปั้ม"
   ],
   "include": [],
   "exclude": []

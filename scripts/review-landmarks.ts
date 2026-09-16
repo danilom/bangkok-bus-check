@@ -54,24 +54,24 @@ function printRoute(route: Route, stops: Record<string, Stop>, rules: LandmarkRu
     const kept = new Map(segments.flatMap((s) => (s.kind === 'stop' ? [[s.index, s.reason] as const] : [])));
     console.log(`  ${style.bold(`→ ${direction.to.en ?? direction.to.th}`)}  ${style.dim(`(${kept.size} of ${list.length} stops shown)`)}`);
     if (options.all) {
-      list.forEach((stop, index) => printStop(stop, index, kept.get(index), rules));
+      list.forEach((stop, index) => printStop(stop, index, kept.get(index)));
       continue;
     }
     for (const segment of segments) {
       if (segment.kind === 'gap') console.log(style.dim(`         · · · ${segment.count} ${segment.count === 1 ? 'stop' : 'stops'} · · ·`));
-      else printStop(segment.stop, segment.index, segment.reason, rules);
+      else printStop(segment.stop, segment.index, segment.reason);
     }
   }
 }
 
-function printStop(stop: Stop, index: number, reason: string | undefined, rules: LandmarkRules): void {
+function printStop(stop: Stop, index: number, reason: string | undefined): void {
   const name = (stop.name.en ?? stop.name.th).padEnd(48);
   const number = String(index + 1).padStart(3);
   if (reason === undefined) {
     console.log(style.dim(`    ${number}. ${name}`));
     return;
   }
-  console.log(`    ${number}. ${style.bold(name)} ${describe(stop, reason, rules)}`);
+  console.log(`    ${number}. ${style.bold(name)} ${describe(stop, reason)}`);
 }
 
 /**
@@ -82,17 +82,25 @@ function printStop(stop: Stop, index: number, reason: string | undefined, rules:
 function printAudit(dataset: RouteDataset, rules: LandmarkRules): void {
   const routesPerStop = new Map<string, Set<string>>();
   const shares: { id: string; lit: number; named: number }[] = [];
+  const lengths: number[] = [];
   const label = (route: Route, direction: Route['directions'][number]): string => `${route.id} → ${direction.to.en ?? direction.to.th}`;
   for (const route of dataset.routes) {
     for (const direction of route.directions.filter((d) => !d.variant)) {
       const list = direction.stops.map((stopId) => dataset.stops[stopId]).filter((s): s is Stop => s !== undefined && s.name.th.length > 0);
       for (const stop of list) routesPerStop.set(stop.id, (routesPerStop.get(stop.id) ?? new Set()).add(route.id));
-      const lit = condenseStops(list).filter((s) => s.kind === 'stop' && s.reason !== 'terminus' && s.reason !== 'spacing').length;
+      const shown = condenseStops(list).filter((s) => s.kind === 'stop');
+      if (list.length >= 2) lengths.push(shown.length);
+      const lit = shown.filter((s) => s.reason !== 'terminus' && s.reason !== 'spacing').length;
       if (list.length >= 8) shares.push({ id: label(route, direction), lit, named: list.length });
     }
   }
   shares.sort((a, b) => b.lit / b.named - a.lit / a.named);
   const pct = (s: { lit: number; named: number }): string => `${Math.round((100 * s.lit) / s.named)}%`;
+  console.log(style.bold(style.cyan('Stops shown per direction')) + style.dim('  (a phone screen fits about 11)'));
+  const bands: [number, number][] = [[0, 8], [9, 11], [12, 15], [16, 20], [21, 999]];
+  for (const [lo, hi] of bands) console.log(`  ${String(lo).padStart(3)}–${String(Math.min(hi, 99)).padEnd(3)}  ${lengths.filter((n) => n >= lo && n <= hi).length}`);
+  console.log(`  max ${Math.max(0, ...lengths)}`);
+
   console.log(style.bold(style.cyan('Lit share per direction')) + style.dim('  (landmarks shown ÷ named stops; termini and spacing excluded)'));
   const buckets = [0, 10, 20, 30, 40, 100];
   for (let i = 0; i < buckets.length - 1; i += 1) {
@@ -107,7 +115,10 @@ function printAudit(dataset: RouteDataset, rules: LandmarkRules): void {
   const hits = new Map<string, number>();
   for (const stop of Object.values(dataset.stops)) {
     const match = landmarkMatch(stop, rules);
-    if (match) hits.set(`${match.rank}/${match.tier}: ${JSON.stringify(match.fragment)}`, (hits.get(`${match.rank}/${match.tier}: ${JSON.stringify(match.fragment)}`) ?? 0) + 1);
+    if (match) {
+      const key = `${match.rank}/${match.tier}: ${JSON.stringify(match.keyword)}`;
+      hits.set(key, (hits.get(key) ?? 0) + 1);
+    }
   }
   for (const [key, n] of [...hits].sort((a, b) => b[1] - a[1])) console.log(`  ${String(n).padStart(5)}  ${key}`);
 
@@ -129,9 +140,9 @@ function printAudit(dataset: RouteDataset, rules: LandmarkRules): void {
 }
 
 /** "junction: แยก" for keyword picks; the plain reason for the structural ones. */
-function describe(stop: Stop, reason: string, rules: LandmarkRules): string {
+function describe(stop: Stop, reason: string): string {
   if (reason === 'terminus' || reason === 'nearest') return style.magenta(reason);
   if (reason === 'spacing' || reason === 'all') return style.dim(reason);
-  const match = landmarkMatch(stop, rules);
-  return style.green(match ? `${match.rank === 'minor' ? 'minor ' : ''}${match.tier}: ${JSON.stringify(match.fragment)}` : reason);
+  const mark = stop.landmark;
+  return style.green(mark ? `${mark.rank === 'minor' ? 'minor ' : ''}${mark.tier}: ${JSON.stringify(mark.keyword)}` : reason);
 }

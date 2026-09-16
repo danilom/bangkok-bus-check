@@ -5,11 +5,12 @@ import { condenseStops } from '../src/lib/condense.ts';
 import type { Stop } from '../src/lib/types.ts';
 
 function stops(spec: string): Stop[] {
-  // "o" ordinary stop, "L" major landmark, "j" minor landmark (a junction)
+  // "o" ordinary stop, "L"/"M" major landmarks (BTS / MRT), "j" minor landmark (a junction)
   return [...spec].map((char, index) => {
     const stop: Stop = { id: `s${index}`, name: { th: `stop ${index}` } };
-    if (char === 'L') stop.landmark = { tier: 'rail', rank: 'major' };
-    if (char === 'j') stop.landmark = { tier: 'junction', rank: 'minor' };
+    if (char === 'L') stop.landmark = { tier: 'rail', rank: 'major', keyword: 'BTS' };
+    if (char === 'M') stop.landmark = { tier: 'rail', rank: 'major', keyword: 'MRT' };
+    if (char === 'j') stop.landmark = { tier: 'junction', rank: 'minor', keyword: 'แยก' };
     return stop;
   });
 }
@@ -31,15 +32,28 @@ describe('condenseStops', () => {
   });
 
   it('prefers a minor landmark over an arbitrary stop when a stretch needs one', () => {
-    const segments = condenseStops(stops('oojoooooooooo'), { maxGap: 6 });
-    assert.deepEqual(shownIndexes(segments), [0, 2, 9, 12]);
-    const junction = segments.find((s) => s.kind === 'stop' && s.index === 2);
+    const segments = condenseStops(stops('ooooojoooooooooo'), { maxGap: 6 });
+    assert.deepEqual(shownIndexes(segments), [0, 5, 12, 15]);
+    const junction = segments.find((s) => s.kind === 'stop' && s.index === 5);
     assert.equal(junction?.kind === 'stop' ? junction.reason : undefined, 'junction');
+  });
+
+  it('ignores a minor landmark that sits right after the previous shown stop', () => {
+    assert.deepEqual(shownIndexes(condenseStops(stops('ojoooooooo'), { maxGap: 6 })), [0, 7, 9]);
   });
 
   it('hides a minor landmark when a major one already breaks the stretch', () => {
     const segments = condenseStops(stops('ojoLoo'), { maxGap: 6 });
     assert.deepEqual(shownIndexes(segments), [0, 3, 5]);
+  });
+
+  it('folds a landmark into the one right before it when both match the same keyword', () => {
+    assert.deepEqual(shownIndexes(condenseStops(stops('oLLoMLo'))), [0, 1, 4, 5, 6]);
+  });
+
+  it('lets the spacing gap grow with the list so spacing adds about ten stops at most', () => {
+    const segments = condenseStops(stops('o'.repeat(101)), { maxGap: 6 });
+    assert.deepEqual(shownIndexes(segments), [0, 12, 24, 36, 48, 60, 72, 84, 96, 100]);
   });
 
   it('keeps forced stops with their reason', () => {
