@@ -38,6 +38,17 @@ const STRINGS = {
   loop: { en: 'Loop', th: 'วงกลม' },
   loopLeft: { en: 'Counter-clockwise', th: 'วนซ้าย' },
   loopRight: { en: 'Clockwise', th: 'วนขวา' },
+  settings: { en: 'Settings', th: 'ตั้งค่า' },
+  theme: { en: 'Appearance', th: 'ธีม' },
+  themeSystem: { en: 'System', th: 'ตามระบบ' },
+  themeLight: { en: 'Light', th: 'สว่าง' },
+  themeDark: { en: 'Dark', th: 'มืด' },
+  accent: { en: 'Accent colour', th: 'สีหลัก' },
+  accentBlue: { en: 'Blue', th: 'น้ำเงิน' },
+  accentGreen: { en: 'Green', th: 'เขียว' },
+  accentPurple: { en: 'Purple', th: 'ม่วง' },
+  accentOrange: { en: 'Orange', th: 'ส้ม' },
+  accentRed: { en: 'Red', th: 'แดง' },
 } satisfies Record<string, Record<Lang, string>>;
 
 export type StringKey = keyof typeof STRINGS;

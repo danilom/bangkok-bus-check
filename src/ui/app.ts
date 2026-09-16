@@ -1,18 +1,22 @@
 import { loadDetail, loadIndex } from '../lib/data.ts';
 import { detectLang, t, type Lang } from '../lib/i18n.ts';
 import { findRoutes } from '../lib/matcher.ts';
-import { formatHash, loadLang, loadRecent, pushRecent, readHash, saveLang } from '../lib/state.ts';
+import { formatHash, loadAccent, loadLang, loadRecent, loadTheme, pushRecent, readHash, saveAccent, saveLang, saveTheme, type Accent, type Theme } from '../lib/state.ts';
 import type { RouteIndex, RouteSummary } from '../lib/types.ts';
 import { renderDetailView, type DetailStatus } from './detail-view.ts';
 import type { Side } from './direction-pill.ts';
 import { h, replaceChildren } from './dom.ts';
 import { keypadEnabled, renderKeypad, testViewport } from './keypad.ts';
 import { renderRouteCard } from './route-card.ts';
+import { renderSettingsView } from './settings-view.ts';
 
 interface AppState {
   lang: Lang;
+  theme: Theme;
+  accent: Accent;
   query: string;
   routeId?: string;
+  settings: boolean;
   side: Side;
   index?: RouteIndex;
   indexError?: string;
@@ -31,11 +35,24 @@ function fitTestViewport(root: HTMLElement): void {
   root.style.setProperty('--test-scale', String(scale));
 }
 
+/** Theme and accent are attributes on <html> that the stylesheet keys off; the browser chrome colour follows. */
+function applyAppearance(theme: Theme, accent: Accent): void {
+  const html = document.documentElement;
+  if (theme === 'system') html.removeAttribute('data-theme');
+  else html.dataset['theme'] = theme;
+  html.dataset['accent'] = accent;
+  const dark = theme === 'dark' || (theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#131316' : '#f6f5f2');
+}
+
 export function createApp(root: HTMLElement): void {
   const initial = readHash(location.hash);
   const state: AppState = {
     lang: loadLang() ?? detectLang(),
+    theme: loadTheme(),
+    accent: loadAccent(),
     query: initial.query,
+    settings: initial.settings ?? false,
     side: initial.side ?? 0,
     details: new Map(),
     expandedDirections: new Set(),
@@ -67,12 +84,13 @@ export function createApp(root: HTMLElement): void {
   const clearButton = h('button', { class: 'clear-button', attrs: { type: 'button' }, on: { click: () => { setQuery(''); input.focus(); } } });
   const title = h('h1', { class: 'app-title' });
   const langButton = h('button', { class: 'lang-button', attrs: { type: 'button' }, on: { click: toggleLang } });
+  const settingsButton = h('button', { class: 'icon-button', attrs: { type: 'button' }, text: '⚙', on: { click: openSettings } });
   const content = h('div', { class: 'content' });
   const footer = h('footer', { class: 'footer' });
   const keypadSlot = h('div', { class: 'keypad-slot' });
 
   root.append(
-    h('header', { class: 'topbar' }, [title, langButton]),
+    h('header', { class: 'topbar' }, [title, h('div', { class: 'topbar-actions' }, [langButton, settingsButton])]),
     h('main', { class: 'main' }, [h('div', { class: 'search' }, [input, clearButton]), content]),
     footer,
     keypadSlot,
@@ -87,6 +105,7 @@ export function createApp(root: HTMLElement): void {
   function setQuery(query: string): void {
     state.query = query;
     delete state.routeId;
+    state.settings = false;
     history.replaceState(null, '', formatHash({ query }) || currentUrlWithoutHash());
     render();
   }
@@ -118,6 +137,30 @@ export function createApp(root: HTMLElement): void {
     return `${location.pathname}${location.search}`;
   }
 
+  function openSettings(): void {
+    state.settings = true;
+    history.pushState(null, '', formatHash({ query: state.query, settings: true }));
+    render();
+  }
+
+  function closeSettings(): void {
+    state.settings = false;
+    history.replaceState(null, '', formatHash({ query: state.query }) || currentUrlWithoutHash());
+    render();
+  }
+
+  function setTheme(theme: Theme): void {
+    state.theme = theme;
+    saveTheme(theme);
+    render();
+  }
+
+  function setAccent(accent: Accent): void {
+    state.accent = accent;
+    saveAccent(accent);
+    render();
+  }
+
   function toggleLang(): void {
     state.lang = state.lang === 'en' ? 'th' : 'en';
     saveLang(state.lang);
@@ -137,9 +180,11 @@ export function createApp(root: HTMLElement): void {
   function render(): void {
     const { lang } = state;
     document.documentElement.lang = lang;
+    applyAppearance(state.theme, state.accent);
     document.title = t(lang, 'appName');
     title.textContent = t(lang, 'appName');
     langButton.textContent = t(lang, 'switchLang');
+    settingsButton.setAttribute('aria-label', t(lang, 'settings'));
     input.placeholder = t(lang, 'inputPlaceholder');
     input.setAttribute('aria-label', t(lang, 'inputPlaceholder'));
     clearButton.textContent = '×';
@@ -153,8 +198,9 @@ export function createApp(root: HTMLElement): void {
 
   /** The keypad belongs to the search screen only; the detail view gets the whole screen. */
   function renderKeypadSlot(): void {
-    const show = useKeypad && state.routeId === undefined && state.index !== undefined;
+    const show = useKeypad && state.routeId === undefined && !state.settings && state.index !== undefined;
     root.classList.toggle('has-keypad', show);
+    root.classList.toggle('is-settings', state.settings);
     replaceChildren(keypadSlot, show && renderKeypad(state.lang, keypadHandlers));
   }
 
@@ -166,6 +212,7 @@ export function createApp(root: HTMLElement): void {
         h('button', { class: 'text-button', attrs: { type: 'button' }, text: t(lang, 'retry'), on: { click: () => void boot() } }),
       ]);
     }
+    if (state.settings) return renderSettingsView({ lang, theme: state.theme, accent: state.accent, onTheme: setTheme, onAccent: setAccent, onBack: closeSettings });
     if (!index) return h('p', { class: 'muted', text: t(lang, 'loading') });
     const openRouteSummary = state.routeId === undefined ? undefined : index.routes.find((route) => route.id === state.routeId);
     if (openRouteSummary) {
@@ -229,6 +276,7 @@ export function createApp(root: HTMLElement): void {
   window.addEventListener('popstate', () => {
     const next = readHash(location.hash);
     state.query = next.query;
+    state.settings = next.settings ?? false;
     state.side = next.side ?? 0;
     if (next.routeId) {
       state.routeId = next.routeId;

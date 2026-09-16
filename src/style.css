@@ -1,34 +1,105 @@
 :root {
   color-scheme: light dark;
+  --radius: 14px;
+  /* Column width on wide screens, matching the reference phone (a 1080px-wide
+     Android at 2.5×) so the desktop view keeps its proportions. */
+  --page-width: 432px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Thai", "Leelawadee UI", Tahoma, sans-serif;
+
+  /* Light palette. Dark overrides follow; the accent comes from data-accent. */
   --bg: #f6f5f2;
   --surface: #ffffff;
   --text: #1b1b1f;
   --muted: #6b6b73;
   --border: #e2e0da;
-  --accent: #1e5fd6;
-  --accent-soft: #e4edff;
-  --match: #c5dbff;
   --warning: #fff2a8;
-  --radius: 14px;
   --footer: #9a9a9f;
-  /* Column width on wide screens, matching the reference phone (a 1080px-wide
-     Android at 2.5×) so the desktop view keeps its proportions. */
-  --page-width: 432px;
-  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Thai", "Leelawadee UI", Tahoma, sans-serif;
+  --accent: var(--accent-l);
+  --accent-soft: var(--accent-soft-l);
+  --match: var(--match-l);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* Each accent defines its light (-l) and dark (-d) tones; the theme picks. */
+:root,
+:root[data-accent="blue"] {
+  --accent-l: #1e5fd6;
+  --accent-soft-l: #e4edff;
+  --match-l: #c5dbff;
+  --accent-d: #6ea8ff;
+  --accent-soft-d: #1a2c4f;
+  --match-d: #24457a;
+}
+
+:root[data-accent="green"] {
+  --accent-l: #1f7a3f;
+  --accent-soft-l: #e2f3e7;
+  --match-l: #bfe6cb;
+  --accent-d: #5fd08a;
+  --accent-soft-d: #17331f;
+  --match-d: #1f4d2e;
+}
+
+:root[data-accent="purple"] {
+  --accent-l: #6b3fd6;
+  --accent-soft-l: #ede6ff;
+  --match-l: #d6c7ff;
+  --accent-d: #b08cff;
+  --accent-soft-d: #2a1f4f;
+  --match-d: #3f2f7a;
+}
+
+:root[data-accent="orange"] {
+  --accent-l: #d9481c;
+  --accent-soft-l: #fdece6;
+  --match-l: #fbd2c2;
+  --accent-d: #ff7a4d;
+  --accent-soft-d: #3a2119;
+  --match-d: #5c2f1f;
+}
+
+:root[data-accent="red"] {
+  --accent-l: #c8102e;
+  --accent-soft-l: #fde6ea;
+  --match-l: #f9c4cd;
+  --accent-d: #ff6b81;
+  --accent-soft-d: #3f1a22;
+  --match-d: #66222f;
+}
+
+/* Dark palette: chosen explicitly, or by the system when nothing is chosen. */
+:root[data-theme="dark"] {
+  --bg: #131316;
+  --surface: #1e1e23;
+  --text: #f1f0ec;
+  --muted: #a0a0a8;
+  --border: #2e2e35;
+  --warning: #5a4a00;
+  --footer: #5c5c64;
+  --accent: var(--accent-d);
+  --accent-soft: var(--accent-soft-d);
+  --match: var(--match-d);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #131316;
     --surface: #1e1e23;
     --text: #f1f0ec;
     --muted: #a0a0a8;
     --border: #2e2e35;
-    --accent: #6ea8ff;
-    --accent-soft: #1a2c4f;
-    --match: #24457a;
     --warning: #5a4a00;
     --footer: #5c5c64;
+    --accent: var(--accent-d);
+    --accent-soft: var(--accent-soft-d);
+    --match: var(--match-d);
   }
 }
 
@@ -107,9 +178,82 @@ body {
 }
 
 .lang-button:active,
-.chip:active {
+.chip:active,
+.chip.is-selected {
   background: var(--accent-soft);
+  border-color: var(--accent);
 }
+
+.topbar-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.icon-button {
+  font: inherit;
+  font-size: 1.2rem;
+  line-height: 1;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+}
+
+.icon-button:active {
+  color: var(--accent);
+}
+
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settings-title {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.setting-label {
+  margin: 0 4px 8px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.settings .chip {
+  font-size: 1rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent-l);
+}
+
+:root[data-theme="dark"] .swatch {
+  background: var(--accent-d);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .swatch {
+    background: var(--accent-d);
+  }
+}
+
+.swatch[data-accent="blue"] { --accent-l: #1e5fd6; --accent-d: #6ea8ff; }
+.swatch[data-accent="green"] { --accent-l: #1f7a3f; --accent-d: #5fd08a; }
+.swatch[data-accent="purple"] { --accent-l: #6b3fd6; --accent-d: #b08cff; }
+.swatch[data-accent="orange"] { --accent-l: #d9481c; --accent-d: #ff7a4d; }
+.swatch[data-accent="red"] { --accent-l: #c8102e; --accent-d: #ff6b81; }
 
 .main {
   flex: 1;
@@ -118,6 +262,10 @@ body {
 .search {
   position: relative;
   margin: 6px 0 14px;
+}
+
+#app.is-settings .search {
+  display: none;
 }
 
 .search-input {

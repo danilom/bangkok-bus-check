@@ -6,15 +6,23 @@
 
 import type { Lang } from './i18n.ts';
 
+export type Theme = 'system' | 'light' | 'dark';
+export type Accent = 'blue' | 'green' | 'purple' | 'orange' | 'red';
+export const ACCENTS: readonly Accent[] = ['blue', 'green', 'purple', 'orange', 'red'];
+export const THEMES: readonly Theme[] = ['system', 'light', 'dark'];
+
 export interface HashState {
   query: string;
   routeId?: string;
+  /** The settings page (`#settings`); a hash no bus number can collide with. */
+  settings?: boolean;
   /** Direction shown on the detail view: 0 = departing terminal A, 1 = terminal B. */
   side?: 0 | 1;
 }
 
-/** "#73/2-45/1" → query 73, route 2-45, side 1. */
+/** "#73/2-45/1" → query 73, route 2-45, side 1; "#settings" → the settings page. */
 export function readHash(hash: string): HashState {
+  if (hash === '#settings') return { query: '', settings: true };
   const [query = '', routeId, side] = hash.replace(/^#/, '').split('/');
   const state: HashState = { query: decodeURIComponent(query) };
   if (routeId) state.routeId = decodeURIComponent(routeId);
@@ -23,6 +31,7 @@ export function readHash(hash: string): HashState {
 }
 
 export function formatHash(state: HashState): string {
+  if (state.settings) return '#settings';
   if (!state.query && !state.routeId) return '';
   const parts = [encodeURIComponent(state.query)];
   if (state.routeId) {
@@ -33,6 +42,8 @@ export function formatHash(state: HashState): string {
 }
 
 const LANG_KEY = 'bbc.lang';
+const THEME_KEY = 'bbc.theme';
+const ACCENT_KEY = 'bbc.accent';
 const RECENT_KEY = 'bbc.recent';
 const MAX_RECENT = 8;
 
@@ -43,6 +54,24 @@ export function loadLang(): Lang | undefined {
 
 export function saveLang(lang: Lang): void {
   write(LANG_KEY, lang);
+}
+
+export function loadTheme(): Theme {
+  const value = read(THEME_KEY);
+  return THEMES.find((theme) => theme === value) ?? 'system';
+}
+
+export function saveTheme(theme: Theme): void {
+  write(THEME_KEY, theme);
+}
+
+export function loadAccent(): Accent {
+  const value = read(ACCENT_KEY);
+  return ACCENTS.find((accent) => accent === value) ?? 'blue';
+}
+
+export function saveAccent(accent: Accent): void {
+  write(ACCENT_KEY, accent);
 }
 
 export function loadRecent(): string[] {
