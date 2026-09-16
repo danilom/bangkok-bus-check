@@ -84,7 +84,7 @@ export function createRouteMap(container: HTMLElement, initial: RouteMapProps): 
       map.on(type, (event: unknown) => console.debug('bbc map', type, (event as { sourceId?: string }).sourceId ?? '', map.getZoom().toFixed(2), map.isStyleLoaded()));
     }
   }
-  const showPopup = wireStopPopups(map, () => props);
+  wireStopPopups(map, () => props);
   let loaded = false;
   map.on('load', () => {
     loaded = true;
@@ -93,7 +93,7 @@ export function createRouteMap(container: HTMLElement, initial: RouteMapProps): 
     addLineBlockers(map);
     addPositionLayers(map, props);
     setLabelsVisible(map, props.labels);
-    if (!focusStop(map, props, showPopup)) fitToRoute(map, props);
+    if (!focusStop(map, props)) fitToRoute(map, props);
   });
 
   return {
@@ -121,7 +121,7 @@ export function createRouteMap(container: HTMLElement, initial: RouteMapProps): 
       setPositionData(map, props);
       setLabelsVisible(map, props.labels);
       labelsControl.refresh();
-      if (next.focusStop && next.focusStop !== previousFocus) focusStop(map, props, showPopup);
+      if (next.focusStop && next.focusStop !== previousFocus) focusStop(map, props);
       else if (sideChanged || aheadChanged) fitToRoute(map, props);
     },
     destroy() {
@@ -348,6 +348,8 @@ function stopFeatures(props: RouteMapProps): FeatureCollection<Point> {
         total: named.length,
         passed: ahead !== undefined && index < ahead.index,
         nearest: ahead !== undefined && index === ahead.index,
+        // Nearest to the user, or tapped in the list: drawn large with an emphasised label.
+        emphasised: (ahead !== undefined && index === ahead.index) || stop.id === props.focusStop,
       },
       geometry: { type: 'Point', coordinates: [stop.lon, stop.lat] },
     }];
@@ -386,12 +388,12 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
       'circle-stroke-width': 2,
     },
   });
-  // The nearest stop: the landmark dot at the position dot's size, so the two read as a pair.
+  // The nearest or focused stop: the landmark dot at the position dot's size.
   map.addLayer({
     id: 'stops-nearest',
     type: 'circle',
     source: STOPS_SOURCE,
-    filter: ['get', 'nearest'],
+    filter: ['get', 'emphasised'],
     paint: {
       'circle-radius': 7,
       'circle-color': props.accent,
@@ -401,9 +403,11 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
   });
   // Two label layers rather than a zoom filter: termini and landmarks from zoom 10, the rest once there is room.
   const labelLayers: { id: string; filter: FilterSpecification; minzoom: number }[] = [
-    // Passed stops keep their dots but lose their labels; the nearest stop is always labelled.
-    { id: 'stops-label', filter: ['all', ['!', ['get', 'passed']], ['any', ['!=', ['get', 'rank'], 'stop'], ['get', 'nearest']]], minzoom: 10 },
-    { id: 'stops-label-all', filter: ['all', ['!', ['get', 'passed']], ['==', ['get', 'rank'], 'stop'], ['!', ['get', 'nearest']]], minzoom: 14 },
+    // Passed stops keep their dots but lose their labels; the nearest stop is always labelled. The focused stop's label
+    // has its own layer, which the names toggle leaves alone.
+    { id: 'stops-label', filter: ['all', ['!', ['get', 'passed']], ['!', ['get', 'emphasised']], ['!=', ['get', 'rank'], 'stop']], minzoom: 10 },
+    { id: 'stops-label-all', filter: ['all', ['!', ['get', 'passed']], ['!', ['get', 'emphasised']], ['==', ['get', 'rank'], 'stop']], minzoom: 14 },
+    { id: 'stops-label-focus', filter: ['get', 'emphasised'], minzoom: 0 },
   ];
   for (const { id, filter, minzoom } of labelLayers) map.addLayer({
     id,
@@ -414,17 +418,19 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
     layout: {
       'text-field': ['get', 'name'],
       // The nearest stop's label: medium weight on an accent-bordered card.
-      'text-font': ['case', ['get', 'nearest'], ['literal', FONT_MEDIUM], ['literal', FONT]],
+      'text-font': ['case', ['get', 'emphasised'], ['literal', FONT_MEDIUM], ['literal', FONT]],
       // The map page's pill is 0.85rem of a 17px root: the labels match it at every zoom.
       'text-size': 13.5,
       // Tried in this order until one spot is free of other labels and of the line's blockers.
-      'text-variable-anchor': ['top', 'bottom', 'right', 'left'],
+      'text-variable-anchor': ['top', 'bottom', 'right', 'left', 'top-right', 'top-left', 'bottom-right', 'bottom-left'],
+      // The emphasised label (nearest or tapped) is the point of the view: it shows even where a plain label would be dropped.
+      'text-allow-overlap': id === 'stops-label-focus',
       'text-radial-offset': 1.6,
       'text-justify': 'auto',
       'text-max-width': 9,
       'text-optional': true,
       // A translucent dark box behind the text: a stretched 1-colour image sized to the label.
-      'icon-image': ['case', ['get', 'nearest'], LABEL_BOX_NEAREST, LABEL_BOX],
+      'icon-image': ['case', ['get', 'emphasised'], LABEL_BOX_NEAREST, LABEL_BOX],
       'icon-text-fit': 'both',
       // The fit already follows the text's offset; an icon offset of its own would double it.
       'icon-text-fit-padding': [3, 7, 4, 7],
@@ -433,7 +439,7 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
       // Only the text is collision-tested: the fitted box is evaluated at the anchor, not where the text went.
       'icon-allow-overlap': true,
       'icon-ignore-placement': true,
-      'symbol-sort-key': ['case', ['get', 'nearest'], -1, ['match', ['get', 'rank'], 'terminus', 0, 'major', 1, 2]],
+      'symbol-sort-key': ['case', ['get', 'emphasised'], -1, ['match', ['get', 'rank'], 'terminus', 0, 'major', 1, 2]],
     },
     paint: {
       'text-color': props.dark ? '#e0e0e0' : '#212121',
@@ -479,13 +485,12 @@ function setStopData(map: MapLibreMap, props: RouteMapProps): void {
   if (source instanceof GeoJSONSource) source.setData(stopFeatures(props));
 }
 
-/** Centres the map on the focused stop at street zoom and opens its popup; false when there is nothing to focus. */
-function focusStop(map: MapLibreMap, props: RouteMapProps, showPopup: (feature: StopFeature) => void): boolean {
+/** Centres the map on the focused stop at street zoom (its label is emphasised by the layers); false when there is nothing to focus. */
+function focusStop(map: MapLibreMap, props: RouteMapProps): boolean {
   if (!props.focusStop) return false;
   const feature = stopFeatures(props).features.find((candidate) => candidate.properties?.['id'] === props.focusStop);
   if (!feature) return false;
   map.jumpTo({ center: feature.geometry.coordinates as [number, number], zoom: 15.5 });
-  showPopup({ geometry: feature.geometry, properties: feature.properties as StopFeature['properties'] });
   return true;
 }
 
@@ -509,7 +514,7 @@ function wireStopPopups(map: MapLibreMap, current: () => RouteMapProps): (featur
     content.append(title, position);
     popup.setLngLat(feature.geometry.coordinates as [number, number]).setDOMContent(content).addTo(map);
   };
-  for (const layer of ['stops-dot', 'stops-major', 'stops-nearest', 'stops-label', 'stops-label-all']) {
+  for (const layer of ['stops-dot', 'stops-major', 'stops-nearest', 'stops-label', 'stops-label-all', 'stops-label-focus']) {
     map.on('click', layer, (event) => {
       const feature = event.features?.[0];
       if (feature && feature.geometry.type === 'Point') show({ geometry: feature.geometry, properties: feature.properties as StopFeature['properties'] });
