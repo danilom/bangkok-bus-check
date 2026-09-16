@@ -659,6 +659,17 @@ body {
   font-size: 1rem;
 }
 
+/* The primary choice gets the width; the quiet one stays a small link-like chip. */
+.location-explain .chip.is-selected {
+  flex: 1;
+  justify-content: center;
+  min-width: 9em;
+}
+
+.location-explain .chips {
+  align-items: center;
+}
+
 /* Plain text colour: not the accent, not greyed out. */
 .chip-quiet {
   font-weight: 400;
