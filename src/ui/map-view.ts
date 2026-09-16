@@ -241,7 +241,7 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
     layout: {
       'text-field': ['get', 'name'],
       'text-font': FONT,
-      'text-size': ['interpolate', ['linear'], ['zoom'], 10, 11, 15, 13],
+      'text-size': ['interpolate', ['linear'], ['zoom'], 10, 12.5, 15, 15],
       'text-offset': [0, 0.9],
       'text-anchor': 'top',
       'text-max-width': 9,
