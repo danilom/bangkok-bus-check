@@ -528,6 +528,10 @@ body {
   letter-spacing: 0.1em;
 }
 
+.stop-gap-lit {
+  color: var(--accent);
+}
+
 .route-meta {
   display: flex;
   align-items: center;
@@ -658,7 +662,7 @@ body {
 
 .stop-number {
   text-align: right;
-  color: var(--muted);
+  color: var(--footer);
   font-variant-numeric: tabular-nums;
   align-self: baseline;
 }
