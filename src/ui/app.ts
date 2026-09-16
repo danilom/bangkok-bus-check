@@ -414,6 +414,7 @@ export function createApp(root: HTMLElement): void {
       lang: state.lang,
       dark,
       accent: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#7e57c2',
+      accentSoft: getComputedStyle(document.documentElement).getPropertyValue('--accent-soft').trim() || '#ede7f6',
       ...(state.locationEnabled && state.location.kind === 'ready' ? { position: state.location.position } : {}),
       ...(state.focusStop ? { focusStop: state.focusStop } : {}),
       labels: state.mapLabels,

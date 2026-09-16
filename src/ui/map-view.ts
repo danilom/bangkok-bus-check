@@ -24,8 +24,9 @@ export interface RouteMapProps {
   side: Side;
   lang: Lang;
   dark: boolean;
-  /** The accent colour as a CSS colour string. */
+  /** The accent colour as a CSS colour string, and the soft tint the pill's selected half uses. */
   accent: string;
+  accentSoft: string;
   /** Absolute URL of the PMTiles file. */
   tilesUrl: string;
   /** The user's position when location is on and known; drawn as a dot, never used to move the view. */
@@ -393,7 +394,9 @@ function stopFeatures(props: RouteMapProps): FeatureCollection<Point> {
       type: 'Feature',
       properties: {
         id: stop.id,
-        name: localize(props.lang, stop.name),
+        // The destination reads like the pill's selected half: "to Saphan Phut Bus Station".
+        name: index === named.length - 1 ? `${t(props.lang, 'to')} ${localize(props.lang, stop.name)}` : localize(props.lang, stop.name),
+        destination: index === named.length - 1,
         rank,
         index: index + 1,
         total: named.length,
@@ -413,6 +416,7 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
   const grey = props.dark ? '#9e9e9e' : '#757575';
   addLabelBoxImage(map, LABEL_BOX, props.dark, props.dark ? '#3a3a3a' : '#d6d6d6');
   addLabelBoxImage(map, LABEL_BOX_NEAREST, props.dark, props.accent);
+  addLabelBoxImage(map, LABEL_BOX_DESTINATION, props.dark, props.accent, props.accentSoft);
   map.addSource(STOPS_SOURCE, { type: 'geojson', data: stopFeatures(props) });
   map.addLayer({
     id: 'stops-dot',
@@ -469,7 +473,7 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
     layout: {
       'text-field': ['get', 'name'],
       // The nearest stop's label: medium weight on an accent-bordered card.
-      'text-font': ['case', ['get', 'emphasised'], ['literal', FONT_MEDIUM], ['literal', FONT]],
+      'text-font': ['case', ['any', ['get', 'emphasised'], ['get', 'destination']], ['literal', FONT_MEDIUM], ['literal', FONT]],
       // The map page's pill is 0.85rem of a 17px root: the labels match it at every zoom.
       'text-size': 13.5,
       // Tried in this order until one spot is free of other labels and of the line's blockers.
@@ -481,7 +485,7 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
       'text-max-width': 9,
       'text-optional': true,
       // A translucent dark box behind the text: a stretched 1-colour image sized to the label.
-      'icon-image': ['case', ['get', 'emphasised'], LABEL_BOX_NEAREST, LABEL_BOX],
+      'icon-image': ['case', ['get', 'destination'], LABEL_BOX_DESTINATION, ['get', 'emphasised'], LABEL_BOX_NEAREST, LABEL_BOX],
       'icon-text-fit': 'both',
       // The fit already follows the text's offset; an icon offset of its own would double it.
       'icon-text-fit-padding': [3, 7, 4, 7],
@@ -493,20 +497,21 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
       'symbol-sort-key': ['case', ['get', 'emphasised'], -1, ['match', ['get', 'rank'], 'terminus', 0, 'major', 1, 2]],
     },
     paint: {
-      'text-color': props.dark ? '#e0e0e0' : '#212121',
+      'text-color': ['case', ['get', 'destination'], props.accent, props.dark ? '#e0e0e0' : '#212121'],
     },
   });
 }
 
 const LABEL_BOX = 'label-box';
 const LABEL_BOX_NEAREST = 'label-box-nearest';
+const LABEL_BOX_DESTINATION = 'label-box-destination';
 
 /**
  * The label background: a small card in the app's terms (surface colour,
  * 1px border, rounded), drawn at 2x for crisp corners and stretched to each
  * label; the stretch zones keep the border and corners at their size.
  */
-function addLabelBoxImage(map: MapLibreMap, name: string, dark: boolean, border: string): void {
+function addLabelBoxImage(map: MapLibreMap, name: string, dark: boolean, border: string, fill?: string): void {
   if (map.hasImage(name)) map.removeImage(name);
   const scale = 2;
   const radius = 8 * scale;
@@ -516,7 +521,7 @@ function addLabelBoxImage(map: MapLibreMap, name: string, dark: boolean, border:
   canvas.height = size;
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
-  ctx.fillStyle = dark ? 'rgba(30, 30, 30, 0.6)' : 'rgba(255, 255, 255, 0.6)';
+  ctx.fillStyle = fill ?? (dark ? 'rgba(30, 30, 30, 0.6)' : 'rgba(255, 255, 255, 0.6)');
   ctx.strokeStyle = border;
   ctx.lineWidth = scale;
   ctx.beginPath();
