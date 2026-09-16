@@ -656,58 +656,45 @@ body {
   font-size: 0.9rem;
 }
 
-.sign-rows {
-  display: flex;
-  flex-direction: column;
+.sign-halves {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
 }
 
-.sign-row {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  width: 100%;
+.sign-half {
   min-width: 0;
-  padding: 8px 14px;
+  padding: 8px 12px;
   font: inherit;
   color: inherit;
   text-align: left;
   background: none;
   border: none;
-  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
 
-.sign-row:last-child {
-  border-bottom: none;
+.sign-half:last-child {
+  border-right: none;
 }
 
-.sign-row.is-selected {
+.sign-half.is-selected {
   background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .sign-th {
-  max-width: 100%;
-  font-size: 1.8rem;
+  display: block;
+  font-size: 2.3rem;
   font-weight: 700;
   line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.sign-row.is-selected .sign-th {
-  color: var(--accent);
-}
-
-.sign-en {
-  font-size: 0.85rem;
-  color: var(--muted);
 }
 
 .notes {

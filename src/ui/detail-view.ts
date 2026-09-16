@@ -108,31 +108,26 @@ function renderDetailBody(props: DetailViewProps, detail: RouteDetail): HTMLElem
 }
 
 /**
- * The two destinations in Thai, big and on one line each, for matching the
- * bus's front sign by shape when the UI is English: the feed's headsign
- * where the run has one (that is what the sign says), else the terminus.
- * Tapping a row selects that side, like the pill.
+ * The two destinations in Thai, big, side by side in the pill's positions,
+ * for matching the bus's front sign by shape when the UI is English: the
+ * feed's headsign where the run has one (that is what the sign says), else
+ * the terminus. No English: the pill above labels the same two positions.
+ * Tapping a half selects that side, like the pill.
  */
 function renderFrontSign(props: DetailViewProps, detail: RouteDetail): HTMLElement | false {
   const { lang, route, side } = props;
   if (!route.terminals) return false;
   const rows = ([0, 1] as const).map((destination) => {
     const thai = signText(route, detail, destination);
-    if (!thai) return false;
-    const english = route.loop ? route.sideLabels?.[destination]?.name : route.terminals?.[destination];
     return h('button', {
-      class: `sign-row${side === destination ? ' is-selected' : ''}`,
-      attrs: { type: 'button', 'aria-pressed': String(side === destination) },
+      class: `sign-half${side === destination ? ' is-selected' : ''}`,
+      attrs: { type: 'button', 'aria-pressed': String(side === destination), title: thai ?? '' },
       on: { click: () => props.onSelectSide(destination) },
-    }, [
-      h('span', { class: 'sign-th', text: thai }),
-      english && h('span', { class: 'sign-en', text: localize(lang, english) }),
-    ]);
+    }, [h('span', { class: 'sign-th', text: thai ?? '—' })]);
   });
-  if (!rows.some(Boolean)) return false;
   const panel = h('details', { class: 'front-sign' }, [
     h('summary', { text: t(lang, 'frontSign') }),
-    h('div', { class: 'sign-rows' }, rows),
+    h('div', { class: 'sign-halves' }, rows),
   ]);
   panel.open = props.frontSignOpen;
   panel.addEventListener('toggle', () => props.onFrontSignToggle(panel.open));
