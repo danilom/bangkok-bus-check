@@ -74,6 +74,12 @@ is a readable approximation of the livery, not a paint code — the one place
 the app draws something the data does not literally say. A colour word
 missing from the dictionary means no swatch and a build warning.
 
+The route page's "Map" button opens a full-screen map (`#…/map`): the
+Protomaps basemap in the app's theme and language with the selected
+direction's line in the accent colour and the other direction faint.
+MapLibre and the basemap style load on demand, so the text app's bundle is
+unchanged; the map's fonts and sprites come from Protomaps' asset host.
+
 Basemap tiles for the map are a Protomaps planet build cut to the same
 bounding box (`data/tiles.json` pins the build date, box and zoom;
 `scripts/extract-tiles.sh` does the cut with the `pmtiles` CLI). The deploy

@@ -43,6 +43,8 @@ const STRINGS = {
   hours: { en: 'Hours', th: 'เวลาเดินรถ' },
   variants: { en: 'Variants and other runs', th: 'เที่ยวเสริมและเส้นทางย่อย' },
   frontSign: { en: 'Front sign (Thai)', th: 'ป้ายหน้ารถ' },
+  map: { en: 'Map', th: 'แผนที่' },
+  mapLoading: { en: 'Loading the map…', th: 'กำลังโหลดแผนที่…' },
   loop: { en: 'Loop', th: 'วงกลม' },
   to: { en: 'to', th: 'ไป' },
   loopLeft: { en: 'Counter-clockwise', th: 'วนซ้าย' },

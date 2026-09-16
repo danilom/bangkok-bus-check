@@ -1,14 +1,15 @@
 import { loadDetail, loadIndex } from '../lib/data.ts';
-import { detectLang, t, type Lang } from '../lib/i18n.ts';
+import { detectLang, localize, t, type Lang } from '../lib/i18n.ts';
 import { requestPosition, type Position } from '../lib/location.ts';
 import { findRoutes } from '../lib/matcher.ts';
 import { formatHash, loadAccent, loadFrontSignOpen, loadLang, loadLocationAccepted, loadLocationEnabled, loadRecent, loadSimulatedLocation, loadTheme, pushRecent, readHash, saveAccent, saveFrontSignOpen, saveLang, saveLocationAccepted, saveLocationEnabled, saveSimulatedLocation, saveTheme, type Accent, type Theme } from '../lib/state.ts';
-import type { RouteIndex, RouteSummary } from '../lib/types.ts';
+import type { RouteDetail, RouteIndex, RouteSummary } from '../lib/types.ts';
 import { renderDetailView, type DetailStatus, type LocationStatus } from './detail-view.ts';
 import type { Side } from './direction-pill.ts';
 import { h, replaceChildren } from './dom.ts';
 import { keypadEnabled, renderKeypad, testViewport } from './keypad.ts';
 import { renderRouteCard } from './route-card.ts';
+import type { RouteMap, RouteMapProps } from './map-view.ts';
 import { renderSettingsView } from './settings-view.ts';
 
 interface AppState {
@@ -34,6 +35,8 @@ interface AppState {
   simulatedLocation: Position | undefined;
   showAllStops: boolean;
   frontSignOpen: boolean;
+  /** The route's full-screen map page. */
+  map: boolean;
 }
 
 /**
@@ -97,6 +100,7 @@ export function createApp(root: HTMLElement): void {
     simulatedLocation: loadSimulatedLocation(),
     showAllStops: false,
     frontSignOpen: loadFrontSignOpen(),
+    map: initial.map ?? false,
   };
   if (initial.routeId) state.routeId = initial.routeId;
   const useKeypad = keypadEnabled(location.search, matchMedia('(pointer: coarse)').matches);
@@ -183,12 +187,27 @@ export function createApp(root: HTMLElement): void {
   function selectSide(side: Side): void {
     if (state.routeId === undefined) return;
     state.side = side;
-    history.replaceState(null, '', formatHash({ query: state.query, routeId: state.routeId, side }));
+    history.replaceState(null, '', formatHash({ query: state.query, routeId: state.routeId, side, ...(state.map ? { map: true } : {}) }));
+    render();
+  }
+
+  function openMap(): void {
+    if (state.routeId === undefined) return;
+    state.map = true;
+    history.pushState(null, '', formatHash({ query: state.query, routeId: state.routeId, side: state.side, map: true }));
+    render();
+  }
+
+  function closeMap(): void {
+    if (state.routeId === undefined) return;
+    state.map = false;
+    history.replaceState(null, '', formatHash({ query: state.query, routeId: state.routeId, side: state.side }));
     render();
   }
 
   function closeRoute(): void {
     delete state.routeId;
+    state.map = false;
     history.replaceState(null, '', formatHash({ query: state.query }) || currentUrlWithoutHash());
     render();
     focusInput();
@@ -296,6 +315,7 @@ export function createApp(root: HTMLElement): void {
   }
 
   function render(): void {
+    if (!state.map || state.routeId === undefined || state.settings) disposeMap();
     const { lang } = state;
     document.documentElement.lang = lang;
     applyAppearance(state.theme, state.accent);
@@ -310,7 +330,9 @@ export function createApp(root: HTMLElement): void {
     clearButton.setAttribute('aria-label', t(lang, 'clear'));
     clearButton.hidden = state.query.length === 0;
     if (input.value !== state.query) input.value = state.query;
-    replaceChildren(content, renderContent());
+    const next = renderContent();
+    // The map page keeps its element across renders; re-appending it would detach the WebGL canvas mid-load.
+    if (!(content.childNodes.length === 1 && content.firstChild === next)) replaceChildren(content, next);
     replaceChildren(footer, ...renderFooter());
     renderKeypadSlot();
   }
@@ -323,6 +345,72 @@ export function createApp(root: HTMLElement): void {
     // The number field is redundant on a route page (the number is the header); Back returns to it focused.
     root.classList.toggle('is-detail', state.routeId !== undefined && !state.settings);
     replaceChildren(keypadSlot, show && renderKeypad(state.lang, keypadHandlers));
+  }
+
+  /**
+   * The map page owns one MapLibre instance for as long as it is open: the
+   * page element persists across renders (a fresh map per render would
+   * flicker and refetch), and is torn down when the page is left.
+   */
+  let routeMap: { element: HTMLElement; canvas: HTMLElement; instance?: RouteMap; routeId: string } | undefined;
+
+  function renderMapPage(route: RouteSummary): HTMLElement {
+    const { lang } = state;
+    const status = state.details.get(route.id);
+    if (routeMap && routeMap.routeId !== route.id) disposeMap();
+    if (!routeMap) {
+      const canvas = h('div', { class: 'map-canvas' });
+      const element = h('section', { class: 'map-page' }, [
+        h('div', { class: 'map-topbar' }, [
+          h('button', { class: 'back-button', attrs: { type: 'button' }, text: `‹ ${t(lang, 'back')}`, on: { click: closeMap } }),
+          h('span', { class: 'map-title', text: route.number }),
+        ]),
+        canvas,
+      ]);
+      routeMap = { element, canvas, routeId: route.id };
+    }
+    const title = routeMap.element.querySelector('.map-title');
+    if (title) title.textContent = mapTitle(route);
+    if (status?.kind === 'ready') void showMap(route, status.detail);
+    else if (!routeMap.instance) replaceChildren(routeMap.canvas, h('p', { class: 'muted map-loading', text: t(lang, status?.kind === 'error' ? 'loadFailed' : 'mapLoading') }));
+    return routeMap.element;
+  }
+
+  function mapTitle(route: RouteSummary): string {
+    const destination = route.terminals?.[state.side];
+    return destination ? `${route.number} → ${localize(state.lang, destination)}` : route.number;
+  }
+
+  async function showMap(route: RouteSummary, detail: RouteDetail): Promise<void> {
+    const props = mapProps(route, detail);
+    if (!routeMap) return;
+    if (routeMap.instance) {
+      routeMap.instance.update(props);
+      return;
+    }
+    const { createRouteMap } = await import('./map-view.ts');
+    // The page may have been left while the module loaded.
+    if (!routeMap || routeMap.routeId !== route.id || routeMap.instance) return;
+    replaceChildren(routeMap.canvas);
+    routeMap.instance = createRouteMap(routeMap.canvas, props);
+  }
+
+  function mapProps(route: RouteSummary, detail: RouteDetail): RouteMapProps {
+    const dark = state.theme === 'dark' || (state.theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+    return {
+      route,
+      detail,
+      side: state.side,
+      lang: state.lang,
+      dark,
+      accent: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#7e57c2',
+      tilesUrl: new URL(`${import.meta.env.BASE_URL}tiles/bangkok.pmtiles`, location.href).toString(),
+    };
+  }
+
+  function disposeMap(): void {
+    routeMap?.instance?.destroy();
+    routeMap = undefined;
   }
 
   function renderContent(): HTMLElement {
@@ -348,6 +436,7 @@ export function createApp(root: HTMLElement): void {
     }
     if (!index) return h('p', { class: 'muted', text: t(lang, 'loading') });
     const openRouteSummary = state.routeId === undefined ? undefined : index.routes.find((route) => route.id === state.routeId);
+    if (openRouteSummary && state.map) return renderMapPage(openRouteSummary);
     if (openRouteSummary) {
       return renderDetailView({
         lang,
@@ -371,6 +460,7 @@ export function createApp(root: HTMLElement): void {
           state.frontSignOpen = open;
           saveFrontSignOpen(open);
         },
+        onMap: openMap,
       });
     }
     return state.query.trim() ? renderResults(index) : renderRecent();
@@ -426,6 +516,7 @@ export function createApp(root: HTMLElement): void {
     state.query = next.query;
     state.settings = next.settings ?? false;
     state.side = next.side ?? 0;
+    state.map = next.map ?? false;
     if (next.routeId) {
       const changed = state.routeId !== next.routeId;
       state.routeId = next.routeId;

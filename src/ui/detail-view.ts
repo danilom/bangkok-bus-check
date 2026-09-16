@@ -41,6 +41,7 @@ export interface DetailViewProps {
   /** The "Front sign (Thai)" panel, English UI only; its open state is remembered. */
   frontSignOpen: boolean;
   onFrontSignToggle: (open: boolean) => void;
+  onMap: () => void;
 }
 
 /** A hidden stretch is a fixed row of dots; the count is in the row's title only. */
@@ -91,7 +92,10 @@ function renderDetailBody(props: DetailViewProps, detail: RouteDetail): HTMLElem
   const others = detail.directions.filter((direction) => direction !== main && direction.origin !== side);
   return h('div', { class: 'detail-body' }, [
     lang === 'en' && renderFrontSign(props, detail),
-    main && renderLocationPanel(props),
+    h('div', { class: 'detail-actions' }, [
+      main?.shape && h('button', { class: 'text-button map-button', attrs: { type: 'button' }, on: { click: props.onMap } }, [mapIcon(), t(lang, 'map')]),
+      main && renderLocationPanel(props),
+    ]),
     main
       ? renderStopList(props, main, detail.stops, props.location.kind === 'ready' ? props.location.position : undefined)
       : h('p', { class: 'muted', text: t(lang, detail.directions.length === 0 ? 'noDirections' : 'noStops') }),
@@ -146,6 +150,22 @@ function signText(route: RouteSummary, detail: RouteDetail, destination: Side): 
     return label.marked ? `${label.name.th} ${t('th', destination === 0 ? 'senseLeft' : 'senseRight')}` : label.name.th;
   }
   return route.terminals?.[destination]?.th;
+}
+
+function mapIcon(): SVGElement {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('width', '16');
+  svg.setAttribute('height', '16');
+  svg.setAttribute('aria-hidden', 'true');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2V6zm6 0v12m6-10v12');
+  path.setAttribute('fill', 'none');
+  path.setAttribute('stroke', 'currentColor');
+  path.setAttribute('stroke-width', '2');
+  path.setAttribute('stroke-linejoin', 'round');
+  svg.append(path);
+  return svg;
 }
 
 function renderFact(label: string, value: string): HTMLElement {

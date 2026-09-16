@@ -19,15 +19,18 @@ export interface HashState {
   settings?: boolean;
   /** Direction shown on the detail view: 0 = heading to terminal A, 1 = to terminal B. */
   side?: 0 | 1;
+  /** The route's map page ("#73/2-45/1/map"). */
+  map?: boolean;
 }
 
 /** "#73/2-45/1" → query 73, route 2-45, side 1; "#settings" → the settings page. */
 export function readHash(hash: string): HashState {
   if (hash === '#settings') return { query: '', settings: true };
-  const [query = '', routeId, side] = hash.replace(/^#/, '').split('/');
+  const [query = '', routeId, side, page] = hash.replace(/^#/, '').split('/');
   const state: HashState = { query: decodeURIComponent(query) };
   if (routeId) state.routeId = decodeURIComponent(routeId);
   if (routeId && (side === '0' || side === '1')) state.side = side === '0' ? 0 : 1;
+  if (routeId && page === 'map') state.map = true;
   return state;
 }
 
@@ -38,6 +41,7 @@ export function formatHash(state: HashState): string {
   if (state.routeId) {
     parts.push(encodeURIComponent(state.routeId));
     if (state.side !== undefined) parts.push(String(state.side));
+    if (state.map) parts.push('map');
   }
   return `#${parts.join('/')}`;
 }

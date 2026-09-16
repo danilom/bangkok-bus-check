@@ -18,6 +18,8 @@ function buildCommit(): string {
 export default defineConfig({
   base: process.env['BASE_PATH'] ?? '/',
   build: { target: 'es2022' },
+  // MapLibre loads its worker as a sibling module via import.meta.url, which dev pre-bundling would break.
+  optimizeDeps: { exclude: ['maplibre-gl', 'pmtiles'] },
   define: {
     __BUILD_COMMIT__: JSON.stringify(buildCommit()),
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
