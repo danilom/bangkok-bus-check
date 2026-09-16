@@ -1,11 +1,11 @@
 import { loadDetail, loadIndex } from '../lib/data.ts';
-import { detectLang, localize, t, type Lang } from '../lib/i18n.ts';
+import { detectLang, t, type Lang } from '../lib/i18n.ts';
 import { requestPosition, type Position } from '../lib/location.ts';
 import { findRoutes } from '../lib/matcher.ts';
 import { formatHash, loadAccent, loadFrontSignOpen, loadLang, loadLocationAccepted, loadLocationEnabled, loadRecent, loadSimulatedLocation, loadTheme, pushRecent, readHash, saveAccent, saveFrontSignOpen, saveLang, saveLocationAccepted, saveLocationEnabled, saveSimulatedLocation, saveTheme, type Accent, type Theme } from '../lib/state.ts';
 import type { RouteDetail, RouteIndex, RouteSummary } from '../lib/types.ts';
 import { renderDetailView, type DetailStatus, type LocationStatus } from './detail-view.ts';
-import type { Side } from './direction-pill.ts';
+import { renderDirectionPill, type Side } from './direction-pill.ts';
 import { h, replaceChildren } from './dom.ts';
 import { keypadEnabled, renderKeypad, testViewport } from './keypad.ts';
 import { renderRouteCard } from './route-card.ts';
@@ -360,25 +360,21 @@ export function createApp(root: HTMLElement): void {
     if (routeMap && routeMap.routeId !== route.id) disposeMap();
     if (!routeMap) {
       const canvas = h('div', { class: 'map-canvas' });
-      const element = h('section', { class: 'map-page' }, [
-        h('div', { class: 'map-topbar' }, [
-          h('button', { class: 'back-button', attrs: { type: 'button' }, text: `‹ ${t(lang, 'back')}`, on: { click: closeMap } }),
-          h('span', { class: 'map-title', text: route.number }),
-        ]),
-        canvas,
-      ]);
+      const element = h('section', { class: 'map-page' }, [h('div', { class: 'map-topbar' }), canvas]);
       routeMap = { element, canvas, routeId: route.id };
     }
-    const title = routeMap.element.querySelector('.map-title');
-    if (title) title.textContent = mapTitle(route);
+    // The top bar is cheap to rebuild each render; the map beneath it is not.
+    const topbar = routeMap.element.querySelector('.map-topbar');
+    if (topbar) {
+      replaceChildren(topbar,
+        h('button', { class: 'back-button', attrs: { type: 'button' }, text: `‹ ${t(lang, 'back')}`, on: { click: closeMap } }),
+        h('span', { class: 'map-title', text: route.number }),
+        h('div', { class: 'map-pill' }, [renderDirectionPill({ lang, route, selected: state.side, onSelect: selectSide })]),
+      );
+    }
     if (status?.kind === 'ready') void showMap(route, status.detail);
     else if (!routeMap.instance) replaceChildren(routeMap.canvas, h('p', { class: 'muted map-loading', text: t(lang, status?.kind === 'error' ? 'loadFailed' : 'mapLoading') }));
     return routeMap.element;
-  }
-
-  function mapTitle(route: RouteSummary): string {
-    const destination = route.terminals?.[state.side];
-    return destination ? `${route.number} → ${localize(state.lang, destination)}` : route.number;
   }
 
   async function showMap(route: RouteSummary, detail: RouteDetail): Promise<void> {

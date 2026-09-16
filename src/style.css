@@ -777,7 +777,37 @@ body {
 }
 
 .map-title {
-  font-weight: 600;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* A slim pill: one line per half, clipped, so the bar stays one row. */
+.map-pill {
+  flex: 1;
+  min-width: 0;
+}
+
+.map-pill .dir-pill {
+  margin: 0;
+  border-radius: 10px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.map-pill .dir-half {
+  min-width: 0;
+  min-height: 36px;
+  padding: 4px 8px;
+  font-size: 0.85rem;
+  gap: 4px;
+}
+
+.map-pill .dir-to {
+  font-size: 0.8rem;
+}
+
+.map-pill .dir-name {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
