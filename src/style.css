@@ -74,6 +74,16 @@
   --match-d: #66222f;
 }
 
+/* Gray: the accent is just a darker/lighter text tone; highlights stay visible. */
+:root[data-accent="gray"] {
+  --accent-l: #3a3a42;
+  --accent-soft-l: #e8e8ea;
+  --match-l: #d3d3d8;
+  --accent-d: #d0d0d6;
+  --accent-soft-d: #2c2c33;
+  --match-d: #44444d;
+}
+
 /* Dark palette: chosen explicitly, or by the system when nothing is chosen. */
 :root[data-theme="dark"] {
   --bg: #131316;
@@ -254,6 +264,7 @@ body {
 .swatch[data-accent="purple"] { --accent-l: #6b3fd6; --accent-d: #b08cff; }
 .swatch[data-accent="orange"] { --accent-l: #d9481c; --accent-d: #ff7a4d; }
 .swatch[data-accent="red"] { --accent-l: #c8102e; --accent-d: #ff6b81; }
+.swatch[data-accent="gray"] { --accent-l: #3a3a42; --accent-d: #d0d0d6; }
 
 .main {
   flex: 1;

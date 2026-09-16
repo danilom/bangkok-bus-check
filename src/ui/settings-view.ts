@@ -12,7 +12,7 @@ export interface SettingsViewProps {
 }
 
 const THEME_LABELS: Record<Theme, StringKey> = { system: 'themeSystem', light: 'themeLight', dark: 'themeDark' };
-const ACCENT_LABELS: Record<Accent, StringKey> = { blue: 'accentBlue', green: 'accentGreen', purple: 'accentPurple', orange: 'accentOrange', red: 'accentRed' };
+const ACCENT_LABELS: Record<Accent, StringKey> = { blue: 'accentBlue', green: 'accentGreen', purple: 'accentPurple', orange: 'accentOrange', red: 'accentRed', gray: 'accentGray' };
 
 export function renderSettingsView(props: SettingsViewProps): HTMLElement {
   const { lang } = props;

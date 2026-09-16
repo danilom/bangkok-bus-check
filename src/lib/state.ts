@@ -7,8 +7,8 @@
 import type { Lang } from './i18n.ts';
 
 export type Theme = 'system' | 'light' | 'dark';
-export type Accent = 'blue' | 'green' | 'purple' | 'orange' | 'red';
-export const ACCENTS: readonly Accent[] = ['blue', 'green', 'purple', 'orange', 'red'];
+export type Accent = 'blue' | 'green' | 'purple' | 'orange' | 'red' | 'gray';
+export const ACCENTS: readonly Accent[] = ['blue', 'green', 'purple', 'orange', 'red', 'gray'];
 export const THEMES: readonly Theme[] = ['system', 'light', 'dark'];
 
 export interface HashState {

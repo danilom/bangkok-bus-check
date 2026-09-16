@@ -49,6 +49,7 @@ const STRINGS = {
   accentPurple: { en: 'Purple', th: 'ม่วง' },
   accentOrange: { en: 'Orange', th: 'ส้ม' },
   accentRed: { en: 'Red', th: 'แดง' },
+  accentGray: { en: 'Gray', th: 'เทา' },
 } satisfies Record<string, Record<Lang, string>>;
 
 export type StringKey = keyof typeof STRINGS;
