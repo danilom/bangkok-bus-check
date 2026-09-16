@@ -64,6 +64,8 @@ function renderDetailBody(props: DetailViewProps, detail: RouteDetail): HTMLElem
   const otherSide: Side = side === 0 ? 1 : 0;
   const others = detail.directions.filter((direction) => direction !== main && direction.origin !== otherSide);
   return h('div', { class: 'detail-body' }, [
+    // Vehicle type first: it is what identifies the bus in front of you.
+    detail.vehicles.length > 0 && renderFact(t(lang, 'vehicles'), detail.vehicles.map((vehicle) => localize(lang, vehicle)).join(' · ')),
     main
       ? renderStopList(lang, main, detail.stops)
       : h('p', { class: 'muted', text: t(lang, detail.directions.length === 0 ? 'noDirections' : 'noStops') }),
@@ -74,7 +76,6 @@ function renderDetailBody(props: DetailViewProps, detail: RouteDetail): HTMLElem
       ]),
     (detail.operatorDetail ?? route.operator) && renderFact(t(lang, 'operator'), localize(lang, detail.operatorDetail ?? route.operator ?? { th: '' })),
     detail.hours && renderFact(t(lang, 'hours'), detail.hours),
-    detail.vehicles.length > 0 && renderFact(t(lang, 'vehicles'), detail.vehicles.map((vehicle) => localize(lang, vehicle)).join(' · ')),
     detail.notes && renderNotes(lang, detail.notes),
   ]);
 }
