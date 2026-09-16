@@ -8,6 +8,8 @@ import { h } from './dom.ts';
 export function renderNumber(lang: Lang, route: RouteSummary, matchedAlias?: string): HTMLElement {
   const former = route.formerNumbers.filter((number) => number !== route.number);
   return h('div', { class: 'route-number' }, [
+    // A van is not the bus of the same number: say so in the title itself.
+    route.service.van && h('span', { class: 'number-kind', text: t(lang, 'badgeVan') }),
     h('span', { class: `number-primary${matchedAlias === route.number ? ' is-match' : ''}`, text: route.number }),
     former.length > 0 &&
       h('span', { class: 'number-former' }, [

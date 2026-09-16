@@ -379,6 +379,13 @@ body {
   flex-wrap: wrap;
 }
 
+.number-kind {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-right: -4px;
+}
+
 .number-primary {
   font-size: 1.7rem;
   font-weight: 800;

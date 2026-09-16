@@ -68,8 +68,8 @@ export function isFallback(lang: Lang, text: LocalizedText): boolean {
   return lang === 'en' && !text.en;
 }
 
+// Vans are named in the title ("Van ต.73") rather than badged.
 const BADGES: [keyof ServiceFlags, StringKey][] = [
-  ['van', 'badgeVan'],
   ['expressway', 'badgeExpressway'],
   ['night', 'badgeNight'],
   ['extra', 'badgeExtra'],
