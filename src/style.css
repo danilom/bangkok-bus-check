@@ -508,12 +508,12 @@ body {
 
 .stop-gap {
   list-style: none;
-  border-left: 2px dotted var(--border);
+  border-left: 2px solid var(--border);
   padding-left: 10px;
   margin-left: -1.6em;
   color: var(--muted);
-  font-size: 0.8rem;
-  line-height: 0.9;
+  font-size: 0.75rem;
+  line-height: 0.6;
   letter-spacing: 0.15em;
   user-select: none;
 }
