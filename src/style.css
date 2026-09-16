@@ -735,6 +735,8 @@ body {
   color: var(--accent);
   font-weight: 500;
   font-size: 0.9rem;
+  /* "nearest stop, 280 m" wraps as one unit or not at all. */
+  white-space: nowrap;
 }
 
 .setting-input {
