@@ -1,7 +1,7 @@
 import { agreementBadge, localize, serviceBadges, t, type Lang } from '../lib/i18n.ts';
 import type { RouteMatch } from '../lib/matcher.ts';
 import type { RouteSummary } from '../lib/types.ts';
-import { renderDirectionPill, renderLoopLine, type Side } from './direction-pill.ts';
+import { renderDirectionPill, renderLoopLine, sideAt, type Side } from './direction-pill.ts';
 import { h } from './dom.ts';
 
 /** The number as on the bus, with former numbers small; the matched alias is highlighted. */
@@ -35,13 +35,6 @@ export interface RouteCardProps {
 
 export function renderRouteCard({ lang, match, onOpen }: RouteCardProps): HTMLElement {
   const { route } = match;
-  // The whole card is a target: its left half opens the left direction, the
-  // right half the right one, so the pill's own buttons are not the only place
-  // a thumb can land.
-  const sideAt = (event: MouseEvent, card: HTMLElement): Side => {
-    const bounds = card.getBoundingClientRect();
-    return event.clientX - bounds.left < bounds.width / 2 ? 0 : 1;
-  };
   const card = h(
     'article',
     {

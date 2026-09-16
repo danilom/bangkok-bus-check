@@ -5,6 +5,15 @@ import { h } from './dom.ts';
 /** Which terminus the bus departs from: index into `Route.terminals`. */
 export type Side = 0 | 1;
 
+/**
+ * Which side of an element a tap landed on. Cards and the detail header are
+ * split down the middle so a thumb has far more than the pill to hit.
+ */
+export function sideAt(event: MouseEvent, element: HTMLElement): Side {
+  const bounds = element.getBoundingClientRect();
+  return event.clientX - bounds.left < bounds.width / 2 ? 0 : 1;
+}
+
 export interface DirectionPillProps {
   lang: Lang;
   route: RouteSummary;

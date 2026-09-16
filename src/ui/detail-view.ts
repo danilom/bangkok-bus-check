@@ -1,6 +1,6 @@
 import { localize, t, type Lang } from '../lib/i18n.ts';
 import type { Direction, RouteDetail, RouteSummary, Stop } from '../lib/types.ts';
-import { renderDirectionPill, renderLoopLine, type Side } from './direction-pill.ts';
+import { renderDirectionPill, renderLoopLine, sideAt, type Side } from './direction-pill.ts';
 import { h } from './dom.ts';
 import { renderBadges, renderNumber } from './route-card.ts';
 
@@ -26,14 +26,21 @@ export function renderDetailView(props: DetailViewProps): HTMLElement {
   const { lang, route, side } = props;
   return h('section', { class: 'detail' }, [
     h('button', { class: 'back-button', attrs: { type: 'button' }, text: `‹ ${t(lang, 'back')}`, on: { click: props.onBack } }),
-    h('header', { class: 'detail-header' }, [
-      renderNumber(lang, route),
-      renderLoopLine(lang, route),
-      renderDirectionPill({ lang, route, selected: side, onSelect: props.onSelectSide }),
-      renderBadges(lang, route),
-    ]),
+    renderHeader(props),
     renderStatus(props),
   ]);
+}
+
+/** Like a card, the header's halves select the matching direction. */
+function renderHeader(props: DetailViewProps): HTMLElement {
+  const { lang, route, side } = props;
+  const header = h('header', { class: 'detail-header', on: { click: (event) => props.onSelectSide(sideAt(event, header)) } }, [
+    renderNumber(lang, route),
+    renderLoopLine(lang, route),
+    renderDirectionPill({ lang, route, selected: side, onSelect: props.onSelectSide }),
+    renderBadges(lang, route),
+  ]);
+  return header;
 }
 
 function renderStatus(props: DetailViewProps): HTMLElement {

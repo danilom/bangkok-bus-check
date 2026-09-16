@@ -534,6 +534,8 @@ body {
 }
 
 .detail-header {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
