@@ -8,6 +8,7 @@ import { join } from 'node:path';
 
 import type { RouteDataset, RouteDetail, RouteIndex, Stop } from '../src/lib/types.ts';
 import { NAMTANG_DIR, WIKI_FILE } from './fetch-raw.ts';
+import { loadLandmarkRules, tagLandmarks } from './landmarks.ts';
 import { loadTranslations, type Translations } from './lib/translations.ts';
 import { mergeRoutes, type MergeReport } from './merge.ts';
 import { parseGtfs, type GtfsFeed } from './sources/gtfs.ts';
@@ -59,6 +60,8 @@ export async function buildData(options: BuildOptions): Promise<void> {
 
   const { dataset, report, translation } = compile(sources);
   printReport(report, options.verbose);
+  const landmarks = tagLandmarks(dataset, await loadLandmarkRules());
+  console.log(`Landmarks: ${Object.entries(landmarks).map(([tier, n]) => `${tier} ${n}`).join(', ')}`);
   console.log(`Translations: ${translation.used.places.size} places, ${translation.used.operators.size} operators and ${translation.used.vehicles.size} vehicle types applied, ${translation.feedResolved.size} places resolved from the feed`);
   const untranslated = warnUntranslated(translation);
   if (untranslated > 0 && options.strict) throw new Error(`${untranslated} untranslated items (see warning above); run "bbc extract-places"`);

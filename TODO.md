@@ -127,9 +127,15 @@ Data-source status, reliability checks and product backlog. Last revised 2026-09
 
 ### Product, after the data is trustworthy
 
-- [ ] "Via" line on the card: a few prominent stops picked by keyword
-      (BTS/MRT/ARL, hospital, market, university, mall) from the stop list —
-      selection, not sequencing.
+- [x] Condensed stop list on the details page: termini + keyword landmarks
+      (`data/overrides/landmarks.json`) + nearest stops + spacing; gaps
+      expand on tap; `bbc landmarks <route>` for review. No scoring.
+- [ ] Review the landmark picks on the routes you ride; add `include` /
+      `exclude` names or keyword fragments as needed. Candidate next
+      signal if keywords prove poor: divergence (routes branching at a
+      stop), as one more stated reason, not a blended score.
+- [ ] "Via" line on the card: a few of those landmarks (selection, not
+      sequencing) — after the picks are trusted.
 - [x] Location on the details page: stops already passed collapse, nearest
       stop marked with distance. Opt-in, explained before the browser asks;
       `?test=…` adds a simulated-position box in settings (Google Maps link).

@@ -125,5 +125,6 @@ export interface Stop {
   name: LocalizedText;
   lat?: number;
   lon?: number;
-  landmark?: boolean;
+  /** Landmark tier from data/overrides/landmarks.json ("rail", "junction", …); shown in condensed lists. */
+  landmark?: string;
 }

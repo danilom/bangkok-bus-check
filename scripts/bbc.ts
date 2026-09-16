@@ -5,6 +5,7 @@ import { Command, Option } from 'commander';
 import { buildData, DEFAULT_OUTPUT_DIR } from './build-data.ts';
 import { extractPlaces } from './extract-places.ts';
 import { fetchRaw, RAW_SOURCES, type RawSource } from './fetch-raw.ts';
+import { reviewLandmarks } from './review-landmarks.ts';
 
 const program = new Command('bbc').description('Bangkok Bus Check data tooling');
 
@@ -32,6 +33,14 @@ program
   .option('--feed-english', 'also print the English the feed supplied, as paste-ready override lines', false)
   .action(async (options: { feedEnglish: boolean }) => {
     await extractPlaces(options);
+  });
+
+program
+  .command('landmarks')
+  .description('print the condensed stop list of routes with the reason each stop is kept')
+  .argument('<route...>', 'route ids or numbers, e.g. 2-45 73')
+  .action(async (ids: string[]) => {
+    await reviewLandmarks(ids);
   });
 
 program.parseAsync(process.argv).catch((error: unknown) => {

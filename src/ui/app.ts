@@ -32,6 +32,8 @@ interface AppState {
   locationAccepted: boolean;
   location: LocationStatus;
   simulatedLocation: Position | undefined;
+  expandedGaps: Set<string>;
+  showAllStops: boolean;
 }
 
 /**
@@ -71,6 +73,8 @@ export function createApp(root: HTMLElement): void {
     locationAccepted: loadLocationAccepted(),
     location: { kind: 'off' },
     simulatedLocation: loadSimulatedLocation(),
+    expandedGaps: new Set(),
+    showAllStops: false,
   };
   if (initial.routeId) state.routeId = initial.routeId;
   const useKeypad = keypadEnabled(location.search, matchMedia('(pointer: coarse)').matches);
@@ -143,6 +147,8 @@ export function createApp(root: HTMLElement): void {
   function openRoute(route: RouteSummary, side: Side = 0): void {
     state.routeId = route.id;
     state.side = side;
+    state.expandedGaps = new Set();
+    state.showAllStops = false;
     // A fresh fix per route opened; a fix from a minute ago is reused by the browser anyway.
     if (state.locationEnabled && state.locationAccepted) void locate();
     else state.location = { kind: 'off' };
@@ -330,6 +336,16 @@ export function createApp(root: HTMLElement): void {
         location: state.locationEnabled ? state.location : { kind: 'disabled' },
         onLocation,
         onLocationDismiss,
+        expandedGaps: state.expandedGaps,
+        showAllStops: state.showAllStops,
+        onToggleAllStops: () => {
+          state.showAllStops = !state.showAllStops;
+          render();
+        },
+        onExpandGap: (key: string) => {
+          state.expandedGaps.add(key);
+          render();
+        },
       });
     }
     return state.query.trim() ? renderResults(index) : renderRecent();

@@ -1,4 +1,5 @@
 import { localize, t, type Lang } from '../lib/i18n.ts';
+import { condenseStops, type Segment } from '../lib/condense.ts';
 import { formatDistance, NEAR_ROUTE_METERS, nearestStop, type Position } from '../lib/location.ts';
 import type { Direction, RouteDetail, RouteSummary, Stop } from '../lib/types.ts';
 import { renderDirectionPill, renderLoopLine, sideAt, type Side } from './direction-pill.ts';
@@ -34,6 +35,11 @@ export interface DetailViewProps {
   /** The location button: first tap explains, then asks. */
   onLocation: () => void;
   onLocationDismiss: () => void;
+  /** Hidden stretches the user has opened ("tripId:from"), and the show-everything switch. */
+  expandedGaps: Set<string>;
+  showAllStops: boolean;
+  onToggleAllStops: () => void;
+  onExpandGap: (key: string) => void;
 }
 
 export function renderDetailView(props: DetailViewProps): HTMLElement {
@@ -84,7 +90,7 @@ function renderDetailBody(props: DetailViewProps, detail: RouteDetail): HTMLElem
     detail.vehicles.length > 0 && renderFact(t(lang, 'vehicles'), detail.vehicles.map((vehicle) => localize(lang, vehicle)).join(' · ')),
     main && renderLocationPanel(props),
     main
-      ? renderStopList(lang, main, detail.stops, props.location.kind === 'ready' ? props.location.position : undefined)
+      ? renderStopList(props, main, detail.stops, props.location.kind === 'ready' ? props.location.position : undefined)
       : h('p', { class: 'muted', text: t(lang, detail.directions.length === 0 ? 'noDirections' : 'noStops') }),
     others.length > 0 &&
       h('div', { class: 'directions' }, [
@@ -154,37 +160,63 @@ function pinIcon(): SVGSVGElement {
 }
 
 /**
- * The run's stops, in travel order. With a position, stops already passed
- * collapse behind "n earlier stops" and the nearest one is marked with its
- * distance; a position far from the route shows the full list and says so.
+ * The run's stops, in travel order, condensed to termini, landmarks, the
+ * stops nearest the user and one per long stretch; hidden stretches open on
+ * a tap, or all at once. With a position, stops already passed collapse
+ * behind "n earlier stops" and the nearest is marked with its distance; a
+ * position far from the route shows the list from the start and says so.
  */
-function renderStopList(lang: Lang, direction: Direction, stops: Record<string, Stop>, position?: Position): HTMLElement {
+function renderStopList(props: DetailViewProps, direction: Direction, stops: Record<string, Stop>, position?: Position): HTMLElement {
+  const { lang } = props;
   const named = namedStops(direction, stops);
   if (named.length === 0) return h('p', { class: 'muted', text: t(lang, 'noStops') });
   const nearest = position ? nearestStop(named, position) : undefined;
+  const onRoute = nearest !== undefined && nearest.meters <= NEAR_ROUTE_METERS;
+  const start = onRoute ? nearest.index : 0;
+  const upcoming = named.slice(start);
+  const forced = new Map<number, string>();
+  if (onRoute) for (let offset = 0; offset < 3 && offset < upcoming.length; offset += 1) forced.set(offset, 'nearest');
+  const segments = props.showAllStops ? upcoming.map((stop, index): Segment => ({ kind: 'stop', index, stop, reason: 'all' })) : condenseStops(upcoming, { forced });
+  const condensed = segments.some((segment) => segment.kind === 'gap') || props.showAllStops;
+
   const item = (stop: Stop, index: number): HTMLElement => {
-    const isNearest = nearest !== undefined && index === nearest.index;
+    const isNearest = onRoute && index === start;
     return h('li', { class: isNearest ? 'stop is-nearest' : 'stop', attrs: { value: String(index + 1) } }, [
       localize(lang, stop.name),
-      isNearest && h('span', { class: 'stop-distance', text: ` · ${t(lang, 'nearestStop')}, ${formatDistance(nearest.meters)}` }),
+      isNearest && nearest && h('span', { class: 'stop-distance', text: ` \u00b7 ${t(lang, 'nearestStop')}, ${formatDistance(nearest.meters)}` }),
     ]);
   };
-  if (!nearest || nearest.meters > NEAR_ROUTE_METERS) {
-    return h('div', { class: 'stops-panel' }, [
-      h('p', { class: 'direction-count', text: `${direction.stops.length} ${t(lang, 'stops')}` }),
-      nearest && h('p', { class: 'muted', text: `${t(lang, 'farFromRoute')} ${formatDistance(nearest.meters)} ${t(lang, 'awayFull')}` }),
-      h('ol', { class: 'stop-list' }, named.map(item)),
-    ]);
+  const rows: HTMLElement[] = [];
+  for (const segment of segments) {
+    if (segment.kind === 'stop') {
+      rows.push(item(segment.stop, start + segment.index));
+      continue;
+    }
+    const key = `${direction.tripId}:${start + segment.from}`;
+    if (props.expandedGaps.has(key)) {
+      for (let index = segment.from; index <= segment.to; index += 1) {
+        const stop = upcoming[index];
+        if (stop) rows.push(item(stop, start + index));
+      }
+    } else {
+      rows.push(h('li', { class: 'stop-gap' }, [
+        h('button', { class: 'stop-gap-button', attrs: { type: 'button' }, text: `\u00b7 \u00b7 \u00b7 ${segment.count} ${t(lang, segment.count === 1 ? 'stopOne' : 'stops')} \u00b7 \u00b7 \u00b7`, on: { click: () => props.onExpandGap(key) } }),
+      ]));
+    }
   }
-  const earlier = named.slice(0, nearest.index);
+  const earlier = named.slice(0, start);
   return h('div', { class: 'stops-panel' }, [
-    h('p', { class: 'direction-count', text: `${direction.stops.length} ${t(lang, 'stops')}` }),
+    h('div', { class: 'stops-header' }, [
+      h('span', { class: 'direction-count', text: `${direction.stops.length} ${t(lang, 'stops')}` }),
+      condensed && h('button', { class: 'text-button stops-toggle', attrs: { type: 'button' }, text: t(lang, props.showAllStops ? 'showFewerStops' : 'showAllStops'), on: { click: props.onToggleAllStops } }),
+    ]),
+    nearest && !onRoute && h('p', { class: 'muted', text: `${t(lang, 'farFromRoute')} ${formatDistance(nearest.meters)} ${t(lang, 'awayFull')}` }),
     earlier.length > 0 &&
       h('details', { class: 'earlier-stops' }, [
         h('summary', { text: `${earlier.length} ${t(lang, 'earlierStops')}` }),
-        h('ol', { class: 'stop-list is-passed' }, earlier.map(item)),
+        h('ol', { class: 'stop-list is-passed' }, earlier.map((stop, index) => item(stop, index))),
       ]),
-    h('ol', { class: 'stop-list' }, named.slice(nearest.index).map((stop, offset) => item(stop, nearest.index + offset))),
+    h('ol', { class: 'stop-list' }, rows),
   ]);
 }
 

@@ -1,0 +1,67 @@
+{
+  "_comment": [
+    "Which stops count as landmarks in the condensed stop list. A stop is a",
+    "landmark when its Thai or English name contains one of the strings",
+    "below (case-insensitive), unless it also contains one of `never`.",
+    "The tier name is stored on the stop and shown by `bbc landmarks <route>`;",
+    "tiers are tried in order, so a stop matching several gets the first.",
+    "Termini, the stops nearest the user, and one stop per long stretch",
+    "are always shown regardless of this file.",
+    "`include` / `exclude` force a stop by exact name, for the cases the",
+    "keywords get wrong."
+  ],
+  "tiers": {
+    "rail": [
+      "BTS",
+      "MRT",
+      "ARL",
+      "SRT",
+      "สถานีรถไฟ",
+      "รถไฟฟ้า",
+      "Station"
+    ],
+    "terminal": [
+      "สถานีขนส่ง",
+      "หมอชิต 2",
+      "สายใต้ใหม่",
+      "ท่าอากาศยาน",
+      "สนามบิน"
+    ],
+    "pier": [
+      "ท่าเรือ",
+      "ท่าน้ำ"
+    ],
+    "junction": [
+      "แยก",
+      "วงเวียน"
+    ],
+    "hospital": [
+      "โรงพยาบาล",
+      "รพ.",
+      "Hospital"
+    ],
+    "university": [
+      "มหาวิทยาลัย"
+    ],
+    "landmark": [
+      "อนุสาวรีย์",
+      "สนามหลวง",
+      "ศูนย์ราชการ",
+      "ศาลากลาง",
+      "สวนลุมพินี",
+      "เซ็นทรัล",
+      "เดอะมอลล์",
+      "ฟิวเจอร์พาร์ค",
+      "เมกาบางนา",
+      "ไอคอนสยาม",
+      "สยามพารากอน"
+    ]
+  },
+  "never": [
+    "Police Station",
+    "สถานีตำรวจ",
+    "สน."
+  ],
+  "include": [],
+  "exclude": []
+}
