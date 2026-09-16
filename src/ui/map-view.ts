@@ -281,7 +281,7 @@ function addArrowLayer(map: MapLibreMap, props: RouteMapProps): void {
   });
 }
 
-/** A chevron pointing right (the line's direction): white on the dark theme, black on the light one. */
+/** A chevron pointing right (the line's direction): white on the dark theme, dark grey on the light one. */
 function addArrowImage(map: MapLibreMap, dark: boolean): void {
   if (map.hasImage(ARROW)) map.removeImage(ARROW);
   const scale = 2;
@@ -291,7 +291,8 @@ function addArrowImage(map: MapLibreMap, dark: boolean): void {
   canvas.height = size;
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
-  ctx.strokeStyle = dark ? '#ffffff' : '#000000';
+  // Black at full strength is harsh on the light accents; a dark grey at the layer's 60% reads as a shadow on the line.
+  ctx.strokeStyle = dark ? '#ffffff' : '#3a3a3a';
   ctx.lineWidth = 2.6 * scale;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
