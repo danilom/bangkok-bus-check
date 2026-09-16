@@ -429,6 +429,7 @@ body {
 .dir-half {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   min-height: 52px;
   padding: 6px 10px;
@@ -440,7 +441,7 @@ body {
   background: var(--surface);
   border: none;
   cursor: pointer;
-  text-align: left;
+  text-align: center;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -671,7 +672,7 @@ body {
   padding: 5px 12px 11px;
   font: inherit;
   color: inherit;
-  text-align: left;
+  text-align: center;
   background: none;
   border: none;
   border-right: 1px solid var(--border);
