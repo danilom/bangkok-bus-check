@@ -288,6 +288,9 @@ function positionFeatures(props: RouteMapProps): FeatureCollection<Point> {
   };
 }
 
+/** The blue every map app uses for "you are here"; deliberately not the accent, so it reads the same on any theme. */
+const POSITION_BLUE = '#1a73e8';
+
 /** The user's position: a soft halo and a solid dot, above the stops. */
 function addPositionLayers(map: MapLibreMap, props: RouteMapProps): void {
   map.addSource(POSITION_SOURCE, { type: 'geojson', data: positionFeatures(props) });
@@ -295,13 +298,13 @@ function addPositionLayers(map: MapLibreMap, props: RouteMapProps): void {
     id: 'position-halo',
     type: 'circle',
     source: POSITION_SOURCE,
-    paint: { 'circle-radius': 16, 'circle-color': props.accent, 'circle-opacity': 0.2 },
+    paint: { 'circle-radius': 16, 'circle-color': POSITION_BLUE, 'circle-opacity': 0.2 },
   });
   map.addLayer({
     id: 'position-dot',
     type: 'circle',
     source: POSITION_SOURCE,
-    paint: { 'circle-radius': 7, 'circle-color': props.accent, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2.5 },
+    paint: { 'circle-radius': 7, 'circle-color': POSITION_BLUE, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2.5 },
   });
 }
 
