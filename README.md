@@ -37,6 +37,7 @@ bbc fetch-raw --source namtang   # just the GTFS feed
 bbc build-data --verbose         # data/raw/ → public/data/index.json + routes/<id>.json
 bbc extract-places               # add Thai names lacking English to data/overrides/translations.json
 bbc extract-places --feed-english  # also list the feed's English, as lines you can paste to override
+bbc build-data --strict          # fail instead of warning when anything would show untranslated
 ```
 
 Snapshots in `data/raw/` are committed so `build-data` is deterministic and
@@ -44,7 +45,10 @@ works offline. Of the GTFS tables only the ones the build needs are kept
 (`shapes.txt` and the fare tables are left out until something uses them).
 The build prints a coverage report; `--verbose` lists every route where the
 two sources disagree on the termini, and the app shows a "sources disagree"
-badge on those.
+badge on those. Anything that would appear in Thai on the English UI is
+listed in a warning at the end of the build; after a data refresh, run
+`bbc extract-places`, translate the new drafts in
+`data/overrides/translations.json`, and rebuild.
 
 Routes are keyed by (number, operator): an old number can belong to a BMTA
 route, a songthaew and a private minibus at once. The feed's separate

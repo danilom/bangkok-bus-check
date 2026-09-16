@@ -21,7 +21,8 @@ program
   .description('compile data/raw/ into the app dataset')
   .option('-o, --out <dir>', 'output directory', DEFAULT_OUTPUT_DIR)
   .option('-v, --verbose', 'list skipped rows and merge decisions', false)
-  .action(async (options: { out: string; verbose: boolean }) => {
+  .option('--strict', 'fail when anything would show untranslated', false)
+  .action(async (options: { out: string; verbose: boolean; strict: boolean }) => {
     await buildData(options);
   });
 

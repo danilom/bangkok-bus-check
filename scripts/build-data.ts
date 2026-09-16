@@ -19,6 +19,8 @@ export const DEFAULT_OUTPUT_DIR = 'public/data';
 export interface BuildOptions {
   out: string;
   verbose: boolean;
+  /** Fail instead of warning when something would show up untranslated. */
+  strict: boolean;
 }
 
 export interface Sources {
@@ -57,9 +59,34 @@ export async function buildData(options: BuildOptions): Promise<void> {
 
   const { dataset, report, translation } = compile(sources);
   printReport(report, options.verbose);
-  const unresolved = translation.unresolvedPlaces.size + translation.unresolvedOperators.size + translation.unresolvedVehicles.size;
-  console.log(`Translations: ${translation.used.places.size} places, ${translation.used.operators.size} operators and ${translation.used.vehicles.size} vehicle types applied, ${translation.feedResolved.size} places resolved from the feed, ${unresolved} still without English (run extract-places)`);
+  console.log(`Translations: ${translation.used.places.size} places, ${translation.used.operators.size} operators and ${translation.used.vehicles.size} vehicle types applied, ${translation.feedResolved.size} places resolved from the feed`);
+  const untranslated = warnUntranslated(translation);
+  if (untranslated > 0 && options.strict) throw new Error(`${untranslated} untranslated items (see warning above); run "bbc extract-places"`);
   await writeOutput(dataset, options.out);
+}
+
+/**
+ * Anything still without English will appear as Thai in the English UI.
+ * Says exactly what and where, so a data refresh cannot regress silently.
+ */
+function warnUntranslated(translation: TranslationReport): number {
+  const groups: [string, Map<string, string[]>][] = [
+    ['place names (card and details)', translation.unresolvedPlaces],
+    ['operators (card and details)', translation.unresolvedOperators],
+    ['vehicle types (details)', translation.unresolvedVehicles],
+  ];
+  const total = groups.reduce((sum, [, map]) => sum + map.size, 0);
+  if (total === 0) return 0;
+  const yellow = (text: string): string => `\u001b[33m${text}\u001b[0m`;
+  console.log(yellow(`
+WARNING: ${total} items will show in Thai on the English UI. Run "bbc extract-places", translate, rebuild.`));
+  for (const [label, map] of groups) {
+    if (map.size === 0) continue;
+    console.log(yellow(`  ${label}: ${map.size}`));
+    for (const [th, routes] of [...map].sort(([a], [b]) => a.localeCompare(b, 'th'))) console.log(`    ${th}  (${routes.slice(0, 4).join(', ')}${routes.length > 4 ? ', …' : ''})`);
+  }
+  console.log('');
+  return total;
 }
 
 async function writeOutput(dataset: RouteDataset, outDir: string): Promise<void> {
