@@ -278,6 +278,7 @@ export function createApp(root: HTMLElement): void {
     title.textContent = t(lang, 'appName');
     langButton.textContent = t(lang, 'switchLang');
     settingsButton.setAttribute('aria-label', t(lang, 'settings'));
+    settingsButton.hidden = state.settings;
     input.placeholder = t(lang, 'inputPlaceholder');
     input.setAttribute('aria-label', t(lang, 'inputPlaceholder'));
     clearButton.textContent = '×';
