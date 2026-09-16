@@ -208,7 +208,7 @@ function renderStopList(props: DetailViewProps, direction: Direction, stops: Rec
       continue;
     }
     // One dot per hidden stop: the length of the stretch at a glance, in one short row.
-    rows.push(h('li', { class: 'stop-gap', attrs: { title: `${segment.count} ${t(lang, segment.count === 1 ? 'stopOne' : 'stops')}` }, text: '\u00b7'.repeat(segment.count) }));
+    rows.push(h('li', { class: 'stop-gap', attrs: { title: `${segment.count} ${t(lang, segment.count === 1 ? 'stopOne' : 'stops')}` } }, [h('span', { class: 'stop-gap-dots', text: '\u00b7'.repeat(segment.count) })]));
   }
   const earlier = named.slice(0, start);
   return h('div', { class: 'stops-panel' }, [
