@@ -28,7 +28,26 @@ export function renderSettingsView(props: SettingsViewProps): HTMLElement {
     renderChoice(t(lang, 'accent'), ACCENTS, props.accent, (accent) => t(lang, ACCENT_LABELS[accent]), props.onAccent, true),
     renderChoice(t(lang, 'locationSetting'), [false, true] as const, props.locationEnabled, (on) => t(lang, on ? 'on' : 'off'), props.onLocationEnabled),
     props.simulated && renderTestSection(lang, props.simulated),
+    renderViewportReadout(),
   ]);
+}
+
+/**
+ * The numbers behind viewport bugs, for reading off a phone: what the browser
+ * says the window is, what is actually visible, what 100dvh resolves to,
+ * the bottom safe-area inset, and how tall the page is. Not translated.
+ */
+function renderViewportReadout(): HTMLElement {
+  const probe = h('div', { attrs: { style: 'position:fixed;top:0;left:0;height:100dvh;padding-bottom:env(safe-area-inset-bottom);visibility:hidden;pointer-events:none' } });
+  document.body.append(probe);
+  const dvh = probe.offsetHeight;
+  const safeBottom = Math.round(Number.parseFloat(getComputedStyle(probe).paddingBottom));
+  probe.remove();
+  const visible = window.visualViewport ? Math.round(window.visualViewport.height) : undefined;
+  const scroller = document.scrollingElement;
+  const mode = matchMedia('(display-mode: standalone)').matches ? 'standalone' : 'browser';
+  const parts = [`${mode}`, `window ${innerWidth}×${innerHeight}`, visible !== undefined && `visible ${visible}`, `100dvh ${dvh}`, `safe-area ${safeBottom}`, scroller && `page ${scroller.scrollHeight}`];
+  return h('p', { class: 'viewport-readout', text: parts.filter(Boolean).join(' · ') });
 }
 
 function renderChoice<T extends string | boolean>(
