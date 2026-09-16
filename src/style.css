@@ -659,8 +659,10 @@ body {
   font-size: 1rem;
 }
 
+/* Plain text colour: not the accent, not greyed out. */
 .chip-quiet {
   font-weight: 400;
+  color: var(--text);
 }
 
 .earlier-stops summary {
