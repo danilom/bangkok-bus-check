@@ -36,17 +36,29 @@ function strings(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.length > 0) : [];
 }
 
-/** The tier a stop belongs to, or undefined when it is an ordinary stop. */
-export function landmarkTier(stop: Stop, rules: LandmarkRules): string | undefined {
+export interface LandmarkMatch {
+  tier: string;
+  /** The fragment (or listed name) that matched, for the review command. */
+  fragment: string;
+}
+
+/** Why a stop counts as a landmark, or undefined when it is an ordinary stop. */
+export function landmarkMatch(stop: Stop, rules: LandmarkRules): LandmarkMatch | undefined {
   const names = [stop.name.th, stop.name.en ?? ''];
   if (rules.exclude.some((name) => names.includes(name))) return undefined;
-  if (rules.include.some((name) => names.includes(name))) return 'listed';
+  const listed = rules.include.find((name) => names.includes(name));
+  if (listed) return { tier: 'listed', fragment: listed };
   const lower = names.map((name) => name.toLowerCase());
   if (rules.never.some((fragment) => lower.some((name) => name.includes(fragment.toLowerCase())))) return undefined;
   for (const [tier, fragments] of Object.entries(rules.tiers)) {
-    if (fragments.some((fragment) => lower.some((name) => name.includes(fragment.toLowerCase())))) return tier;
+    const fragment = fragments.find((candidate) => lower.some((name) => name.includes(candidate.toLowerCase())));
+    if (fragment) return { tier, fragment };
   }
   return undefined;
+}
+
+export function landmarkTier(stop: Stop, rules: LandmarkRules): string | undefined {
+  return landmarkMatch(stop, rules)?.tier;
 }
 
 /** Sets `landmark` on every stop of the dataset; returns how many per tier. */

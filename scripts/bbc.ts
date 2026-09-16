@@ -39,8 +39,9 @@ program
   .command('landmarks')
   .description('print the condensed stop list of routes with the reason each stop is kept')
   .argument('<route...>', 'route ids or numbers, e.g. 2-45 73')
-  .action(async (ids: string[]) => {
-    await reviewLandmarks(ids);
+  .option('--all', 'print every stop, kept ones highlighted, to spot misses', false)
+  .action(async (ids: string[], options: { all: boolean }) => {
+    await reviewLandmarks(ids, options);
   });
 
 program.parseAsync(process.argv).catch((error: unknown) => {
