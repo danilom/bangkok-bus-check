@@ -243,6 +243,14 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  /* Neutral, whatever the accent: these chips are about choosing it. */
+  color: var(--text);
+}
+
+.settings .chip:active,
+.settings .chip.is-selected {
+  background: var(--border);
+  border-color: var(--muted);
 }
 
 .swatch {
