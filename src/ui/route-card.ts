@@ -1,7 +1,7 @@
-import { localize, serviceBadges, t, type Lang } from '../lib/i18n.ts';
+import { agreementBadge, localize, serviceBadges, t, type Lang } from '../lib/i18n.ts';
 import type { RouteMatch } from '../lib/matcher.ts';
 import type { RouteSummary } from '../lib/types.ts';
-import { renderDirectionPill, type Side } from './direction-pill.ts';
+import { renderDirectionPill, renderLoopLine, type Side } from './direction-pill.ts';
 import { h } from './dom.ts';
 
 /** The number as on the bus, with former numbers small; the matched alias is highlighted. */
@@ -20,8 +20,10 @@ export function renderNumber(lang: Lang, route: RouteSummary, matchedAlias?: str
 }
 
 export function renderBadges(lang: Lang, route: RouteSummary): HTMLElement | false {
-  const badges = serviceBadges(lang, route.service);
-  return badges.length > 0 && h('div', { class: 'badges' }, badges.map((badge) => h('span', { class: 'badge', text: badge })));
+  const badges = serviceBadges(lang, route.service).map((badge) => h('span', { class: 'badge', text: badge }));
+  const warning = agreementBadge(lang, route.agreement);
+  if (warning) badges.push(h('span', { class: 'badge badge-warning', text: warning }));
+  return badges.length > 0 && h('div', { class: 'badges' }, badges);
 }
 
 export interface RouteCardProps {
@@ -51,6 +53,7 @@ export function renderRouteCard({ lang, match, onOpen }: RouteCardProps): HTMLEl
     },
     [
       renderNumber(lang, route, match.alias),
+      renderLoopLine(lang, route),
       renderDirectionPill({ lang, route, onSelect: (side) => onOpen(route, side) }),
       h('div', { class: 'route-meta' }, [
         renderBadges(lang, route),

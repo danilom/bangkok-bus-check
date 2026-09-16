@@ -7,9 +7,9 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { RouteDataset, RouteDetail, RouteIndex, Stop } from '../src/lib/types.ts';
-import { OSM_FILE, WIKI_FILE } from './fetch-raw.ts';
+import { NAMTANG_DIR, WIKI_FILE } from './fetch-raw.ts';
 import { mergeRoutes, type MergeReport } from './merge.ts';
-import { overpassSnapshotSchema, parseOsmRoutes } from './sources/osm.ts';
+import { parseGtfs } from './sources/gtfs.ts';
 import { parseWikipediaRoutes } from './sources/wikipedia.ts';
 
 export const DEFAULT_OUTPUT_DIR = 'public/data';
@@ -25,11 +25,19 @@ export async function buildData(options: BuildOptions): Promise<void> {
   console.log(`Wikipedia: ${wiki.routes.length} rows, ${wiki.reformMapping.size} reform mappings, ${wiki.skipped.length} rows skipped`);
   if (options.verbose) for (const skip of wiki.skipped) console.log(`  skipped line ${skip.line}: ${skip.reason}`);
 
-  const osmJson: unknown = JSON.parse(await readFile(OSM_FILE, 'utf8'));
-  const osm = parseOsmRoutes(overpassSnapshotSchema.parse(osmJson));
-  console.log(`OSM: ${osm.length} directional relations`);
+  const read = (table: string): Promise<string> => readFile(join(NAMTANG_DIR, table), 'utf8');
+  const feed = parseGtfs({
+    agency: await read('agency.txt'),
+    feedInfo: await read('feed_info.txt'),
+    routes: await read('routes.txt'),
+    trips: await read('trips.txt'),
+    stopTimes: await read('stop_times.txt'),
+    stops: await read('stops.txt'),
+    frequencies: await read('frequencies.txt'),
+  });
+  console.log(`GTFS ${feed.version}: ${feed.routes.length} Bangkok bus route entries`);
 
-  const { dataset, report } = mergeRoutes(wiki, osm);
+  const { dataset, report } = mergeRoutes(feed, wiki);
   printReport(report, options.verbose);
   await writeOutput(dataset, options.out);
 }
@@ -43,7 +51,7 @@ async function writeOutput(dataset: RouteDataset, outDir: string): Promise<void>
   const index: RouteIndex = {
     generatedAt: dataset.generatedAt,
     attribution: dataset.attribution,
-    routes: dataset.routes.map(({ directions, notes, vehicles, ...summary }) => ({ ...summary, directionCount: directions.length })),
+    routes: dataset.routes.map(({ directions, notes, vehicles, hours, ...summary }) => ({ ...summary, directionCount: directions.length })),
   };
   const indexPath = join(outDir, 'index.json');
   await writeFile(indexPath, JSON.stringify(index), 'utf8');
@@ -56,6 +64,7 @@ async function writeOutput(dataset: RouteDataset, outDir: string): Promise<void>
       stops: pickStops(dataset.stops, route),
     };
     if (route.notes !== undefined) detail.notes = route.notes;
+    if (route.hours !== undefined) detail.hours = route.hours;
     await writeFile(join(routesDir, `${route.id}.json`), JSON.stringify(detail), 'utf8');
   }
   const indexSize = Buffer.byteLength(JSON.stringify(index));
@@ -74,13 +83,10 @@ function pickStops(all: Record<string, Stop>, route: RouteDataset['routes'][numb
 }
 
 function printReport(report: MergeReport, verbose: boolean): void {
-  console.log(`Routes: ${report.routes} (both sources ${report.both}, Wikipedia only ${report.wikiOnly}, OSM only ${report.osmOnly})`);
-  console.log(`  with English terminals: ${report.withEnglishTerminals}`);
-  console.log(`  with directions: ${report.withDirections}, with ≥5 stops: ${report.withStops}`);
-  console.log(`  records folded onto zone numbers: ${report.folded.length}, kept apart: ${report.keptApart.length}, numbers split by operator: ${report.split.length}`);
+  console.log(`Routes: ${report.routes} (feed + Wikipedia agree ${report.agree}, conflict ${report.conflict}, feed only ${report.gtfsOnly}, Wikipedia only ${report.wikipediaOnly})`);
+  console.log(`  numbers split into several routes: ${report.split.length}`);
   if (verbose) {
-    for (const entry of report.folded) console.log(`  folded ${entry}`);
-    for (const entry of report.keptApart) console.log(`  kept apart ${entry}`);
     for (const entry of report.split) console.log(`  split ${entry}`);
+    for (const entry of report.conflicts) console.log(`  conflict ${entry}`);
   }
 }

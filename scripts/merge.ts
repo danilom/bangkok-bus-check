@@ -1,75 +1,67 @@
 /**
- * Merges Wikipedia route rows and OSM directional relations into the app's
- * route dataset. Wikipedia decides which routes exist and gives Thai termini,
- * operator and vehicle info; OSM adds English names, per-direction stops and
- * relation ids for later geometry work.
+ * Builds the route dataset from the official GTFS feed, with Wikipedia
+ * filling what the feed lacks (old numbers, private operators' names, a few
+ * suburban routes, vehicle types, history) and serving as an independent
+ * check on the termini.
  *
  * Identity is (route number, operator): the same old number can belong to a
- * BMTA route, a Nonthaburi songthaew and a private minibus at once, and a
- * source that only knows the old number ("73") must still land on the
- * reform-era route ("2-45") when the operator agrees.
+ * BMTA route, a songthaew and a private minibus at once. The feed splits
+ * variants (sections, expressway runs, each direction of some lines) into
+ * separate route entries; those fold into one route here.
  */
 
-import { isZoneNumber, pickPrimaryNumber } from '../src/lib/route-number.ts';
-import type { Direction, LocalizedText, Route, RouteDataset, ServiceFlags, Stop } from '../src/lib/types.ts';
-import type { OsmRoute } from './sources/osm.ts';
+import { isVanNumber, isZoneNumber, pickPrimaryNumber } from '../src/lib/route-number.ts';
+import { displayPlace, LOOP_LEFT, LOOP_PREFIX, LOOP_RIGHT, placeVariants, stripLoopMarkers } from './lib/places.ts';
+import type { Direction, LocalizedText, Route, RouteDataset, ServiceFlags, SourceAgreement, Stop } from '../src/lib/types.ts';
+import type { GtfsFeed, GtfsRoute, GtfsTrip } from './sources/gtfs.ts';
 import type { WikiParseResult, WikiRoute } from './sources/wikipedia.ts';
 
 export interface MergeReport {
   routes: number;
-  wikiOnly: number;
-  osmOnly: number;
-  both: number;
-  withEnglishTerminals: number;
-  withDirections: number;
-  withStops: number;
-  /** Records re-keyed from an old number to a zone number: "73 → 2-45 (BMTA)". */
-  folded: string[];
-  /** Records left on their old number because the operator differed. */
-  keptApart: string[];
-  /** Numbers that resolved to more than one route (different operators). */
+  gtfsOnly: number;
+  wikipediaOnly: number;
+  agree: number;
+  conflict: number;
+  /** Numbers that resolved to more than one route (different operators or termini). */
   split: string[];
+  conflicts: string[];
 }
 
-/** One source row or relation, normalised enough to group. */
+/** One GTFS route entry or one Wikipedia row, normalised enough to group. */
 interface Record_ {
   numbers: string[];
   key: string;
   operator: string | undefined;
-  from: string | undefined;
-  to: string | undefined;
+  from: LocalizedText | undefined;
+  to: LocalizedText | undefined;
+  gtfs?: GtfsRoute;
   wiki?: WikiRoute;
-  osm?: OsmRoute;
 }
 
 interface Bucket {
-  /** Route id: the number, suffixed "~2", "~3" when several operators share it. */
   id: string;
   key: string;
-  operator: string | undefined;
   records: Record_[];
 }
 
 const ATTRIBUTION = [
-  'Route list: Thai Wikipedia, "รายการเส้นทางเดินรถโดยสารประจำทางในกรุงเทพมหานครและปริมณฑล" (CC BY-SA 4.0)',
-  'Stops and directions: © OpenStreetMap contributors (ODbL)',
+  'Routes and stops: Namtang GTFS, สำนักงานนโยบายและแผนการขนส่งและจราจร (OTP), Ministry of Transport (CC BY 4.0)',
+  'Operators, former numbers and notes: Thai Wikipedia, "รายการเส้นทางเดินรถโดยสารประจำทางในกรุงเทพมหานครและปริมณฑล" (CC BY-SA 4.0)',
 ];
 
-/** Minimum bigram similarity for two terminus pairs to count as "the same route". */
-const SAME_ROUTE_SIMILARITY = 0.5;
+/** Minimum name similarity for two termini to count as the same place. */
+const SAME_PLACE = 0.5;
 
-export function mergeRoutes(wiki: WikiParseResult, osm: OsmRoute[]): { dataset: RouteDataset; report: MergeReport } {
+export function mergeRoutes(feed: GtfsFeed, wiki: WikiParseResult): { dataset: RouteDataset; report: MergeReport } {
   const records = [
+    ...feed.routes.map(gtfsRecord),
     ...wiki.routes.map((row) => wikiRecord(row, wiki.reformMapping)),
-    ...osm.map(osmRecord),
   ].filter((record): record is Record_ => record !== undefined);
 
   const report = emptyReport();
-  foldOldNumbers(records, report);
-  const buckets = bucketByOperator(records, report);
-
+  const buckets = bucketRecords(records, report);
   const stops: Record<string, Stop> = {};
-  const routes = buckets.map((bucket) => buildRoute(bucket, stops)).sort((a, b) => compareRouteIds(a.id, b.id));
+  const routes = buckets.map((bucket) => buildRoute(bucket, wiki.reformMapping, stops, report)).sort((a, b) => compareRouteIds(a.id, b.id));
   fillCounts(routes, report);
 
   return {
@@ -78,94 +70,89 @@ export function mergeRoutes(wiki: WikiParseResult, osm: OsmRoute[]): { dataset: 
   };
 }
 
+function gtfsRecord(route: GtfsRoute): Record_ | undefined {
+  const key = pickPrimaryNumber(route.numbers);
+  if (!key) return undefined;
+  const [from, to] = splitLongName(route.longName);
+  return { numbers: route.numbers, key, operator: operatorKey(route.agencyId), from, to, gtfs: route };
+}
+
 function wikiRecord(row: WikiRoute, mapping: Map<string, string[]>): Record_ | undefined {
   const mapped = mapping.get(row.number) ?? [];
   const confirmed = row.unconfirmedAliases.filter((alias) => mapped.includes(alias));
   const numbers = unique([row.number, ...row.aliases, ...mapped, ...confirmed]);
   const key = pickPrimaryNumber(numbers);
   if (!key) return undefined;
-  return { numbers, key, operator: operatorKey(row.operator), from: row.from, to: row.to, wiki: row };
-}
-
-function osmRecord(route: OsmRoute): Record_ | undefined {
-  const key = pickPrimaryNumber(route.numbers);
-  if (!key) return undefined;
   return {
-    numbers: route.numbers,
+    numbers,
     key,
-    operator: operatorKey(route.operator),
-    from: route.from?.th,
-    to: route.to?.th,
-    osm: route,
+    operator: operatorKey(row.operator),
+    from: row.from ? { th: row.from } : undefined,
+    to: row.to ? { th: row.to } : undefined,
+    wiki: row,
   };
 }
 
-/**
- * Re-keys records that only know an old number onto the zone number other
- * records pair it with, when the operator matches (or is unknown and the
- * termini look alike).
- */
-function foldOldNumbers(records: Record_[], report: MergeReport): void {
-  const targetsByOldNumber = new Map<string, Record_[]>();
-  for (const record of records) {
-    if (!isZoneNumber(record.key)) continue;
-    for (const number of record.numbers) {
-      if (number === record.key) continue;
-      targetsByOldNumber.set(number, [...(targetsByOldNumber.get(number) ?? []), record]);
-    }
-  }
-  for (const record of records) {
-    if (isZoneNumber(record.key)) continue;
-    const targets = targetsByOldNumber.get(record.key);
-    if (!targets) continue;
-    const target = targets.find((candidate) => sameRoute(record, candidate));
-    if (target) {
-      record.key = target.key;
-      report.folded.push(`${record.numbers[0]} → ${target.key} (${record.operator ?? '?'})`);
-    } else {
-      report.keptApart.push(`${record.key} ≠ ${unique(targets.map((t) => t.key)).join('/')} (${record.operator ?? '?'})`);
-    }
-  }
+/** "บึงกุ่ม - สะพานพุทธ;Buengkum - Saphan Phut" → both ends, both languages. */
+export function splitLongName(name: LocalizedText): [LocalizedText, LocalizedText] | [undefined, undefined] {
+  const th = splitEnds(name.th);
+  if (!th) return [undefined, undefined];
+  const en = name.en ? splitEnds(name.en) : undefined;
+  return [
+    en ? { th: th[0], en: en[0] } : { th: th[0] },
+    en ? { th: th[1], en: en[1] } : { th: th[1] },
+  ];
 }
 
-function sameRoute(a: Record_, b: Record_): boolean {
-  if (a.operator && b.operator) return a.operator === b.operator;
-  return terminiSimilarity(a, b) >= SAME_ROUTE_SIMILARITY;
-}
-
-/** Best of forward/backward terminus similarity; 0 when either side lacks termini. */
-function terminiSimilarity(a: Record_, b: Record_): number {
-  if (!a.from || !a.to || !b.from || !b.to) return 0;
-  const forward = (terminusSimilarity(a.from, b.from) + terminusSimilarity(a.to, b.to)) / 2;
-  const backward = (terminusSimilarity(a.from, b.to) + terminusSimilarity(a.to, b.from)) / 2;
-  return Math.max(forward, backward);
+function splitEnds(text: string): [string, string] | undefined {
+  const parts = text.split(/\s+[-–—]\s+/).map((part) => displayPlace(part)).filter(Boolean);
+  // "A - B - C" describes a via; keep the ends.
+  const first = parts[0];
+  const last = parts.at(-1);
+  return parts.length >= 2 && first && last ? [first, last] : undefined;
 }
 
 /**
- * Within one old-style number, records split by operator. Records with no
- * operator join the bucket whose termini match best, else the only bucket,
- * else their own. Zone numbers are one concession each, so they never split —
- * operator spellings differ between sources ("Bus 33" vs "บจก.บัส 33").
+ * Collapses the many spellings of the big operators. The feed files every
+ * private operator under DLT (the licensing department), which is compatible
+ * with any private name Wikipedia gives.
  */
-function bucketByOperator(records: Record_[], report: MergeReport): Bucket[] {
+export function operatorKey(name: string | undefined): string | undefined {
+  if (!name) return undefined;
+  const lower = name.toLowerCase();
+  if (/ขสมก|bmta|องค์การขนส่งมวลชน/.test(lower)) return 'bmta';
+  if (/ไทยสมายล์|thai ?smile|\btsb\b|สมาร์ทบัส|smart ?bus/.test(lower)) return 'tsb';
+  if (lower === 'dlt') return 'dlt';
+  return lower.replace(/บจก\.|บมจ\.|บริษัท|จำกัด|\(มหาชน\)|co\.|ltd\.?|\s+/g, '');
+}
+
+const BIG_OPERATORS = new Set(['bmta', 'tsb']);
+
+function operatorsCompatible(a: string | undefined, b: string | undefined): boolean {
+  if (!a || !b || a === b) return true;
+  if (BIG_OPERATORS.has(a) || BIG_OPERATORS.has(b)) return false;
+  return true; // dlt vs a private name, or two private spellings
+}
+
+/**
+ * Same key, then: zone numbers are one concession each and always merge;
+ * old-style numbers merge when the operator is compatible and the termini
+ * look alike (or one side has no termini to compare).
+ */
+function bucketRecords(records: Record_[], report: MergeReport): Bucket[] {
   const byKey = new Map<string, Record_[]>();
   for (const record of records) byKey.set(record.key, [...(byKey.get(record.key) ?? []), record]);
 
   const buckets: Bucket[] = [];
   for (const [key, group] of byKey) {
-    if (isZoneNumber(key)) {
-      buckets.push({ id: key, key, operator: group.find((r) => r.operator)?.operator, records: group });
-      continue;
-    }
-    const known = group.filter((record) => record.operator !== undefined);
-    const unknown = group.filter((record) => record.operator === undefined);
     const keyBuckets: Bucket[] = [];
-    for (const record of known) {
-      const bucket = keyBuckets.find((candidate) => candidate.operator === record.operator);
+    // GTFS records first so Wikipedia rows attach to them rather than seed buckets.
+    const ordered = [...group.filter((r) => r.gtfs), ...group.filter((r) => !r.gtfs)];
+    for (const record of ordered) {
+      const bucket = isZoneNumber(key) ? keyBuckets[0] : keyBuckets.find((candidate) => candidate.records.some((other) => sameLine(record, other)));
       if (bucket) bucket.records.push(record);
-      else keyBuckets.push({ id: key, key, operator: record.operator, records: [record] });
+      else keyBuckets.push({ id: key, key, records: [record] });
     }
-    for (const record of unknown) placeUnknown(record, keyBuckets, key);
     keyBuckets.sort((a, b) => b.records.length - a.records.length);
     keyBuckets.forEach((bucket, index) => {
       bucket.id = index === 0 ? key : `${key}~${index + 1}`;
@@ -176,58 +163,151 @@ function bucketByOperator(records: Record_[], report: MergeReport): Bucket[] {
   return buckets;
 }
 
-function placeUnknown(record: Record_, keyBuckets: Bucket[], key: string): void {
-  let best: { bucket: Bucket; score: number } | undefined;
-  for (const bucket of keyBuckets) {
-    const score = Math.max(...bucket.records.map((other) => terminiSimilarity(record, other)));
-    if (!best || score > best.score) best = { bucket, score };
-  }
-  if (best && (best.score >= SAME_ROUTE_SIMILARITY || keyBuckets.length === 1)) {
-    best.bucket.records.push(record);
-  } else {
-    keyBuckets.push({ id: key, key, operator: undefined, records: [record] });
-  }
+function sameLine(a: Record_, b: Record_): boolean {
+  if (!operatorsCompatible(a.operator, b.operator)) return false;
+  if (a.operator && b.operator && BIG_OPERATORS.has(a.operator) && a.operator === b.operator) return true;
+  if (!a.from || !a.to || !b.from || !b.to) return true;
+  return terminiSimilarity(a.from, a.to, b.from, b.to) >= SAME_PLACE;
 }
 
-/** Collapses the many spellings of the big operators; other names pass through. */
-export function operatorKey(name: string | undefined): string | undefined {
-  if (!name) return undefined;
-  const lower = name.toLowerCase();
-  if (/ขสมก|bmta|องค์การขนส่งมวลชน/.test(lower)) return 'bmta';
-  if (/ไทยสมายล์|thai ?smile|\btsb\b|สมาร์ทบัส|smart ?bus/.test(lower)) return 'tsb';
-  return lower.replace(/บจก\.|บมจ\.|บริษัท|จำกัด|\(มหาชน\)|co\.|ltd\.?|\s+/g, '');
+function terminiSimilarity(aFrom: LocalizedText, aTo: LocalizedText, bFrom: LocalizedText, bTo: LocalizedText): number {
+  const forward = (placeSimilarity(aFrom, bFrom) + placeSimilarity(aTo, bTo)) / 2;
+  const backward = (placeSimilarity(aFrom, bTo) + placeSimilarity(aTo, bFrom)) / 2;
+  return Math.max(forward, backward);
 }
 
-function buildRoute(bucket: Bucket, stops: Record<string, Stop>): Route {
-  const wikiRows = bucket.records.map((record) => record.wiki).filter((row): row is WikiRoute => row !== undefined);
-  const osmRoutes = bucket.records.map((record) => record.osm).filter((route): route is OsmRoute => route !== undefined);
-  const base = pickBaseRow(wikiRows);
-  const numbers = unique(bucket.records.flatMap((record) => record.numbers));
-  const directions = osmRoutes.filter((route) => route.from && route.to).map((route) => toDirection(route, stops));
+function buildRoute(bucket: Bucket, mapping: Map<string, string[]>, stops: Record<string, Stop>, report: MergeReport): Route {
+  const gtfsRoutes = bucket.records.map((r) => r.gtfs).filter((r): r is GtfsRoute => r !== undefined);
+  const wikiRows = bucket.records.map((r) => r.wiki).filter((r): r is WikiRoute => r !== undefined);
+  const primary = pickPrimaryEntry(gtfsRoutes);
+  const wikiBase = pickBaseRow(wikiRows);
+  const numbers = unique([...bucket.records.flatMap((r) => r.numbers), ...(mapping.get(bucket.key) ?? [])]);
 
+  const loop = isLoop(primary, wikiBase);
+  const rawTerminals = primary ? alignEnglish(splitLongName(primary.longName), gtfsRoutes) : wikiTerminals(wikiBase);
+  const terminals = loop ? cleanLoopTerminals(rawTerminals) : rawTerminals;
   const route: Route = {
     id: bucket.id,
     number: bucket.key,
-    formerNumbers: numbers.filter((number) => number !== bucket.key),
-    aliases: [bucket.key, ...numbers.filter((number) => number !== bucket.key)],
+    formerNumbers: numbers.filter((n) => n !== bucket.key),
+    aliases: [bucket.key, ...numbers.filter((n) => n !== bucket.key)],
     vehicles: unique(wikiRows.flatMap((row) => row.vehicles)),
-    service: serviceFlags(bucket.key, wikiRows),
-    directions,
-    sources: { wikipedia: wikiRows.length > 0, osmRelationIds: osmRoutes.map((r) => r.relationId) },
+    service: serviceFlags(bucket.key, gtfsRoutes, wikiRows),
+    loop,
+    directions: [],
+    agreement: agreement(terminals, wikiBase, gtfsRoutes.length > 0),
+    sources: { wikipedia: wikiRows.length > 0, gtfsRouteIds: gtfsRoutes.map((r) => r.routeId) },
   };
-  const terminals = pickTerminals(base, directions);
-  if (terminals) {
-    assignOrigins(directions, terminals);
-    // The pill must agree with the stop lists: when Wikipedia's termini match
-    // none of OSM's directions (different language, name or routing), take
-    // the termini from an OSM out-and-back pair instead.
-    route.terminals = directions.some((d) => d.origin !== undefined) ? terminals : (terminalsFromDirections(directions) ?? terminals);
+  if (terminals[0] && terminals[1]) {
+    route.terminals = [terminals[0], terminals[1]];
+    route.directions = loop ? buildLoopDirections(gtfsRoutes, stops) : buildDirections(gtfsRoutes, primary, route.terminals, stops);
+    if (loop) route.sideLabels = loopSideLabels(route.directions);
   }
-  const operator = pickOperator(base?.operator ?? osmRoutes.find((r) => r.operator)?.operator);
+  const operator = pickOperator(primary, wikiBase);
   if (operator) route.operator = operator;
-  const notes = unique(wikiRows.map((row) => row.notes ?? '').filter((note) => note.length > 0)).join('\n');
+  const hours = primary?.hours;
+  if (hours) route.hours = hours.start === '00:00' && hours.end >= '23:5' ? '24 h' : `${hours.start}–${hours.end}`;
+  const notes = unique(wikiRows.map((row) => row.notes ?? '').filter(Boolean)).join('\n');
   if (notes) route.notes = notes;
+  if (route.agreement === 'conflict') {
+    report.conflicts.push(`${route.id}: feed "${terminals[0]?.th} – ${terminals[1]?.th}" vs Wikipedia "${wikiBase?.from} – ${wikiBase?.to}"`);
+  }
   return route;
+}
+
+function isLoop(primary: GtfsRoute | undefined, wikiBase: WikiRoute | undefined): boolean {
+  if (primary) return LOOP_PREFIX.test(primary.longName.th) || primary.trips.some((trip) => trip.headsign !== undefined && (LOOP_LEFT.test(trip.headsign.th) || LOOP_RIGHT.test(trip.headsign.th)));
+  return wikiBase !== undefined && LOOP_PREFIX.test(wikiBase.from);
+}
+
+function cleanLoopTerminals(terminals: [LocalizedText, LocalizedText] | [undefined, undefined]): [LocalizedText, LocalizedText] | [undefined, undefined] {
+  const [a, b] = terminals;
+  if (!a || !b) return [undefined, undefined];
+  const clean = (text: LocalizedText): LocalizedText => {
+    const cleaned: LocalizedText = { th: stripLoopMarkers(text.th) };
+    if (text.en) cleaned.en = stripLoopMarkers(text.en);
+    return cleaned;
+  };
+  return [clean(a), clean(b)];
+}
+
+/**
+ * Loop routes: a trip's side is its rotation sense, read from the headsign
+ * or the entry's long name (วนซ้าย = 0, วนขวา = 1). Per side, the longest
+ * trip is the main run.
+ */
+function buildLoopDirections(entries: GtfsRoute[], stops: Record<string, Stop>): Direction[] {
+  const candidates = dedupeTrips(entries.flatMap((entry) => entry.trips.filter((trip) => trip.stops.length >= 2).map((trip) => ({ entry, trip }))));
+  const origins = new Map<string, 0 | 1>();
+  for (const { entry, trip } of candidates) {
+    // The headsign names this trip's own sense; the entry's long name only
+    // says what the entry as a whole was filed under.
+    const sense = loopSense(trip.headsign?.th) ?? loopSense(entry.longName.th);
+    if (sense !== undefined) origins.set(trip.tripId, sense);
+  }
+  // A loop with no rotation markers runs one way only: its longest trip is side 0.
+  if (origins.size === 0) {
+    const longest = [...candidates].sort((a, b) => b.trip.stops.length - a.trip.stops.length)[0];
+    if (longest) origins.set(longest.trip.tripId, 0);
+  }
+  const main = new Map<0 | 1, GtfsTrip>();
+  for (const { trip } of candidates) {
+    const origin = origins.get(trip.tripId);
+    if (origin === undefined) continue;
+    const current = main.get(origin);
+    if (!current || trip.stops.length > current.stops.length) main.set(origin, trip);
+  }
+  const mainIds = new Set([...main.values()].map((trip) => trip.tripId));
+  const directions: Direction[] = [];
+  for (const { trip } of candidates) {
+    for (const stop of trip.stops) stops[stop.id] ??= stop;
+    directions.push(toDirection(trip, origins.get(trip.tripId), !mainIds.has(trip.tripId)));
+  }
+  return directions.sort((a, b) => Number(a.variant) - Number(b.variant) || (a.origin ?? 2) - (b.origin ?? 2));
+}
+
+function loopSense(text: string | undefined): 0 | 1 | undefined {
+  if (!text) return undefined;
+  if (LOOP_LEFT.test(text)) return 0;
+  if (LOOP_RIGHT.test(text)) return 1;
+  return undefined;
+}
+
+function loopSideLabels(directions: Direction[]): [LocalizedText | null, LocalizedText | null] {
+  const label = (side: 0 | 1): LocalizedText | null => {
+    const main = directions.find((direction) => !direction.variant && direction.origin === side);
+    const text = main?.headsign ?? main?.to;
+    if (!text) return null;
+    const cleaned: LocalizedText = { th: stripLoopMarkers(text.th) };
+    if (text.en) cleaned.en = stripLoopMarkers(text.en);
+    return cleaned;
+  };
+  return [label(0), label(1)];
+}
+
+/**
+ * The feed's English long name is occasionally in the opposite order to the
+ * Thai. Headsigns are bilingual, so each Thai terminus takes its English
+ * from the headsign that names it, when one does.
+ */
+function alignEnglish(terminals: [LocalizedText, LocalizedText] | [undefined, undefined], entries: GtfsRoute[]): [LocalizedText, LocalizedText] | [undefined, undefined] {
+  const [a, b] = terminals;
+  if (!a || !b) return terminals;
+  const headsigns = entries.flatMap((entry) => entry.trips.map((trip) => trip.headsign)).filter((h): h is LocalizedText => h !== undefined && h.en !== undefined);
+  const align = (terminal: LocalizedText): LocalizedText => {
+    const match = headsigns.find((headsign) => terminusSimilarity(headsign.th, terminal.th) >= 0.8);
+    return match?.en ? { th: terminal.th, en: displayPlace(match.en) } : terminal;
+  };
+  return [align(a), align(b)];
+}
+
+/** The entry with the most stops is the full run; sections and expressway runs are variants. */
+function pickPrimaryEntry(entries: GtfsRoute[]): GtfsRoute | undefined {
+  return [...entries].sort((a, b) => maxStops(b) - maxStops(a))[0];
+}
+
+function maxStops(route: GtfsRoute): number {
+  return Math.max(0, ...route.trips.map((trip) => trip.stops.length));
 }
 
 /** Zone-section rows carry the current reform-era description; prefer them. */
@@ -235,115 +315,167 @@ function pickBaseRow(rows: WikiRoute[]): WikiRoute | undefined {
   return rows.find((row) => row.category === 'zone') ?? rows.find((row) => row.from && row.to) ?? rows[0];
 }
 
-function toDirection(route: OsmRoute, stops: Record<string, Stop>): Direction {
-  for (const stop of route.stops) stops[stop.id] ??= stop;
-  return {
-    from: route.from ?? { th: '' },
-    to: route.to ?? { th: '' },
-    stops: route.stops.map((stop) => stop.id),
-    osmRelationId: route.relationId,
+function wikiTerminals(row: WikiRoute | undefined): [LocalizedText, LocalizedText] | [undefined, undefined] {
+  return row?.from && row.to ? [{ th: row.from }, { th: row.to }] : [undefined, undefined];
+}
+
+/**
+ * One Direction per trip, deduplicated (the feed repeats runs per service
+ * day). The return direction is often a separate route entry in the feed,
+ * so main runs are chosen across the whole bucket: per side, the longest
+ * trip departing from that terminus. Everything else is a variant.
+ */
+function buildDirections(entries: GtfsRoute[], primary: GtfsRoute | undefined, terminals: [LocalizedText, LocalizedText], stops: Record<string, Stop>): Direction[] {
+  const candidates = dedupeTrips(entries.flatMap((entry) => entry.trips.filter((trip) => trip.stops.length >= 2).map((trip) => ({ entry, trip }))));
+  const origins = assignOrigins(candidates, primary, terminals);
+  const main = new Map<0 | 1, GtfsTrip>();
+  for (const { trip } of candidates) {
+    const origin = origins.get(trip.tripId);
+    if (origin === undefined) continue;
+    const current = main.get(origin);
+    if (!current || trip.stops.length > current.stops.length) main.set(origin, trip);
+  }
+  const mainIds = new Set([...main.values()].map((trip) => trip.tripId));
+  const directions: Direction[] = [];
+  for (const { trip } of candidates) {
+    for (const stop of trip.stops) stops[stop.id] ??= stop;
+    directions.push(toDirection(trip, origins.get(trip.tripId), !mainIds.has(trip.tripId)));
+  }
+  return directions.sort((a, b) => Number(a.variant) - Number(b.variant) || (a.origin ?? 2) - (b.origin ?? 2));
+}
+
+interface TripCandidate {
+  entry: GtfsRoute;
+  trip: GtfsTrip;
+}
+
+function dedupeTrips(candidates: TripCandidate[]): TripCandidate[] {
+  const seen = new Set<string>();
+  return candidates.filter(({ trip }) => {
+    const signature = trip.stops.map((stop) => stop.id).join(',');
+    if (seen.has(signature)) return false;
+    seen.add(signature);
+    return true;
+  });
+}
+
+/**
+ * How much a trip looks like it runs from terminal `origin` to the other
+ * end. The headsign names the destination in the route's own vocabulary and
+ * is the strongest signal; an entry whose long name differs from the
+ * route's (a return-direction or section entry) names its own ends; the
+ * first and last stops are the weakest, being specific places rather than
+ * areas.
+ */
+function endpointScore({ entry, trip }: TripCandidate, origin: 0 | 1, terminals: [LocalizedText, LocalizedText]): number {
+  const [from, to] = origin === 0 ? terminals : [terminals[1], terminals[0]];
+  let score = 0;
+  if (trip.headsign) score += 2 * placeSimilarity(trip.headsign, to);
+  const [entryFrom, entryTo] = splitLongName(entry.longName);
+  if (entryFrom && entryTo && !samePair([entryFrom, entryTo], terminals)) {
+    score += placeSimilarity(entryFrom, from) + placeSimilarity(entryTo, to);
+  }
+  score += 0.5 * (placeSimilarity(trip.stops[0]?.name ?? { th: '' }, from) + placeSimilarity(trip.stops.at(-1)?.name ?? { th: '' }, to));
+  return score;
+}
+
+function samePair(a: [LocalizedText, LocalizedText], b: [LocalizedText, LocalizedText]): boolean {
+  return terminiSimilarity(a[0], a[1], b[0], b[1]) >= 0.9;
+}
+
+/**
+ * Which terminus each trip departs from. Each trip is judged on its own;
+ * the primary entry's longest run per direction_id is then judged as a
+ * pair (one must be A→B, the other B→A), which settles weakly named ends.
+ */
+function assignOrigins(candidates: TripCandidate[], primary: GtfsRoute | undefined, terminals: [LocalizedText, LocalizedText]): Map<string, 0 | 1> {
+  const origins = new Map<string, 0 | 1>();
+  for (const candidate of candidates) {
+    const forward = endpointScore(candidate, 0, terminals);
+    const backward = endpointScore(candidate, 1, terminals);
+    if (Math.max(forward, backward) < SAME_PLACE || Math.abs(forward - backward) < 0.15) continue;
+    origins.set(candidate.trip.tripId, forward > backward ? 0 : 1);
+  }
+  const longest = (directionId: 0 | 1): TripCandidate | undefined =>
+    candidates.filter((c) => c.entry === primary && c.trip.directionId === directionId).sort((a, b) => b.trip.stops.length - a.trip.stops.length)[0];
+  const out = longest(0);
+  const back = longest(1);
+  if (out && back) {
+    const outIsForward =
+      endpointScore(out, 0, terminals) + endpointScore(back, 1, terminals) >= endpointScore(out, 1, terminals) + endpointScore(back, 0, terminals);
+    origins.set(out.trip.tripId, outIsForward ? 0 : 1);
+    origins.set(back.trip.tripId, outIsForward ? 1 : 0);
+  }
+  return origins;
+}
+
+function toDirection(trip: GtfsTrip, origin: 0 | 1 | undefined, variant: boolean): Direction {
+  const first = trip.stops[0]?.name ?? { th: '' };
+  const last = trip.stops.at(-1)?.name ?? { th: '' };
+  const direction: Direction = {
+    from: first,
+    to: trip.headsign ?? last,
+    stops: trip.stops.map((stop) => stop.id),
+    tripId: trip.tripId,
+    variant,
   };
+  if (trip.headsign) direction.headsign = trip.headsign;
+  if (origin !== undefined) direction.origin = origin;
+  return direction;
 }
 
-/**
- * Wikipedia's Thai termini are the canonical pair. Each side borrows English
- * from whichever OSM terminus (either end of any direction) resembles it most.
- */
-function pickTerminals(base: WikiRoute | undefined, directions: Direction[]): [LocalizedText, LocalizedText] | undefined {
-  if (!base?.from || !base.to) {
-    const first = directions[0];
-    return first ? [first.from, first.to] : undefined;
-  }
-  const endpoints = directions.flatMap((direction) => [direction.from, direction.to]);
-  return [localizeTerminus(base.from, endpoints), localizeTerminus(base.to, endpoints)];
+function agreement(terminals: [LocalizedText, LocalizedText] | [undefined, undefined], wikiBase: WikiRoute | undefined, hasGtfs: boolean): SourceAgreement {
+  if (!hasGtfs) return 'wikipedia-only';
+  if (!wikiBase?.from || !wikiBase.to || !terminals[0] || !terminals[1]) return 'gtfs-only';
+  const similar = terminiSimilarity(terminals[0], terminals[1], { th: wikiBase.from }, { th: wikiBase.to }) >= SAME_PLACE;
+  return similar ? 'agree' : 'conflict';
 }
 
-/** A wrong English name is worse than none, so the match must be convincing. */
-const TERMINUS_MATCH_SIMILARITY = 0.5;
+const OPERATOR_NAMES: Record<string, LocalizedText> = {
+  bmta: { th: 'ขสมก.', en: 'BMTA' },
+  tsb: { th: 'ไทยสมายล์บัส', en: 'Thai Smile Bus' },
+};
 
-/**
- * Marks which terminus each direction departs from, scoring both ends
- * (A→B vs B→A) so "รังสิต → หัวลำโพง" still resolves when only the
- * destination resembles a terminal. On two-direction routes, one resolved
- * direction settles the other by elimination.
- */
-function assignOrigins(directions: Direction[], terminals: [LocalizedText, LocalizedText]): void {
-  const [a, b] = terminals;
-  for (const direction of directions) {
-    const forward = endpointSimilarity(direction.from, a) + endpointSimilarity(direction.to, b);
-    const backward = endpointSimilarity(direction.from, b) + endpointSimilarity(direction.to, a);
-    if (Math.max(forward, backward) < TERMINUS_MATCH_SIMILARITY || Math.abs(forward - backward) < 0.2) continue;
-    direction.origin = forward > backward ? 0 : 1;
-  }
-  if (directions.length === 2) {
-    const [first, second] = directions;
-    if (first && second && first.origin !== undefined && second.origin === undefined) second.origin = first.origin === 0 ? 1 : 0;
-    if (first && second && second.origin !== undefined && first.origin === undefined) first.origin = second.origin === 0 ? 1 : 0;
-  }
-}
-
-/** Finds A→B with a matching B→A among the directions and marks them as the route's ends. */
-function terminalsFromDirections(directions: Direction[]): [LocalizedText, LocalizedText] | undefined {
-  for (const outbound of directions) {
-    const inbound = directions.find(
-      (candidate) =>
-        candidate !== outbound &&
-        endpointSimilarity(candidate.from, outbound.to) >= TERMINUS_MATCH_SIMILARITY &&
-        endpointSimilarity(candidate.to, outbound.from) >= TERMINUS_MATCH_SIMILARITY,
-    );
-    if (!inbound) continue;
-    outbound.origin = 0;
-    inbound.origin = 1;
-    return [outbound.from, outbound.to];
-  }
+/** Big operators by name; private ones from Wikipedia, since the feed only says "DLT". */
+function pickOperator(primary: GtfsRoute | undefined, wikiBase: WikiRoute | undefined): LocalizedText | undefined {
+  const key = operatorKey(primary?.agencyId);
+  if (key && OPERATOR_NAMES[key]) return OPERATOR_NAMES[key];
+  if (wikiBase?.operator) return { th: wikiBase.operator };
+  if (primary && key !== 'dlt') return primary.agencyName;
   return undefined;
 }
 
-/** Compares in either language, since OSM sometimes only has an English name. */
-function endpointSimilarity(x: LocalizedText, y: LocalizedText): number {
-  return Math.max(
-    terminusSimilarity(x.th, y.th),
-    x.en && y.en ? terminusSimilarity(x.en, y.en) : 0,
-    x.en ? terminusSimilarity(x.en, y.th) : 0,
-    y.en ? terminusSimilarity(x.th, y.en) : 0,
-  );
-}
-
-function localizeTerminus(th: string, endpoints: LocalizedText[]): LocalizedText {
-  let best: { en: string; score: number } | undefined;
-  for (const endpoint of endpoints) {
-    if (!endpoint.en) continue;
-    const score = terminusSimilarity(th, endpoint.th);
-    if (!best || score > best.score) best = { en: endpoint.en, score };
-  }
-  return best && best.score >= TERMINUS_MATCH_SIMILARITY ? { th, en: best.en } : { th };
+function serviceFlags(key: string, entries: GtfsRoute[], rows: WikiRoute[]): ServiceFlags {
+  const longNames = entries.map((entry) => entry.longName.th).join('\n');
+  const notes = rows.map((row) => row.notes ?? '').join('\n');
+  const categories = new Set(rows.map((row) => row.category));
+  return {
+    expressway: /EX?$/.test(key) || /ทางด่วน/.test(longNames) || categories.has('expressway'),
+    night: entries.some((entry) => entry.night) || categories.has('night'),
+    extra: /X$/.test(key) || /เส้นทางเสริม|เสริมพิเศษ/.test(notes),
+    airport: /^[AS]\d/.test(key) || /ท่าอากาศยาน|สนามบิน/.test(longNames) || categories.has('airport'),
+    suburban: /^\d{4}/.test(key) || categories.has('suburban'),
+    van: isVanNumber(key),
+  };
 }
 
 /**
  * Place-name similarity tolerant of the ways sources qualify the same place:
  * "BTS หมอชิต" / "สถานีรถไฟฟ้าหมอชิต", "สถานีรถไฟกรุงเทพ (หัวลำโพง)" / "หัวลำโพง".
+ * Compares in either language when both sides have it.
  */
-export function terminusSimilarity(a: string, b: string): number {
-  let best = 0;
-  for (const variantA of terminusVariants(a)) {
-    for (const variantB of terminusVariants(b)) best = Math.max(best, similarity(variantA, variantB));
-  }
+export function placeSimilarity(a: LocalizedText, b: LocalizedText): number {
+  let best = terminusSimilarity(a.th, b.th);
+  if (a.en && b.en) best = Math.max(best, terminusSimilarity(a.en, b.en));
   return best;
 }
 
-const STATION_PREFIX = /^(?:BTS|MRT|ARL|SRT|สถานีรถไฟฟ้า|สถานี)\s*/i;
-
-function terminusVariants(text: string): string[] {
-  const variants = new Set<string>([text]);
-  const parenthesised = /\(([^)]*)\)/.exec(text)?.[1]?.trim();
-  const withoutParens = text.replace(/\s*\([^)]*\)/g, '').trim();
-  if (parenthesised) variants.add(parenthesised);
-  if (withoutParens) variants.add(withoutParens);
-  for (const variant of [...variants]) {
-    const stripped = variant.replace(STATION_PREFIX, '').trim();
-    if (stripped) variants.add(stripped);
+export function terminusSimilarity(a: string, b: string): number {
+  let best = 0;
+  for (const variantA of placeVariants(a)) {
+    for (const variantB of placeVariants(b)) best = Math.max(best, similarity(variantA, variantB));
   }
-  return [...variants];
+  return best;
 }
 
 /** Sørensen–Dice over character bigrams; tolerant of "สะพานพุทธ" vs "สะพานพระพุทธยอดฟ้า". */
@@ -358,7 +490,7 @@ export function similarity(a: string, b: string): number {
 
 function bigrams(text: string): Map<string, number> {
   const counts = new Map<string, number>();
-  const compact = text.replace(/\s+/g, '');
+  const compact = text.replace(/\s+/g, '').toLowerCase();
   for (let index = 0; index < compact.length - 1; index += 1) {
     const gram = compact.slice(index, index + 2);
     counts.set(gram, (counts.get(gram) ?? 0) + 1);
@@ -372,59 +504,25 @@ function sum(values: Iterable<number>): number {
   return total;
 }
 
-const OPERATOR_NAMES: Record<string, LocalizedText> = {
-  bmta: { th: 'ขสมก.', en: 'BMTA' },
-  tsb: { th: 'ไทยสมายล์บัส', en: 'Thai Smile Bus' },
-};
-
-function pickOperator(name: string | undefined): LocalizedText | undefined {
-  if (!name) return undefined;
-  const key = operatorKey(name);
-  const known = key === undefined ? undefined : OPERATOR_NAMES[key];
-  if (!known) return { th: name };
-  // Keep Wikipedia's fuller Thai wording ("ให้บริการในนาม ...") when present.
-  return /[\u0E00-\u0E7F]/.test(name) ? { th: name, en: known.en ?? '' } : known;
-}
-
-function serviceFlags(key: string, rows: WikiRoute[]): ServiceFlags {
-  const categories = new Set(rows.map((row) => row.category));
-  const notes = rows.map((row) => row.notes ?? '').join('\n');
-  return {
-    expressway: categories.has('expressway') || /EX?$/.test(key),
-    night: categories.has('night'),
-    extra: /เส้นทางเสริม|เสริมพิเศษ|รถเสริม/.test(notes) || /X$/.test(key),
-    airport: categories.has('airport'),
-    suburban: categories.has('suburban') || /^\d{4}/.test(key),
-  };
-}
-
 function fillCounts(routes: Route[], report: MergeReport): void {
   report.routes = routes.length;
   for (const route of routes) {
-    const hasWiki = route.sources.wikipedia;
-    const hasOsm = route.sources.osmRelationIds.length > 0;
-    if (hasWiki && hasOsm) report.both += 1;
-    else if (hasWiki) report.wikiOnly += 1;
-    else report.osmOnly += 1;
-    if (route.terminals?.[0].en && route.terminals[1].en) report.withEnglishTerminals += 1;
-    if (route.directions.length > 0) report.withDirections += 1;
-    if (route.directions.some((direction) => direction.stops.length >= 5)) report.withStops += 1;
+    if (route.agreement === 'gtfs-only') report.gtfsOnly += 1;
+    if (route.agreement === 'wikipedia-only') report.wikipediaOnly += 1;
+    if (route.agreement === 'agree') report.agree += 1;
+    if (route.agreement === 'conflict') report.conflict += 1;
   }
 }
 
 function emptyReport(): MergeReport {
-  return {
-    routes: 0, wikiOnly: 0, osmOnly: 0, both: 0,
-    withEnglishTerminals: 0, withDirections: 0, withStops: 0,
-    folded: [], keptApart: [], split: [],
-  };
+  return { routes: 0, gtfsOnly: 0, wikipediaOnly: 0, agree: 0, conflict: 0, split: [], conflicts: [] };
 }
 
 function unique<T>(items: T[]): T[] {
   return [...new Set(items)];
 }
 
-/** Sorts "1-2" before "1-10", zone numbers before old numbers, letters last. */
+/** Sorts "1-2" before "1-10", zone numbers before old numbers, vans and letters last. */
 function compareRouteIds(a: string, b: string): number {
   const parse = (id: string): [number, number, string] => {
     const match = /^(\d+)(?:-(\d+))?(.*)$/.exec(id);

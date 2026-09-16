@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { canonicalRouteNumber, isZoneNumber, pickPrimaryNumber } from '../src/lib/route-number.ts';
-import { parseRef, splitTermini } from '../scripts/sources/osm.ts';
+import { canonicalRouteNumber, isVanNumber, isZoneNumber, pickPrimaryNumber } from '../src/lib/route-number.ts';
+import { localized, parseShortName } from '../scripts/sources/gtfs.ts';
 import { parseNumberCell } from '../scripts/sources/wikipedia.ts';
 
 describe('canonicalRouteNumber', () => {
@@ -17,14 +17,21 @@ describe('canonicalRouteNumber', () => {
     assert.equal(canonicalRouteNumber('13 AC'), '13AC');
   });
 
+  it('accepts van numbers', () => {
+    assert.equal(canonicalRouteNumber('ต.99'), 'ต.99');
+    assert.equal(isVanNumber('ต.99'), true);
+    assert.equal(isVanNumber('99'), false);
+  });
+
   it('drops zero-width characters that leak from Wikipedia', () => {
-    assert.equal(canonicalRouteNumber('120\u200B'), '120');
+    assert.equal(canonicalRouteNumber('120​'), '120');
   });
 
   it('rejects text that is not a route number', () => {
     assert.equal(canonicalRouteNumber('Shuttle Bus'), undefined);
     assert.equal(canonicalRouteNumber('-'), undefined);
     assert.equal(canonicalRouteNumber('รถท่องเที่ยว 4 ตลาดน้ำ'), undefined);
+    assert.equal(canonicalRouteNumber('1009 Songthaew'), undefined);
   });
 
   it('accepts letter-prefixed airport and special routes', () => {
@@ -63,37 +70,26 @@ describe('parseNumberCell (Wikipedia)', () => {
   });
 });
 
-describe('parseRef (OSM)', () => {
-  it('extracts every number named in a ref', () => {
-    assert.deepEqual(parseRef('73 (2-45)'), ['73', '2-45']);
-    assert.deepEqual(parseRef('13 AC (3-38)'), ['13AC', '3-38']);
+describe('parseShortName (GTFS)', () => {
+  it('extracts every number in a route_short_name', () => {
+    assert.deepEqual(parseShortName('2-45 (73)'), ['2-45', '73']);
+    assert.deepEqual(parseShortName('1-14E'), ['1-14E']);
+    assert.deepEqual(parseShortName('ต.99'), ['ต.99']);
   });
 
-  it('drops descriptive words and Thai branch names', () => {
-    assert.deepEqual(parseRef('1009 Songthaew'), ['1009']);
-    assert.deepEqual(parseRef('1096 (ถนอมมิตร)'), ['1096']);
+  it('ignores descriptive words', () => {
+    assert.deepEqual(parseShortName('EV Bus'), []);
+    assert.deepEqual(parseShortName('สายสามเสน'), []);
   });
 });
 
-describe('splitTermini (OSM)', () => {
-  it('strips the ref prefix and splits on the dash', () => {
-    assert.deepEqual(splitTermini('73 (2-45) บ้านเอื้ออาทรบึงกุ่ม - สะพานพุทธ', '73 (2-45)'), ['บ้านเอื้ออาทรบึงกุ่ม', 'สะพานพุทธ']);
+describe('localized (GTFS "th;en" names)', () => {
+  it('splits both languages and trims padding', () => {
+    assert.deepEqual(localized('รังสิต - นครอินทร์; Rangsit -  Nakhon In'), { th: 'รังสิต - นครอินทร์', en: 'Rangsit -  Nakhon In' });
   });
 
-  it('copes with a ref written differently in the name than in the tag', () => {
-    assert.deepEqual(splitTermini('3-16E (139 ปอ.) ม.รามคำแหง 2 - อนุสาวรีย์ชัยสมรภูมิ', '3-16E (139)'), ['ม.รามคำแหง 2', 'อนุสาวรีย์ชัยสมรภูมิ']);
-  });
-
-  it('splits arrow-separated names and refuses names without two parts', () => {
-    assert.deepEqual(splitTermini('3 ท่าน้ำนนท์ → บางไผ่ ซอย 5', '3'), ['ท่าน้ำนนท์', 'บางไผ่ ซอย 5']);
-    assert.equal(splitTermini('เส้นทางที่ 2', '2'), undefined);
-  });
-
-  it('does not treat a ref that is only the start of a token as the ref', () => {
-    assert.deepEqual(splitTermini('1-CCW วงกลม นนทบุรี - สนามบินน้ำ (วนซ้าย)', '1'), ['วงกลม นนทบุรี', 'สนามบินน้ำ (วนซ้าย)']);
-  });
-
-  it('does not split on hyphens inside a name', () => {
-    assert.equal(splitTermini('เมืองทอง-แจ้งวัฒนะ', '1'), undefined);
+  it('copes with a missing English half', () => {
+    assert.deepEqual(localized('สนามหลวง'), { th: 'สนามหลวง' });
+    assert.deepEqual(localized('สนามหลวง;'), { th: 'สนามหลวง' });
   });
 });

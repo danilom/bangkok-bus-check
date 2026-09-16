@@ -277,9 +277,24 @@ body {
   font-weight: 500;
 }
 
+.dir-name.is-empty {
+  color: var(--muted);
+  font-weight: 400;
+}
+
 .terminals-unknown {
   color: var(--muted);
   margin: 8px 0 6px;
+}
+
+.loop-line {
+  margin: 8px 0 0;
+  font-weight: 600;
+}
+
+.loop-label {
+  color: var(--muted);
+  font-weight: 400;
 }
 
 .stops-panel .direction-count {
@@ -307,6 +322,11 @@ body {
   border-radius: 6px;
   padding: 1px 7px;
   font-weight: 600;
+}
+
+.badge-warning {
+  background: var(--match);
+  color: var(--text);
 }
 
 .recent-label {

@@ -1,6 +1,6 @@
 import { localize, t, type Lang } from '../lib/i18n.ts';
 import type { Direction, RouteDetail, RouteSummary, Stop } from '../lib/types.ts';
-import { renderDirectionPill, type Side } from './direction-pill.ts';
+import { renderDirectionPill, renderLoopLine, type Side } from './direction-pill.ts';
 import { h } from './dom.ts';
 import { renderBadges, renderNumber } from './route-card.ts';
 
@@ -15,8 +15,8 @@ export interface DetailViewProps {
   status: DetailStatus;
   /** Which direction's stops are shown; the pill is the toggle. */
   side: Side;
-  /** Unmatched directions (by OSM relation id) the user has expanded; survives re-renders. */
-  expanded: Set<number>;
+  /** Variant runs (by trip id) the user has expanded; survives re-renders. */
+  expanded: Set<string>;
   onSelectSide: (side: Side) => void;
   onBack: () => void;
   onRetry: () => void;
@@ -28,6 +28,7 @@ export function renderDetailView(props: DetailViewProps): HTMLElement {
     h('button', { class: 'back-button', attrs: { type: 'button' }, text: `‹ ${t(lang, 'back')}`, on: { click: props.onBack } }),
     h('header', { class: 'detail-header' }, [
       renderNumber(lang, route),
+      renderLoopLine(lang, route),
       renderDirectionPill({ lang, route, selected: side, onSelect: props.onSelectSide }),
       renderBadges(lang, route),
     ]),
@@ -49,21 +50,23 @@ function renderStatus(props: DetailViewProps): HTMLElement {
 
 function renderDetailBody(props: DetailViewProps, detail: RouteDetail): HTMLElement {
   const { lang, route, side } = props;
-  const chosen = detail.directions.find((direction) => direction.origin === side);
-  // Variants for this side (short-turns, expressway runs) and directions that
+  const main = detail.directions.find((direction) => !direction.variant && direction.origin === side)
+    ?? detail.directions.find((direction) => direction.origin === side);
+  // Variant runs for this side (short-turns, expressway runs) and trips that
   // matched neither terminus are listed below; the other side's are behind the toggle.
   const otherSide: Side = side === 0 ? 1 : 0;
-  const others = detail.directions.filter((direction) => direction !== chosen && direction.origin !== otherSide);
+  const others = detail.directions.filter((direction) => direction !== main && direction.origin !== otherSide);
   return h('div', { class: 'detail-body' }, [
-    chosen
-      ? renderStopList(lang, chosen, detail.stops)
+    main
+      ? renderStopList(lang, main, detail.stops)
       : h('p', { class: 'muted', text: t(lang, detail.directions.length === 0 ? 'noDirections' : 'noStops') }),
     others.length > 0 &&
       h('div', { class: 'directions' }, [
-        h('p', { class: 'recent-label', text: t(lang, 'otherDirections') }),
+        h('p', { class: 'recent-label', text: t(lang, 'variants') }),
         ...others.map((direction) => renderCollapsibleDirection(props, direction, detail.stops)),
       ]),
     route.operator && renderFact(t(lang, 'operator'), localize(lang, route.operator)),
+    detail.hours && renderFact(t(lang, 'hours'), detail.hours),
     detail.vehicles.length > 0 && renderFact(t(lang, 'vehicles'), detail.vehicles.join(' · ')),
     detail.notes && renderNotes(lang, detail.notes),
   ]);
@@ -89,7 +92,7 @@ function renderStopList(lang: Lang, direction: Direction, stops: Record<string, 
   ]);
 }
 
-/** Directions that did not match either terminus (loops, short-turns) stay collapsible. */
+/** Variant runs and trips that matched neither terminus stay collapsible. */
 function renderCollapsibleDirection(props: DetailViewProps, direction: Direction, stops: Record<string, Stop>): HTMLElement {
   const { lang, expanded } = props;
   const named = namedStops(direction, stops);
@@ -102,10 +105,10 @@ function renderCollapsibleDirection(props: DetailViewProps, direction: Direction
       ? h('p', { class: 'muted', text: t(lang, 'noStops') })
       : h('ol', { class: 'stop-list' }, named.map((stop) => h('li', { class: 'stop', text: localize(lang, stop.name) }))),
   ]);
-  details.open = expanded.has(direction.osmRelationId);
+  details.open = expanded.has(direction.tripId);
   details.addEventListener('toggle', () => {
-    if (details.open) expanded.add(direction.osmRelationId);
-    else expanded.delete(direction.osmRelationId);
+    if (details.open) expanded.add(direction.tripId);
+    else expanded.delete(direction.tripId);
   });
   return details;
 }

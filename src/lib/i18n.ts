@@ -1,4 +1,4 @@
-import type { LocalizedText, ServiceFlags } from './types.ts';
+import type { LocalizedText, ServiceFlags, SourceAgreement } from './types.ts';
 
 export type Lang = 'en' | 'th';
 
@@ -30,6 +30,14 @@ const STRINGS = {
   badgeExtra: { en: 'Extra', th: 'เสริม' },
   badgeAirport: { en: 'Airport', th: 'สนามบิน' },
   badgeSuburban: { en: 'Suburban', th: 'ชานเมือง' },
+  badgeVan: { en: 'Van', th: 'รถตู้' },
+  badgeConflict: { en: 'Sources disagree', th: 'แหล่งข้อมูลไม่ตรงกัน' },
+  badgeUnofficial: { en: 'Not in official feed', th: 'ไม่มีในข้อมูลทางการ' },
+  hours: { en: 'Hours', th: 'เวลาเดินรถ' },
+  variants: { en: 'Variants and other runs', th: 'เที่ยวเสริมและเส้นทางย่อย' },
+  loop: { en: 'Loop', th: 'วงกลม' },
+  loopLeft: { en: 'Counter-clockwise', th: 'วนซ้าย' },
+  loopRight: { en: 'Clockwise', th: 'วนขวา' },
 } satisfies Record<string, Record<Lang, string>>;
 
 export type StringKey = keyof typeof STRINGS;
@@ -49,6 +57,7 @@ export function isFallback(lang: Lang, text: LocalizedText): boolean {
 }
 
 const BADGES: [keyof ServiceFlags, StringKey][] = [
+  ['van', 'badgeVan'],
   ['expressway', 'badgeExpressway'],
   ['night', 'badgeNight'],
   ['extra', 'badgeExtra'],
@@ -58,6 +67,13 @@ const BADGES: [keyof ServiceFlags, StringKey][] = [
 
 export function serviceBadges(lang: Lang, service: ServiceFlags): string[] {
   return BADGES.filter(([flag]) => service[flag]).map(([, key]) => t(lang, key));
+}
+
+/** Data-quality badges: shown so a stale or single-source answer never looks authoritative. */
+export function agreementBadge(lang: Lang, agreement: SourceAgreement): string | undefined {
+  if (agreement === 'conflict') return t(lang, 'badgeConflict');
+  if (agreement === 'wikipedia-only') return t(lang, 'badgeUnofficial');
+  return undefined;
 }
 
 export function detectLang(): Lang {

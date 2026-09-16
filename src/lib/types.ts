@@ -27,11 +27,11 @@ export interface RouteIndex {
 }
 
 /** What the search screen needs; long text and per-direction data live in `RouteDetail`. */
-export interface RouteSummary extends Omit<Route, 'directions' | 'notes' | 'vehicles'> {
+export interface RouteSummary extends Omit<Route, 'directions' | 'notes' | 'vehicles' | 'hours'> {
   directionCount: number;
 }
 
-export interface RouteDetail extends Pick<Route, 'id' | 'directions' | 'notes' | 'vehicles'> {
+export interface RouteDetail extends Pick<Route, 'id' | 'directions' | 'notes' | 'vehicles' | 'hours'> {
   /** Only the stops this route's directions reference. */
   stops: Record<string, Stop>;
 }
@@ -45,8 +45,15 @@ export interface Route {
   formerNumbers: string[];
   /** Every number that should match a search, primary included. */
   aliases: string[];
-  /** Canonical terminus pair; Thai from Wikipedia, English from OSM when matched. */
+  /**
+   * Canonical terminus pair. For a loop route (`loop`), the place the loop
+   * starts from and the place it goes round via.
+   */
   terminals?: [LocalizedText, LocalizedText];
+  /** Circular route: sides are counter-clockwise (0, วนซ้าย) and clockwise (1, วนขวา) instead of termini. */
+  loop: boolean;
+  /** Loop routes: headsign of each side's main run (null when that side has no run). */
+  sideLabels?: [LocalizedText | null, LocalizedText | null];
   operator?: LocalizedText;
   /** Thai vehicle descriptions as listed by Wikipedia ("รถโดยสารประจำทางสีครีม-แดง"). */
   vehicles: string[];
@@ -55,32 +62,49 @@ export interface Route {
   directions: Direction[];
   /** Free-text Thai notes from Wikipedia (history, quirks). */
   notes?: string;
+  /** Service window from the feed, e.g. "05:00–22:00" or "24 h". */
+  hours?: string;
+  agreement: SourceAgreement;
   sources: RouteSources;
 }
 
 export interface ServiceFlags {
   expressway: boolean;
+  /** Runs through the night (a service window covering 01:00–04:00). */
   night: boolean;
-  /** Short-turn / supplementary service ("เสริม"). */
+  /** Short-turn / supplementary service ("เสริม", "ช่วง"). */
   extra: boolean;
   airport: boolean;
   /** Category-4 suburban routes (four-digit numbers). */
   suburban: boolean;
+  /** Passenger van line ("ต.99"), not a bus. */
+  van: boolean;
 }
+
+/**
+ * How the two sources compare on this route's termini. `conflict` means the
+ * official feed and Wikipedia describe different end points — show the
+ * feed's, but flag it.
+ */
+export type SourceAgreement = 'agree' | 'conflict' | 'gtfs-only' | 'wikipedia-only';
 
 export interface Direction {
   from: LocalizedText;
   to: LocalizedText;
   /** Index into `Route.terminals` of the terminus this direction departs from, when it could be matched. */
   origin?: 0 | 1;
-  /** Ordered stop ids; often empty because OSM stop membership is sparse. */
+  /** Ordered stop ids from the GTFS trip. */
   stops: string[];
-  osmRelationId: number;
+  tripId: string;
+  headsign?: LocalizedText;
+  /** A short-turn, expressway or other variant trip rather than the main run. */
+  variant: boolean;
 }
 
 export interface RouteSources {
   wikipedia: boolean;
-  osmRelationIds: number[];
+  /** GTFS route ids folded into this route. */
+  gtfsRouteIds: string[];
 }
 
 export interface Stop {

@@ -52,7 +52,7 @@ const TIER_RANK: Record<MatchTier, number> = { exact: 0, variant: 1, prefix: 2, 
  * exact:    alias key equals the query ("335" ~ "3-35", "73" ~ "73")
  * variant:  query plus a letter suffix only ("8" ~ "8E", "73" ~ "73ก")
  * prefix:   query is a proper prefix and more digits follow ("7" ~ "70", "1" ~ "1-10")
- * lettered: the alias has a letter prefix the keypad cannot type ("1" ~ "A1", "S1")
+ * lettered: the alias has a prefix the keypad cannot type ("1" ~ "A1", "S1", "ต.1")
  */
 function classify(aliasKey: string, key: string): MatchTier | undefined {
   if (aliasKey === key) return 'exact';
@@ -60,7 +60,7 @@ function classify(aliasKey: string, key: string): MatchTier | undefined {
     const rest = aliasKey.slice(key.length);
     return /^[^0-9]+$/.test(rest) ? 'variant' : 'prefix';
   }
-  const unlettered = aliasKey.replace(/^[A-Z]+/, '');
+  const unlettered = aliasKey.replace(/^(?:[A-Z]+|ต\.)/, '');
   if (unlettered !== aliasKey && unlettered.length > 0 && /^\d/.test(key) && unlettered.startsWith(key)) return 'lettered';
   return undefined;
 }

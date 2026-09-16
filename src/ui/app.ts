@@ -17,7 +17,7 @@ interface AppState {
   index?: RouteIndex;
   indexError?: string;
   details: Map<string, DetailStatus>;
-  expandedDirections: Set<number>;
+  expandedDirections: Set<string>;
   recent: string[];
 }
 

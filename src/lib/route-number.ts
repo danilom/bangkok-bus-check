@@ -10,10 +10,13 @@
 const DASHES = /[\u2010-\u2015\u2212]/g;
 const INVISIBLE = /[\u200B\u200C\u200D\uFEFF]/g;
 
+/** Passenger-van lines are numbered "ต.99" (ต. = ตู้, van). */
+export const VAN_PREFIX = 'ต.';
+
 // Latin prefix (A1, S2, M16), digits, optional short Latin/Thai suffix (39A,
-// 73ก, 13AC, 3-25EX), optionally a zone-dash form ("1-2E"). Suffixes are
+// 73ก, 13AC, 3-25EX), optionally a zone-dash form ("1-2E"), or a van number. Suffixes are
 // capped at three letters so "1009 Songthaew" cannot pass as "1009SONGTHAEW".
-const ROUTE_NUMBER = /^(?:[A-Z]{1,2}\d+[A-Z]{0,3}|\d+(?:-\d+)?[A-Z]{0,3}[\u0E00-\u0E7F]{0,2})$/;
+const ROUTE_NUMBER = /^(?:[A-Z]{1,2}\d+[A-Z]{0,3}|ต\.\d+[A-Z]{0,3}|\d+(?:-\d+)?[A-Z]{0,3}[\u0E00-\u0E7F]{0,2})$/;
 
 const ZONE_NUMBER = /^[1-4]-\d+[A-Z]*$/;
 
@@ -39,6 +42,10 @@ export function canonicalRouteNumber(raw: string): string | undefined {
  */
 export function searchKey(raw: string): string {
   return raw.replace(INVISIBLE, '').replace(DASHES, '').replace(/[\s-]/g, '').toUpperCase();
+}
+
+export function isVanNumber(number: string): boolean {
+  return number.startsWith(VAN_PREFIX);
 }
 
 /** True for reform-era numbers with a zone prefix ("2-45", "1-2E"). */

@@ -50,6 +50,8 @@ function isRouteSummary(value: unknown): boolean {
     typeof value['number'] === 'string' &&
     Array.isArray(value['aliases']) &&
     isRecord(value['service']) &&
+    typeof value['agreement'] === 'string' &&
+    typeof value['loop'] === 'boolean' &&
     isRecord(value['sources'])
   );
 }

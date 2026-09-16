@@ -10,8 +10,10 @@ function route(id: string, formerNumbers: string[] = [], extra: Partial<RouteSum
     number: id.replace(/~\d+$/, ''),
     formerNumbers,
     aliases: [id.replace(/~\d+$/, ''), ...formerNumbers],
-    service: { expressway: false, night: false, extra: false, airport: false, suburban: false },
-    sources: { wikipedia: true, osmRelationIds: [] },
+    service: { expressway: false, night: false, extra: false, airport: false, suburban: false, van: false },
+    loop: false,
+    agreement: 'agree',
+    sources: { wikipedia: true, gtfsRouteIds: ['x'] },
     directionCount: 0,
     ...extra,
   };
@@ -24,7 +26,7 @@ const routes = [
   route('110', []),
   route('2-45', ['73']),
   route('2-46', ['73ก']),
-  route('73', [], { sources: { wikipedia: false, osmRelationIds: [1] } }),
+  route('73', [], { sources: { wikipedia: false, gtfsRouteIds: ['y'] } }),
   route('8', []),
   route('8E', []),
   route('80', []),
@@ -32,6 +34,7 @@ const routes = [
   route('1009', []),
   route('A1', []),
   route('S1', []),
+  route('ต.1', []),
 ];
 
 const ids = (query: string): string[] => findRoutes(routes, query).map((match) => match.route.id);
@@ -58,14 +61,14 @@ describe('findRoutes', () => {
   });
 
   it('shows every route that carries the typed old number, documented routes first', () => {
-    // 2-45 (formerly 73) is Wikipedia-backed; the bare OSM-only "73" is not.
+    // 2-45 (formerly 73) is Wikipedia-backed; the bare feed-only "73" is not.
     assert.deepEqual(ids('73'), ['2-45', '73', '2-46']);
   });
 
   it('lists letter-prefixed routes last for a digit-only query', () => {
     const matches = findRoutes(routes, '1');
     const lettered = matches.filter((match) => match.tier === 'lettered').map((match) => match.route.id);
-    assert.deepEqual(lettered, ['A1', 'S1']);
+    assert.deepEqual(lettered, ['A1', 'S1', 'ต.1']);
     assert.equal(matches.at(-1)?.tier, 'lettered');
   });
 

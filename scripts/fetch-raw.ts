@@ -1,6 +1,6 @@
 /**
  * Downloads source snapshots into `data/raw/`. Snapshots are committed so
- * `build-data` is deterministic and does not depend on Overpass being up.
+ * `build-data` is deterministic and works offline.
  */
 
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -8,31 +8,34 @@ import { join } from 'node:path';
 
 import { z } from 'zod';
 
+import { listZipEntries, readZipEntry } from './lib/zip.ts';
+
 export const RAW_DIR = 'data/raw';
 export const WIKI_FILE = join(RAW_DIR, 'wikipedia-bangkok-routes.wikitext');
 export const WIKI_META_FILE = join(RAW_DIR, 'wikipedia-bangkok-routes.meta.json');
-export const OSM_FILE = join(RAW_DIR, 'osm-bus-routes.json');
+export const NAMTANG_DIR = join(RAW_DIR, 'namtang');
 
 const WIKI_PAGE = 'รายการเส้นทางเดินรถโดยสารประจำทางในกรุงเทพมหานครและปริมณฑล';
 const WIKI_API = 'https://th.wikipedia.org/w/api.php';
 
-// Bangkok Metropolitan Region, generous enough for suburban routes.
-const BBOX = '13.40,100.25,14.15,101.00';
-const OVERPASS_QUERY = `[out:json][timeout:300][maxsize:536870912];
-relation["type"="route"]["route"="bus"](${BBOX})->.r;
-.r out body;
-node(r.r);
-out body;`;
-const OVERPASS_ENDPOINTS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
+/** Official GTFS feed from the Office of Transport and Traffic Policy and Planning. */
+const NAMTANG_GTFS_URL = 'https://namtang-api.otp.go.th/download/namtang-gtfs.zip';
+/**
+ * Tables the build needs. shapes.txt (150 MB of geometry) and the fare
+ * tables (65 MB) are left out until something uses them.
+ */
+export const NAMTANG_TABLES = ['agency.txt', 'feed_info.txt', 'routes.txt', 'trips.txt', 'stop_times.txt', 'stops.txt', 'frequencies.txt', 'calendar.txt', 'calendar_dates.txt'] as const;
+
 const USER_AGENT = 'bangkok-bus-check/0.1 (data build script)';
 
-export type RawSource = 'wikipedia' | 'osm';
+export type RawSource = 'wikipedia' | 'namtang';
+export const RAW_SOURCES: readonly RawSource[] = ['wikipedia', 'namtang'];
 
-export async function fetchRaw(sources: RawSource[]): Promise<void> {
+export async function fetchRaw(sources: readonly RawSource[]): Promise<void> {
   await mkdir(RAW_DIR, { recursive: true });
   for (const source of sources) {
     if (source === 'wikipedia') await fetchWikipedia();
-    if (source === 'osm') await fetchOsm();
+    if (source === 'namtang') await fetchNamtang();
   }
 }
 
@@ -63,36 +66,22 @@ async function fetchWikipedia(): Promise<void> {
   console.log(`  revision ${meta.revisionId}, ${body.parse.wikitext.length} chars → ${WIKI_FILE}`);
 }
 
-/** Overpass is flaky under load (504s are routine); rotate endpoints and retry. */
-async function fetchOsm(attempts = 6): Promise<void> {
-  let lastError: unknown;
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    const endpoint = OVERPASS_ENDPOINTS[attempt % OVERPASS_ENDPOINTS.length] ?? OVERPASS_ENDPOINTS[0];
-    if (!endpoint) throw new Error('No Overpass endpoints configured');
-    console.log(`Fetching OSM bus routes from ${endpoint} (attempt ${attempt + 1}/${attempts})…`);
-    try {
-      const text = await fetchOverpass(endpoint);
-      await writeFile(OSM_FILE, text, 'utf8');
-      console.log(`  ${text.length} bytes → ${OSM_FILE}`);
-      return;
-    } catch (error) {
-      lastError = error;
-      console.warn(`  failed: ${error instanceof Error ? error.message : String(error)}`);
-      await new Promise((resolve) => setTimeout(resolve, 15_000 * (attempt + 1)));
-    }
-  }
-  throw new Error('Overpass fetch failed after retries', { cause: lastError });
-}
+async function fetchNamtang(): Promise<void> {
+  console.log(`Fetching Namtang GTFS from ${NAMTANG_GTFS_URL}…`);
+  const response = await fetch(NAMTANG_GTFS_URL, { headers: { 'user-agent': USER_AGENT }, signal: AbortSignal.timeout(300_000) });
+  if (!response.ok) throw new Error(`Namtang responded ${response.status}`);
+  const archive = Buffer.from(await response.arrayBuffer());
+  console.log(`  ${(archive.length / 1024 / 1024).toFixed(1)} MB downloaded`);
 
-async function fetchOverpass(endpoint: string): Promise<string> {
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: { 'user-agent': USER_AGENT, 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ data: OVERPASS_QUERY }),
-    signal: AbortSignal.timeout(400_000),
-  });
-  if (!response.ok) throw new Error(`Overpass responded ${response.status}`);
-  const text = await response.text();
-  if (!text.trimStart().startsWith('{')) throw new Error('Overpass returned non-JSON body');
-  return text;
+  await mkdir(NAMTANG_DIR, { recursive: true });
+  const entries = new Map(listZipEntries(archive).map((entry) => [entry.name, entry]));
+  for (const table of NAMTANG_TABLES) {
+    const entry = entries.get(table);
+    if (!entry) throw new Error(`Feed is missing ${table}`);
+    const content = readZipEntry(archive, entry);
+    await writeFile(join(NAMTANG_DIR, table), content);
+    console.log(`  ${table}: ${(content.length / 1024).toFixed(0)} KB`);
+  }
+  const meta = { source: NAMTANG_GTFS_URL, fetchedAt: new Date().toISOString(), archiveBytes: archive.length };
+  await writeFile(join(NAMTANG_DIR, 'meta.json'), `${JSON.stringify(meta, null, 2)}\n`, 'utf8');
 }

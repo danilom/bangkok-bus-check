@@ -3,16 +3,16 @@
 import { Command, Option } from 'commander';
 
 import { buildData, DEFAULT_OUTPUT_DIR } from './build-data.ts';
-import { fetchRaw, type RawSource } from './fetch-raw.ts';
+import { fetchRaw, RAW_SOURCES, type RawSource } from './fetch-raw.ts';
 
 const program = new Command('bbc').description('Bangkok Bus Check data tooling');
 
 program
   .command('fetch-raw')
   .description('download source snapshots into data/raw/')
-  .addOption(new Option('-s, --source <name>', 'fetch only one source').choices(['wikipedia', 'osm']))
+  .addOption(new Option('-s, --source <name>', 'fetch only one source').choices([...RAW_SOURCES]))
   .action(async (options: { source?: RawSource }) => {
-    await fetchRaw(options.source ? [options.source] : ['wikipedia', 'osm']);
+    await fetchRaw(options.source ? [options.source] : RAW_SOURCES);
   });
 
 program
