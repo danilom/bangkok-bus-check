@@ -2,7 +2,7 @@ import { loadDetail, loadIndex } from '../lib/data.ts';
 import { detectLang, t, type Lang } from '../lib/i18n.ts';
 import { requestPosition, type Position } from '../lib/location.ts';
 import { findRoutes } from '../lib/matcher.ts';
-import { formatHash, loadAccent, loadLang, loadLocationAccepted, loadLocationEnabled, loadRecent, loadSimulatedLocation, loadTheme, pushRecent, readHash, saveAccent, saveLang, saveLocationAccepted, saveLocationEnabled, saveSimulatedLocation, saveTheme, type Accent, type Theme } from '../lib/state.ts';
+import { formatHash, loadAccent, loadFrontSignOpen, loadLang, loadLocationAccepted, loadLocationEnabled, loadRecent, loadSimulatedLocation, loadTheme, pushRecent, readHash, saveAccent, saveFrontSignOpen, saveLang, saveLocationAccepted, saveLocationEnabled, saveSimulatedLocation, saveTheme, type Accent, type Theme } from '../lib/state.ts';
 import type { RouteIndex, RouteSummary } from '../lib/types.ts';
 import { renderDetailView, type DetailStatus, type LocationStatus } from './detail-view.ts';
 import type { Side } from './direction-pill.ts';
@@ -33,6 +33,7 @@ interface AppState {
   location: LocationStatus;
   simulatedLocation: Position | undefined;
   showAllStops: boolean;
+  frontSignOpen: boolean;
 }
 
 /**
@@ -95,6 +96,7 @@ export function createApp(root: HTMLElement): void {
     location: { kind: 'off' },
     simulatedLocation: loadSimulatedLocation(),
     showAllStops: false,
+    frontSignOpen: loadFrontSignOpen(),
   };
   if (initial.routeId) state.routeId = initial.routeId;
   const useKeypad = keypadEnabled(location.search, matchMedia('(pointer: coarse)').matches);
@@ -363,6 +365,11 @@ export function createApp(root: HTMLElement): void {
         onToggleAllStops: () => {
           state.showAllStops = !state.showAllStops;
           render();
+        },
+        frontSignOpen: state.frontSignOpen,
+        onFrontSignToggle: (open: boolean) => {
+          state.frontSignOpen = open;
+          saveFrontSignOpen(open);
         },
       });
     }

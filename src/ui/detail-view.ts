@@ -38,6 +38,9 @@ export interface DetailViewProps {
   /** The show-everything switch for the condensed stop list. */
   showAllStops: boolean;
   onToggleAllStops: () => void;
+  /** The "Front sign (Thai)" panel, English UI only; its open state is remembered. */
+  frontSignOpen: boolean;
+  onFrontSignToggle: (open: boolean) => void;
 }
 
 /** A hidden stretch is a fixed row of dots; the count is in the row's title only. */
@@ -87,6 +90,7 @@ function renderDetailBody(props: DetailViewProps, detail: RouteDetail): HTMLElem
   // destination's are behind the toggle.
   const others = detail.directions.filter((direction) => direction !== main && direction.origin !== side);
   return h('div', { class: 'detail-body' }, [
+    lang === 'en' && renderFrontSign(props, detail),
     main && renderLocationPanel(props),
     main
       ? renderStopList(props, main, detail.stops, props.location.kind === 'ready' ? props.location.position : undefined)
@@ -101,6 +105,52 @@ function renderDetailBody(props: DetailViewProps, detail: RouteDetail): HTMLElem
     detail.hours && renderFact(t(lang, 'hours'), detail.hours),
     detail.notes && renderNotes(lang, detail.notes),
   ]);
+}
+
+/**
+ * The two destinations in Thai, big and on one line each, for matching the
+ * bus's front sign by shape when the UI is English: the feed's headsign
+ * where the run has one (that is what the sign says), else the terminus.
+ * Tapping a row selects that side, like the pill.
+ */
+function renderFrontSign(props: DetailViewProps, detail: RouteDetail): HTMLElement | false {
+  const { lang, route, side } = props;
+  if (!route.terminals) return false;
+  const rows = ([0, 1] as const).map((destination) => {
+    const thai = signText(route, detail, destination);
+    if (!thai) return false;
+    const english = route.loop ? route.sideLabels?.[destination]?.name : route.terminals?.[destination];
+    return h('button', {
+      class: `sign-row${side === destination ? ' is-selected' : ''}`,
+      attrs: { type: 'button', 'aria-pressed': String(side === destination) },
+      on: { click: () => props.onSelectSide(destination) },
+    }, [
+      h('span', { class: 'sign-th', text: thai }),
+      english && h('span', { class: 'sign-en', text: localize(lang, english) }),
+    ]);
+  });
+  if (!rows.some(Boolean)) return false;
+  const panel = h('details', { class: 'front-sign' }, [
+    h('summary', { text: t(lang, 'frontSign') }),
+    h('div', { class: 'sign-rows' }, rows),
+  ]);
+  panel.open = props.frontSignOpen;
+  panel.addEventListener('toggle', () => props.onFrontSignToggle(panel.open));
+  return panel;
+}
+
+/** The Thai a bus heading for `destination` carries on its sign. */
+function signText(route: RouteSummary, detail: RouteDetail, destination: Side): string | undefined {
+  const departsFrom: Side = destination === 0 ? 1 : 0;
+  const run = detail.directions.find((direction) => !direction.variant && direction.origin === departsFrom)
+    ?? detail.directions.find((direction) => direction.origin === departsFrom);
+  if (run?.headsign?.th) return run.headsign.th;
+  if (route.loop) {
+    const label = route.sideLabels?.[destination];
+    if (!label) return undefined;
+    return label.marked ? `${label.name.th} ${t('th', destination === 0 ? 'senseLeft' : 'senseRight')}` : label.name.th;
+  }
+  return route.terminals?.[destination]?.th;
 }
 
 function renderFact(label: string, value: string): HTMLElement {

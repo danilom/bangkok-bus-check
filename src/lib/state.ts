@@ -47,6 +47,7 @@ const LOCATION_KEY = 'bbc.location';
 const LOCATION_ACCEPTED_KEY = 'bbc.locationAccepted';
 const SIMULATED_LOCATION_KEY = 'bbc.simulatedLocation';
 const THEME_KEY = 'bbc.theme';
+const FRONT_SIGN_KEY = 'bbc.frontSign';
 const ACCENT_KEY = 'bbc.accent';
 const RECENT_KEY = 'bbc.recent';
 const MAX_RECENT = 8;
@@ -88,6 +89,15 @@ export function loadLocationEnabled(): boolean {
 
 export function saveLocationEnabled(enabled: boolean): void {
   write(LOCATION_KEY, enabled ? 'on' : 'off');
+}
+
+/** The "Front sign (Thai)" panel on route pages: open unless closed once. */
+export function loadFrontSignOpen(): boolean {
+  return read(FRONT_SIGN_KEY) !== 'closed';
+}
+
+export function saveFrontSignOpen(open: boolean): void {
+  write(FRONT_SIGN_KEY, open ? 'open' : 'closed');
 }
 
 /** The user has read the explanation and tapped "Use location" once; from then on fixes are automatic. */

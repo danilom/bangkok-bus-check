@@ -42,6 +42,7 @@ const STRINGS = {
   badgeUnofficial: { en: 'Not in official feed', th: 'ไม่มีในข้อมูลทางการ' },
   hours: { en: 'Hours', th: 'เวลาเดินรถ' },
   variants: { en: 'Variants and other runs', th: 'เที่ยวเสริมและเส้นทางย่อย' },
+  frontSign: { en: 'Front sign (Thai)', th: 'ป้ายหน้ารถ' },
   loop: { en: 'Loop', th: 'วงกลม' },
   to: { en: 'to', th: 'ไป' },
   loopLeft: { en: 'Counter-clockwise', th: 'วนซ้าย' },
