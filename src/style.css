@@ -294,26 +294,6 @@ body {
   display: none;
 }
 
-/* On a route page the title row folds into the Back row: Back left, settings and language right. */
-#app.is-detail {
-  position: relative;
-}
-
-#app.is-detail .topbar {
-  position: absolute;
-  top: 14px;
-  right: 16px;
-  padding: 0;
-}
-
-#app.is-detail .app-title {
-  display: none;
-}
-
-#app.is-detail .detail {
-  padding-top: 14px;
-}
-
 .search-input {
   width: 100%;
   font: inherit;
