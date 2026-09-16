@@ -32,9 +32,10 @@ no API calls. Two sources:
   independent check on the termini. CC BY-SA 4.0.
 
 ```bash
-npm run bbc -- fetch-raw                    # both sources → data/raw/
-npm run bbc -- fetch-raw --source namtang   # just the GTFS feed
-npm run bbc -- build-data --verbose         # data/raw/ → public/data/index.json + routes/<id>.json
+bbc fetch-raw                    # both sources → data/raw/   (bbc.cmd on Windows; `npm run bbc --` elsewhere)
+bbc fetch-raw --source namtang   # just the GTFS feed
+bbc build-data --verbose         # data/raw/ → public/data/index.json + routes/<id>.json
+bbc extract-places               # add Thai names lacking English to data/overrides/translations.json
 ```
 
 Snapshots in `data/raw/` are committed so `build-data` is deterministic and
