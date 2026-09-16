@@ -123,7 +123,7 @@ function renderLocationPanel(props: DetailViewProps): HTMLElement | false {
       h('p', { text: t(lang, 'locationExplain') }),
       h('div', { class: 'chips' }, [
         h('button', { class: 'chip is-selected', attrs: { type: 'button' }, text: t(lang, 'locationUse'), on: { click: props.onLocation } }),
-        h('button', { class: 'chip', attrs: { type: 'button' }, text: t(lang, 'dontAsk'), on: { click: props.onLocationDismiss } }),
+        h('button', { class: 'chip chip-quiet', attrs: { type: 'button' }, text: t(lang, 'dontAsk'), on: { click: props.onLocationDismiss } }),
       ]),
     ]);
   }

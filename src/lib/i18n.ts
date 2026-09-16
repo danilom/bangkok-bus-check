@@ -45,8 +45,8 @@ const STRINGS = {
   settings: { en: 'Settings', th: 'ตั้งค่า' },
   locationButton: { en: 'Use my location', th: 'ใช้ตำแหน่งของฉัน' },
   locationExplain: {
-    en: 'Finds the nearest stop on this route and hides the ones you have passed. Your location is read once, on your phone. Nothing is sent anywhere: this app has no server.',
-    th: 'หาป้ายที่ใกล้ที่สุดบนสายนี้และซ่อนป้ายที่ผ่านมาแล้ว อ่านตำแหน่งจากโทรศัพท์ครั้งเดียว ไม่มีการส่งข้อมูลไปที่ใด แอปนี้ไม่มีเซิร์ฟเวอร์',
+    en: 'Shows only the stops ahead of you. Your location is not sent anywhere.',
+    th: 'แสดงเฉพาะป้ายที่อยู่ข้างหน้าคุณ ตำแหน่งของคุณจะไม่ถูกส่งไปที่ใด',
   },
   locationUse: { en: 'Use location', th: 'ใช้ตำแหน่ง' },
   dontAsk: { en: 'No, don’t ask again', th: 'ไม่ ไม่ต้องถามอีก' },
