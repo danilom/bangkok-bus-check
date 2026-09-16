@@ -243,12 +243,15 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  /* Neutral, whatever the accent: these chips are about choosing it. */
+}
+
+/* The accent chips stay neutral so the rest of the page previews the choice. */
+.setting-accent .chip {
   color: var(--text);
 }
 
-.settings .chip:active,
-.settings .chip.is-selected {
+.setting-accent .chip:active,
+.setting-accent .chip.is-selected {
   background: var(--border);
   border-color: var(--muted);
 }

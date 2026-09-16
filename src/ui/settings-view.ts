@@ -32,7 +32,7 @@ function renderChoice<T extends string>(
   onPick: (option: T) => void,
   swatches = false,
 ): HTMLElement {
-  return h('div', { class: 'setting' }, [
+  return h('div', { class: swatches ? 'setting setting-accent' : 'setting' }, [
     h('p', { class: 'setting-label', text: label }),
     h('div', { class: 'chips', attrs: { role: 'radiogroup', 'aria-label': label } }, options.map((option) =>
       h('button', {
