@@ -94,3 +94,6 @@ from four sources" to "data we can trust". Last revised 2026-09-16.
 - [ ] The `extra` badge has false positives from history notes.
 - [ ] Real Android checks: sticky keypad vs Chrome's collapsing toolbar;
       reinstall the home-screen icon after the manifest colour change.
+- Known, not ours: Firefox for Android's installed-app shell starts on
+      about:blank, so Back from the start screen shows a blank page before
+      exiting (Mozilla bug 1524887). Chrome's shell is fine.

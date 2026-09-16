@@ -3,3 +3,4 @@ dist/
 .env
 .env.local
 settings.local.json
+TODO.md
