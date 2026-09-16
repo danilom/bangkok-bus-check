@@ -6,7 +6,7 @@
 // that are missing from the cache. The first visit after a deploy shows the
 // previous version; the next visit shows the new one.
 
-const CACHE = 'bbc-v2';
+const CACHE = 'bbc-v3';
 const PRECACHE = ['./', './data/index.json', './manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
@@ -26,6 +26,8 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET' || !request.url.startsWith(self.registration.scope)) return;
+  // The map's tiles file is read by byte range; the Cache API can neither store a 206 nor slice a cached copy.
+  if (request.headers.has('range')) return;
   event.respondWith(staleWhileRevalidate(event));
 });
 

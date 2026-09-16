@@ -74,6 +74,14 @@ is a readable approximation of the livery, not a paint code — the one place
 the app draws something the data does not literally say. A colour word
 missing from the dictionary means no swatch and a build warning.
 
+Basemap tiles for the map are a Protomaps planet build cut to the same
+bounding box (`data/tiles.json` pins the build date, box and zoom;
+`scripts/extract-tiles.sh` does the cut with the `pmtiles` CLI). The deploy
+workflow extracts them into `public/tiles/` (33 MB at zoom 14, cached
+between deploys); for local dev run the script once with the CLI on PATH.
+The file is served by byte range from GitHub Pages, so no tile service is
+involved at runtime.
+
 Route geometry comes from the feed's `shapes.txt`, reduced on fetch to
 `data/raw/namtang/shapes.json` (Bangkok-box shapes only, 2 m simplified,
 identical shapes stored once) and simplified again to 8 m for the app,

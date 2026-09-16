@@ -26,6 +26,19 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+      # Basemap tiles: cut from the Protomaps build pinned in data/tiles.json,
+      # cached so the 35 MB download only happens when the pin changes.
+      - id: tiles-config
+        run: echo "key=$(sha256sum data/tiles.json | cut -c1-16)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        id: tiles-cache
+        with:
+          path: public/tiles
+          key: tiles-${{ steps.tiles-config.outputs.key }}
+      - if: steps.tiles-cache.outputs.cache-hit != 'true'
+        run: |
+          curl -sSL https://github.com/protomaps/go-pmtiles/releases/download/v1.31.2/go-pmtiles_1.31.2_Linux_x86_64.tar.gz | tar xz pmtiles
+          PMTILES=./pmtiles sh scripts/extract-tiles.sh
       - run: npm run build
         env:
           # Project sites live under /<repo>/; a custom domain would use "/".

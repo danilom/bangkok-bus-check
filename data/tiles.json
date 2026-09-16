@@ -1,0 +1,12 @@
+{
+  "_comment": [
+    "Basemap tiles for the map page: a Protomaps planet build cut to the",
+    "bus network's bounding box (the same box the feed is filtered to) with",
+    "scripts/extract-tiles.sh, at deploy and for local dev. Bump `build` to",
+    "refresh the basemap; builds are listed at https://build.protomaps.com/."
+  ],
+  "build": "20260916",
+  "bbox": "100.1,13.3,101.1,14.3",
+  "maxzoom": 14,
+  "output": "public/tiles/bangkok.pmtiles"
+}

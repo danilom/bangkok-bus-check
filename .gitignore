@@ -4,3 +4,4 @@ dist/
 .env.local
 settings.local.json
 public/dev-maps/
+public/tiles/
