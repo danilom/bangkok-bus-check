@@ -39,6 +39,7 @@ bbc extract-places               # add Thai names lacking English to data/overri
 bbc extract-places --feed-english  # also list the feed's English, as lines you can paste to override
 bbc build-data --strict          # fail instead of warning when anything would show untranslated
 bbc landmarks 2-45 73            # print a route's condensed stop list with the reason each stop is kept
+bbc landmarks --audit            # dataset-wide numbers for judging the landmark keywords
 ```
 
 Snapshots in `data/raw/` are committed so `build-data` is deterministic and
@@ -54,9 +55,13 @@ listed in a warning at the end of the build; after a data refresh, run
 Long stop lists are condensed in the app to termini, landmarks, the stops
 nearest the user and one stop per long stretch, with hidden stretches a tap
 away. Which stops count as landmarks is decided by the keyword tiers in
-`data/overrides/landmarks.json` (rail, terminals, piers, junctions,
-hospitals, universities, named landmarks), applied at build time; edit the
-file and rebuild. `bbc landmarks <route>` shows the effect on real routes.
+`data/overrides/landmarks.json`, applied at build time: major tiers (rail,
+terminals, piers, named landmarks) are always shown; minor tiers (junctions,
+hospitals, universities) only stand in for the arbitrary stop a long stretch
+would otherwise get. Edit the file and rebuild. `bbc landmarks <route>` shows
+the effect on real routes; `bbc landmarks --audit` gives the whole-dataset
+numbers (lit share per direction, hits per keyword, busy unlit stops, lit
+stops only one route serves).
 
 Routes are keyed by (number, operator): an old number can belong to a BMTA
 route, a songthaew and a private minibus at once. The feed's separate

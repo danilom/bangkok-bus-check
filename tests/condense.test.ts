@@ -5,10 +5,11 @@ import { condenseStops } from '../src/lib/condense.ts';
 import type { Stop } from '../src/lib/types.ts';
 
 function stops(spec: string): Stop[] {
-  // "o" ordinary stop, "L" landmark
+  // "o" ordinary stop, "L" major landmark, "j" minor landmark (a junction)
   return [...spec].map((char, index) => {
     const stop: Stop = { id: `s${index}`, name: { th: `stop ${index}` } };
-    if (char === 'L') stop.landmark = 'rail';
+    if (char === 'L') stop.landmark = { tier: 'rail', rank: 'major' };
+    if (char === 'j') stop.landmark = { tier: 'junction', rank: 'minor' };
     return stop;
   });
 }
@@ -27,6 +28,18 @@ describe('condenseStops', () => {
     const segments = condenseStops(stops('o'.repeat(20)), { maxGap: 6 });
     assert.deepEqual(shownIndexes(segments), [0, 7, 14, 19]);
     assert.deepEqual(segments.filter((s) => s.kind === 'gap').map((s) => (s.kind === 'gap' ? s.count : 0)), [6, 6, 4]);
+  });
+
+  it('prefers a minor landmark over an arbitrary stop when a stretch needs one', () => {
+    const segments = condenseStops(stops('oojoooooooooo'), { maxGap: 6 });
+    assert.deepEqual(shownIndexes(segments), [0, 2, 9, 12]);
+    const junction = segments.find((s) => s.kind === 'stop' && s.index === 2);
+    assert.equal(junction?.kind === 'stop' ? junction.reason : undefined, 'junction');
+  });
+
+  it('hides a minor landmark when a major one already breaks the stretch', () => {
+    const segments = condenseStops(stops('ojoLoo'), { maxGap: 6 });
+    assert.deepEqual(shownIndexes(segments), [0, 3, 5]);
   });
 
   it('keeps forced stops with their reason', () => {

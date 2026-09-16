@@ -58,8 +58,13 @@ export function displayPlace(text: string): string {
     .trim();
 }
 
+/** "เเ" (two สระเอ) is a common typing error for "แ"; they look alike but do not compare equal. */
+export function fixThaiTypos(text: string): string {
+  return text.replace(/เเ/g, 'แ');
+}
+
 export function normalizePlace(text: string): string {
-  let result = text;
+  let result = fixThaiTypos(text);
   for (const pattern of NOISE) result = result.replace(pattern, '');
   for (const [pattern, replacement] of ABBREVIATIONS) result = result.replace(pattern, replacement);
   for (const [pattern, replacement] of SYNONYMS) result = result.replace(pattern, replacement);

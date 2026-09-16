@@ -125,6 +125,11 @@ export interface Stop {
   name: LocalizedText;
   lat?: number;
   lon?: number;
-  /** Landmark tier from data/overrides/landmarks.json ("rail", "junction", …); shown in condensed lists. */
-  landmark?: string;
+  /** From data/overrides/landmarks.json: major landmarks are always shown, minor ones only to break a long stretch. */
+  landmark?: Landmark;
+}
+
+export interface Landmark {
+  tier: string;
+  rank: 'major' | 'minor';
 }

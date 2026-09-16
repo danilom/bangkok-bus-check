@@ -3,14 +3,15 @@
     "Which stops count as landmarks in the condensed stop list. A stop is a",
     "landmark when its Thai or English name contains one of the strings",
     "below (case-insensitive), unless it also contains one of `never`.",
-    "The tier name is stored on the stop and shown by `bbc landmarks <route>`;",
-    "tiers are tried in order, so a stop matching several gets the first.",
-    "Termini, the stops nearest the user, and one stop per long stretch",
-    "are always shown regardless of this file.",
-    "`include` / `exclude` force a stop by exact name, for the cases the",
-    "keywords get wrong."
+    "`major` tiers are always shown. `minor` tiers are shown only where a",
+    "long stretch would otherwise need an arbitrary stop for spacing: a",
+    "junction beats 'Soi Lat Phrao 112', but is not worth a line of its own",
+    "next to a rail station. Tiers are tried in order; the tier name and the",
+    "matched keyword are what `bbc landmarks <route>` prints.",
+    "Termini and the stops nearest the user are always shown.",
+    "`include` / `exclude` force a stop by exact name."
   ],
-  "tiers": {
+  "major": {
     "rail": [
       "BTS",
       "MRT",
@@ -31,18 +32,6 @@
       "ท่าเรือ",
       "ท่าน้ำ"
     ],
-    "junction": [
-      "แยก",
-      "วงเวียน"
-    ],
-    "hospital": [
-      "โรงพยาบาล",
-      "รพ.",
-      "Hospital"
-    ],
-    "university": [
-      "มหาวิทยาลัย"
-    ],
     "landmark": [
       "อนุสาวรีย์",
       "สนามหลวง",
@@ -55,6 +44,20 @@
       "เมกาบางนา",
       "ไอคอนสยาม",
       "สยามพารากอน"
+    ]
+  },
+  "minor": {
+    "junction": [
+      "แยก",
+      "วงเวียน"
+    ],
+    "hospital": [
+      "โรงพยาบาล",
+      "รพ.",
+      "Hospital"
+    ],
+    "university": [
+      "มหาวิทยาลัย"
     ]
   },
   "never": [

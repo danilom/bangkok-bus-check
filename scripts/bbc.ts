@@ -38,9 +38,10 @@ program
 program
   .command('landmarks')
   .description('print the condensed stop list of routes with the reason each stop is kept')
-  .argument('<route...>', 'route ids or numbers, e.g. 2-45 73')
+  .argument('[route...]', 'route ids or numbers, e.g. 2-45 73')
   .option('--all', 'print every stop, kept ones highlighted, to spot misses', false)
-  .action(async (ids: string[], options: { all: boolean }) => {
+  .option('--audit', 'whole-dataset numbers for judging the keyword rules', false)
+  .action(async (ids: string[], options: { all: boolean; audit: boolean }) => {
     await reviewLandmarks(ids, options);
   });
 

@@ -128,8 +128,9 @@ Data-source status, reliability checks and product backlog. Last revised 2026-09
 ### Product, after the data is trustworthy
 
 - [x] Condensed stop list on the details page: termini + keyword landmarks
-      (`data/overrides/landmarks.json`) + nearest stops + spacing; gaps
-      expand on tap; `bbc landmarks <route>` for review. No scoring.
+      (`data/overrides/landmarks.json`, major always / minor only where a
+      stretch needs a stop) + nearest stops + spacing; gaps expand on tap;
+      `bbc landmarks <route>` and `--audit` for review. No scoring.
 - [ ] Review the landmark picks on the routes you ride; add `include` /
       `exclude` names or keyword fragments as needed. Candidate next
       signal if keywords prove poor: divergence (routes branching at a
