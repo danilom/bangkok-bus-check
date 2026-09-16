@@ -242,7 +242,7 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
       'text-field': ['get', 'name'],
       'text-font': FONT,
       // The map page's pill is 0.85rem of a 17px root: the labels match it at every zoom.
-      'text-size': 14.5,
+      'text-size': 13.5,
       'text-offset': [0, 0.9],
       'text-anchor': 'top',
       'text-max-width': 9,
