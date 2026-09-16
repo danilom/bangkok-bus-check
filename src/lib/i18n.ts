@@ -28,6 +28,8 @@ const STRINGS = {
   loading: { en: 'Loading…', th: 'กำลังโหลด…' },
   loadFailed: { en: 'Could not load route data.', th: 'โหลดข้อมูลไม่สำเร็จ' },
   retry: { en: 'Retry', th: 'ลองใหม่' },
+  build: { en: 'Build', th: 'บิลด์' },
+  buildOn: { en: 'on', th: 'เมื่อ' },
   dataAsOf: { en: 'Data as of', th: 'ข้อมูล ณ' },
   switchLang: { en: 'ไทย', th: 'EN' },
   moreRoutes: { en: 'Type more digits to narrow down.', th: 'พิมพ์ตัวเลขเพิ่มเพื่อค้นหาให้แคบลง' },

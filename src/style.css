@@ -779,12 +779,6 @@ body {
   margin: 2px 0;
 }
 
-.viewport-readout {
-  margin-top: 28px;
-  font-size: 0.75rem;
-  color: var(--footer);
-}
-
 /*
  * On-screen keypad. It is the last child of the #app flex column and sticks
  * to the bottom of whatever scrolls (the viewport normally, #app itself in
