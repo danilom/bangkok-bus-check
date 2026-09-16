@@ -241,7 +241,8 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
     layout: {
       'text-field': ['get', 'name'],
       'text-font': FONT,
-      'text-size': ['interpolate', ['linear'], ['zoom'], 10, 12.5, 15, 15],
+      // The map page's pill is 0.85rem of a 17px root: the labels match it at every zoom.
+      'text-size': 14.5,
       'text-offset': [0, 0.9],
       'text-anchor': 'top',
       'text-max-width': 9,
@@ -250,7 +251,7 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
       'icon-image': LABEL_BOX,
       'icon-text-fit': 'both',
       // The fit already follows the text's offset; an icon offset of its own would double it.
-      'icon-text-fit-padding': [1, 3, 2, 3],
+      'icon-text-fit-padding': [2, 5, 3, 5],
       'icon-anchor': 'center',
       'icon-offset': [0, 0],
       'symbol-sort-key': ['match', ['get', 'rank'], 'terminus', 0, 'major', 1, 2],
@@ -266,8 +267,9 @@ const LABEL_BOX = 'label-box';
 /** The label background: a tiny rounded translucent square the symbol layer stretches to each label. */
 function addLabelBoxImage(map: MapLibreMap): void {
   if (map.hasImage(LABEL_BOX)) return;
-  const size = 8;
-  const radius = 3;
+  // Drawn at 2x so the corners are crisp on phone screens: 12 css px square, 5 css px radius.
+  const size = 24;
+  const radius = 10;
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
@@ -278,7 +280,7 @@ function addLabelBoxImage(map: MapLibreMap): void {
   ctx.roundRect(0, 0, size, size, radius);
   ctx.fill();
   map.addImage(LABEL_BOX, ctx.getImageData(0, 0, size, size), {
-    pixelRatio: 1,
+    pixelRatio: 2,
     stretchX: [[radius, size - radius]],
     stretchY: [[radius, size - radius]],
     content: [radius, radius, size - radius, size - radius],
