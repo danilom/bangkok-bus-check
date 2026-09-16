@@ -89,6 +89,7 @@ export function createRouteMap(container: HTMLElement, initial: RouteMapProps): 
   map.on('load', () => {
     loaded = true;
     addRouteLayers(map, props);
+    addArrowLayer(map, props);
     addStopLayers(map, props);
     addLineBlockers(map);
     addPositionLayers(map, props);
@@ -109,6 +110,7 @@ export function createRouteMap(container: HTMLElement, initial: RouteMapProps): 
         map.setStyle(basemapStyle(props));
         map.once('style.load', () => {
           addRouteLayers(map, props);
+          addArrowLayer(map, props);
           addStopLayers(map, props);
           addLineBlockers(map);
           addPositionLayers(map, props);
@@ -249,6 +251,55 @@ function addRouteLayers(map: MapLibreMap, props: RouteMapProps): void {
 
 /** The selected run's part still to come (the whole run when the user is not on it). */
 const AHEAD: FilterSpecification = ['all', ['get', 'selected'], ['!', ['get', 'passed']]];
+
+const ARROW = 'route-arrow';
+
+/**
+ * Small chevrons along the part of the route ahead, pointing the way the
+ * bus goes. Drawn between the stops and the line: the dots sit on top of
+ * them, and they yield to labels rather than the other way round.
+ */
+function addArrowLayer(map: MapLibreMap, props: RouteMapProps): void {
+  addArrowImage(map);
+  map.addLayer({
+    id: 'route-arrows',
+    type: 'symbol',
+    source: ROUTE_SOURCE,
+    filter: AHEAD,
+    minzoom: 12,
+    layout: {
+      'symbol-placement': 'line',
+      'symbol-spacing': 140,
+      'icon-image': ARROW,
+      'icon-size': ['interpolate', ['linear'], ['zoom'], 12, 0.9, 15, 1.2],
+      'icon-rotation-alignment': 'map',
+      'icon-allow-overlap': true,
+      'icon-ignore-placement': true,
+    },
+  });
+}
+
+/** A white chevron pointing right (the line's direction); white shows on the accent line in both themes. */
+function addArrowImage(map: MapLibreMap): void {
+  if (map.hasImage(ARROW)) return;
+  const scale = 2;
+  const size = 12 * scale;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 2.6 * scale;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(size * 0.32, size * 0.2);
+  ctx.lineTo(size * 0.66, size * 0.5);
+  ctx.lineTo(size * 0.32, size * 0.8);
+  ctx.stroke();
+  map.addImage(ARROW, ctx.getImageData(0, 0, size, size), { pixelRatio: scale });
+}
 
 const LINE_BLOCKER = 'line-blocker';
 
