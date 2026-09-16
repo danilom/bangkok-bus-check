@@ -562,7 +562,7 @@ body {
   display: inline-block;
   width: 1.1em;
   height: 1.1em;
-  border-radius: 3px;
+  border-radius: 50%;
   border: 1px solid var(--border);
 }
 
