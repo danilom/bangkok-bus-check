@@ -1,29 +1,10 @@
-/* Self-hosted so the installed app works offline; variable weight 400–700, Latin and Thai subsets (SIL OFL). */
-@font-face {
-  font-family: 'Noto Sans';
-  font-style: normal;
-  font-weight: 400 700;
-  font-display: swap;
-  src: url('./fonts/NotoSans.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-
-@font-face {
-  font-family: 'Noto Sans Thai';
-  font-style: normal;
-  font-weight: 400 700;
-  font-display: swap;
-  src: url('./fonts/NotoSansThai.woff2') format('woff2');
-  unicode-range: U+02D7, U+0303, U+0331, U+0E01-0E5B, U+200C-200D, U+25CC;
-}
-
 :root {
   color-scheme: light dark;
   --radius: 14px;
   /* Column width on wide screens, matching the reference phone (a 1080px-wide
      Android at 2.5×) so the desktop view keeps its proportions. */
   --page-width: 432px;
-  --font: "Noto Sans", "Noto Sans Thai", system-ui, -apple-system, "Segoe UI", Roboto, "Leelawadee UI", Tahoma, sans-serif;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Thai", "Leelawadee UI", Tahoma, sans-serif;
 
   /* Material 2 palette: neutrals from the Grey swatch; accents below. */
   --bg: #fafafa;
