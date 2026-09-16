@@ -614,6 +614,63 @@ body {
   list-style-position: inside;
 }
 
+.location-button {
+  align-self: flex-start;
+}
+
+.location-explain {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.location-explain p {
+  margin: 0;
+}
+
+.earlier-stops summary {
+  cursor: pointer;
+  color: var(--muted);
+  margin: 8px 4px 0;
+  font-size: 0.9rem;
+}
+
+.stop-list.is-passed {
+  color: var(--muted);
+}
+
+.stop.is-nearest {
+  font-weight: 700;
+  border-left-color: var(--accent);
+}
+
+.stop-distance {
+  color: var(--accent);
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.setting-input {
+  width: 100%;
+  font: inherit;
+  font-size: 0.95rem;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.setting-status {
+  margin: 6px 4px 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 .note-line {
   font-size: 0.9rem;
   color: var(--muted);

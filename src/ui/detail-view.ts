@@ -1,8 +1,17 @@
 import { localize, t, type Lang } from '../lib/i18n.ts';
+import { formatDistance, NEAR_ROUTE_METERS, nearestStop, type Position } from '../lib/location.ts';
 import type { Direction, RouteDetail, RouteSummary, Stop } from '../lib/types.ts';
 import { renderDirectionPill, renderLoopLine, sideAt, type Side } from './direction-pill.ts';
 import { h } from './dom.ts';
 import { renderBadges, renderNumber } from './route-card.ts';
+
+/** Where the location feature stands for this view. */
+export type LocationStatus =
+  | { kind: 'off' }
+  | { kind: 'explaining' }
+  | { kind: 'locating' }
+  | { kind: 'ready'; position: Position }
+  | { kind: 'error'; reason: 'unsupported' | 'denied' | 'unavailable' };
 
 export type DetailStatus =
   | { kind: 'loading' }
@@ -20,6 +29,10 @@ export interface DetailViewProps {
   onSelectSide: (side: Side) => void;
   onBack: () => void;
   onRetry: () => void;
+  location: LocationStatus;
+  /** The location button: first tap explains, then asks. */
+  onLocation: () => void;
+  onLocationDismiss: () => void;
 }
 
 export function renderDetailView(props: DetailViewProps): HTMLElement {
@@ -68,8 +81,9 @@ function renderDetailBody(props: DetailViewProps, detail: RouteDetail): HTMLElem
   return h('div', { class: 'detail-body' }, [
     // Vehicle type first: it is what identifies the bus in front of you.
     detail.vehicles.length > 0 && renderFact(t(lang, 'vehicles'), detail.vehicles.map((vehicle) => localize(lang, vehicle)).join(' · ')),
+    main && renderLocationPanel(props),
     main
-      ? renderStopList(lang, main, detail.stops)
+      ? renderStopList(lang, main, detail.stops, props.location.kind === 'ready' ? props.location.position : undefined)
       : h('p', { class: 'muted', text: t(lang, detail.directions.length === 0 ? 'noDirections' : 'noStops') }),
     others.length > 0 &&
       h('div', { class: 'directions' }, [
@@ -93,12 +107,65 @@ function namedStops(direction: Direction, stops: Record<string, Stop>): Stop[] {
     .filter((stop): stop is Stop => stop !== undefined && stop.name.th.length > 0);
 }
 
-function renderStopList(lang: Lang, direction: Direction, stops: Record<string, Stop>): HTMLElement {
+/**
+ * The button, the one-time explanation, progress and errors for the
+ * location feature. Rendered only when there is a run to trim.
+ */
+function renderLocationPanel(props: DetailViewProps): HTMLElement | false {
+  const { lang, location } = props;
+  if (location.kind === 'ready') return false;
+  if (location.kind === 'off') {
+    return h('button', { class: 'text-button location-button', attrs: { type: 'button' }, text: `\ud83d\udccd ${t(lang, 'locationButton')}`, on: { click: props.onLocation } });
+  }
+  if (location.kind === 'explaining') {
+    return h('div', { class: 'location-explain' }, [
+      h('p', { text: t(lang, 'locationExplain') }),
+      h('div', { class: 'chips' }, [
+        h('button', { class: 'chip is-selected', attrs: { type: 'button' }, text: t(lang, 'locationUse'), on: { click: props.onLocation } }),
+        h('button', { class: 'chip', attrs: { type: 'button' }, text: t(lang, 'notNow'), on: { click: props.onLocationDismiss } }),
+      ]),
+    ]);
+  }
+  if (location.kind === 'locating') return h('p', { class: 'muted', text: t(lang, 'locating') });
+  const key = location.reason === 'denied' ? 'locationDenied' : location.reason === 'unsupported' ? 'locationUnsupported' : 'locationUnavailable';
+  return h('div', { class: 'location-explain' }, [
+    h('p', { class: 'muted', text: t(lang, key) }),
+    location.reason !== 'unsupported' && h('button', { class: 'text-button', attrs: { type: 'button' }, text: t(lang, 'retry'), on: { click: props.onLocation } }),
+  ]);
+}
+
+/**
+ * The run's stops, in travel order. With a position, stops already passed
+ * collapse behind "n earlier stops" and the nearest one is marked with its
+ * distance; a position far from the route shows the full list and says so.
+ */
+function renderStopList(lang: Lang, direction: Direction, stops: Record<string, Stop>, position?: Position): HTMLElement {
   const named = namedStops(direction, stops);
   if (named.length === 0) return h('p', { class: 'muted', text: t(lang, 'noStops') });
+  const nearest = position ? nearestStop(named, position) : undefined;
+  const item = (stop: Stop, index: number): HTMLElement => {
+    const isNearest = nearest !== undefined && index === nearest.index;
+    return h('li', { class: isNearest ? 'stop is-nearest' : 'stop', attrs: { value: String(index + 1) } }, [
+      localize(lang, stop.name),
+      isNearest && h('span', { class: 'stop-distance', text: ` · ${t(lang, 'nearestStop')}, ${formatDistance(nearest.meters)}` }),
+    ]);
+  };
+  if (!nearest || nearest.meters > NEAR_ROUTE_METERS) {
+    return h('div', { class: 'stops-panel' }, [
+      h('p', { class: 'direction-count', text: `${direction.stops.length} ${t(lang, 'stops')}` }),
+      nearest && h('p', { class: 'muted', text: `${t(lang, 'farFromRoute')} ${formatDistance(nearest.meters)} ${t(lang, 'awayFull')}` }),
+      h('ol', { class: 'stop-list' }, named.map(item)),
+    ]);
+  }
+  const earlier = named.slice(0, nearest.index);
   return h('div', { class: 'stops-panel' }, [
     h('p', { class: 'direction-count', text: `${direction.stops.length} ${t(lang, 'stops')}` }),
-    h('ol', { class: 'stop-list' }, named.map((stop) => h('li', { class: 'stop', text: localize(lang, stop.name) }))),
+    earlier.length > 0 &&
+      h('details', { class: 'earlier-stops' }, [
+        h('summary', { text: `${earlier.length} ${t(lang, 'earlierStops')}` }),
+        h('ol', { class: 'stop-list is-passed' }, earlier.map(item)),
+      ]),
+    h('ol', { class: 'stop-list' }, named.slice(nearest.index).map((stop, offset) => item(stop, nearest.index + offset))),
   ]);
 }
 

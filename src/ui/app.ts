@@ -1,9 +1,10 @@
 import { loadDetail, loadIndex } from '../lib/data.ts';
 import { detectLang, t, type Lang } from '../lib/i18n.ts';
+import { requestPosition, type Position } from '../lib/location.ts';
 import { findRoutes } from '../lib/matcher.ts';
-import { formatHash, loadAccent, loadLang, loadRecent, loadTheme, pushRecent, readHash, saveAccent, saveLang, saveTheme, type Accent, type Theme } from '../lib/state.ts';
+import { formatHash, loadAccent, loadLang, loadLocationEnabled, loadRecent, loadSimulatedLocation, loadTheme, pushRecent, readHash, saveAccent, saveLang, saveLocationEnabled, saveSimulatedLocation, saveTheme, type Accent, type Theme } from '../lib/state.ts';
 import type { RouteIndex, RouteSummary } from '../lib/types.ts';
-import { renderDetailView, type DetailStatus } from './detail-view.ts';
+import { renderDetailView, type DetailStatus, type LocationStatus } from './detail-view.ts';
 import type { Side } from './direction-pill.ts';
 import { h, replaceChildren } from './dom.ts';
 import { keypadEnabled, renderKeypad, testViewport } from './keypad.ts';
@@ -25,6 +26,10 @@ interface AppState {
   details: Map<string, DetailStatus>;
   expandedDirections: Set<string>;
   recent: string[];
+  /** User opted in to location on route pages (settings / first-use prompt). */
+  locationEnabled: boolean;
+  location: LocationStatus;
+  simulatedLocation: Position | undefined;
 }
 
 /**
@@ -60,9 +65,13 @@ export function createApp(root: HTMLElement): void {
     details: new Map(),
     expandedDirections: new Set(),
     recent: loadRecent(),
+    locationEnabled: loadLocationEnabled(),
+    location: { kind: 'off' },
+    simulatedLocation: loadSimulatedLocation(),
   };
   if (initial.routeId) state.routeId = initial.routeId;
   const useKeypad = keypadEnabled(location.search, matchMedia('(pointer: coarse)').matches);
+  const testMode = new URLSearchParams(location.search).has('test');
   const viewport = testViewport(location.search);
   if (viewport) {
     root.classList.add(`test-${viewport}`);
@@ -131,6 +140,9 @@ export function createApp(root: HTMLElement): void {
   function openRoute(route: RouteSummary, side: Side = 0): void {
     state.routeId = route.id;
     state.side = side;
+    // A fresh fix per route opened; a fix from a minute ago is reused by the browser anyway.
+    if (state.locationEnabled) void locate();
+    else state.location = { kind: 'off' };
     state.recent = pushRecent(state.recent, route.number);
     history.pushState(null, '', formatHash({ query: state.query, routeId: route.id, side }));
     void ensureDetail(route.id);
@@ -179,6 +191,51 @@ export function createApp(root: HTMLElement): void {
     state.accent = accent;
     saveAccent(accent);
     render();
+  }
+
+  /** First tap explains; a tap on "Use location" (or a later tap, once enabled) asks the device. */
+  function onLocation(): void {
+    if (!state.locationEnabled && state.location.kind !== 'explaining') {
+      state.location = { kind: 'explaining' };
+      render();
+      return;
+    }
+    if (!state.locationEnabled) {
+      state.locationEnabled = true;
+      saveLocationEnabled(true);
+    }
+    void locate();
+  }
+
+  function onLocationDismiss(): void {
+    state.location = { kind: 'off' };
+    render();
+  }
+
+  async function locate(): Promise<void> {
+    state.location = { kind: 'locating' };
+    render();
+    if (testMode && state.simulatedLocation) {
+      state.location = { kind: 'ready', position: state.simulatedLocation };
+      render();
+      return;
+    }
+    const result = await requestPosition();
+    state.location = result.ok ? { kind: 'ready', position: result.position } : { kind: 'error', reason: result.reason };
+    render();
+  }
+
+  function setLocationEnabled(enabled: boolean): void {
+    state.locationEnabled = enabled;
+    saveLocationEnabled(enabled);
+    if (!enabled) state.location = { kind: 'off' };
+    render();
+  }
+
+  function setSimulatedLocation(position: Position | undefined): void {
+    state.simulatedLocation = position;
+    saveSimulatedLocation(position);
+    if (state.location.kind === 'ready') state.location = { kind: 'off' };
   }
 
   function toggleLang(): void {
@@ -232,7 +289,19 @@ export function createApp(root: HTMLElement): void {
         h('button', { class: 'text-button', attrs: { type: 'button' }, text: t(lang, 'retry'), on: { click: () => void boot() } }),
       ]);
     }
-    if (state.settings) return renderSettingsView({ lang, theme: state.theme, accent: state.accent, onTheme: setTheme, onAccent: setAccent, onBack: closeSettings });
+    if (state.settings) {
+      return renderSettingsView({
+        lang,
+        theme: state.theme,
+        accent: state.accent,
+        onTheme: setTheme,
+        onAccent: setAccent,
+        onBack: closeSettings,
+        locationEnabled: state.locationEnabled,
+        onLocationEnabled: setLocationEnabled,
+        ...(testMode ? { simulated: { position: state.simulatedLocation, onChange: setSimulatedLocation } } : {}),
+      });
+    }
     if (!index) return h('p', { class: 'muted', text: t(lang, 'loading') });
     const openRouteSummary = state.routeId === undefined ? undefined : index.routes.find((route) => route.id === state.routeId);
     if (openRouteSummary) {
@@ -245,6 +314,9 @@ export function createApp(root: HTMLElement): void {
         onSelectSide: selectSide,
         onBack: closeRoute,
         onRetry: () => void ensureDetail(openRouteSummary.id),
+        location: state.location,
+        onLocation,
+        onLocationDismiss,
       });
     }
     return state.query.trim() ? renderResults(index) : renderRecent();
@@ -288,7 +360,10 @@ export function createApp(root: HTMLElement): void {
     const result = await loadIndex();
     if (result.ok) state.index = result.value;
     else state.indexError = result.error;
-    if (state.routeId) void ensureDetail(state.routeId);
+    if (state.routeId) {
+      void ensureDetail(state.routeId);
+      if (state.locationEnabled) void locate();
+    }
     render();
     if (!state.routeId && !state.settings) focusInput();
   }
@@ -299,8 +374,10 @@ export function createApp(root: HTMLElement): void {
     state.settings = next.settings ?? false;
     state.side = next.side ?? 0;
     if (next.routeId) {
+      const changed = state.routeId !== next.routeId;
       state.routeId = next.routeId;
       void ensureDetail(next.routeId);
+      if (state.locationEnabled && changed) void locate();
     } else {
       delete state.routeId;
     }

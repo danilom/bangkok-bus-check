@@ -5,6 +5,7 @@
  */
 
 import type { Lang } from './i18n.ts';
+import type { Position } from './location.ts';
 
 export type Theme = 'system' | 'light' | 'dark';
 export type Accent = 'blue' | 'green' | 'purple' | 'orange' | 'red' | 'gray';
@@ -42,6 +43,8 @@ export function formatHash(state: HashState): string {
 }
 
 const LANG_KEY = 'bbc.lang';
+const LOCATION_KEY = 'bbc.location';
+const SIMULATED_LOCATION_KEY = 'bbc.simulatedLocation';
 const THEME_KEY = 'bbc.theme';
 const ACCENT_KEY = 'bbc.accent';
 const RECENT_KEY = 'bbc.recent';
@@ -74,6 +77,35 @@ export function saveAccent(accent: Accent): void {
   write(ACCENT_KEY, accent);
 }
 
+/** Whether the details page may ask for the phone's position. Off until the user opts in. */
+export function loadLocationEnabled(): boolean {
+  return read(LOCATION_KEY) === 'on';
+}
+
+export function saveLocationEnabled(enabled: boolean): void {
+  write(LOCATION_KEY, enabled ? 'on' : 'off');
+}
+
+/** Test aid: a position pasted into settings, used instead of the real one. */
+export function loadSimulatedLocation(): Position | undefined {
+  const raw = read(SIMULATED_LOCATION_KEY);
+  if (!raw) return undefined;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed === 'object' && parsed !== null && typeof (parsed as Position).lat === 'number' && typeof (parsed as Position).lon === 'number') {
+      return { lat: (parsed as Position).lat, lon: (parsed as Position).lon };
+    }
+  } catch {
+    // Corrupt storage: treat as unset.
+  }
+  return undefined;
+}
+
+export function saveSimulatedLocation(position: Position | undefined): void {
+  if (position) write(SIMULATED_LOCATION_KEY, JSON.stringify(position));
+  else remove(SIMULATED_LOCATION_KEY);
+}
+
 export function loadRecent(): string[] {
   const raw = read(RECENT_KEY);
   if (!raw) return [];
@@ -98,6 +130,14 @@ function read(key: string): string | null {
     return localStorage.getItem(key);
   } catch {
     return null;
+  }
+}
+
+function remove(key: string): void {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // Best-effort, as with write.
   }
 }
 
