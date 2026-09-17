@@ -126,11 +126,8 @@ function renderStopsSlot(props: DetailViewProps, detail: RouteDetail | undefined
 function stopsHeader(props: DetailViewProps, count: HTMLElement, withMap = true, toggle?: HTMLElement | false): HTMLElement {
   const { lang } = props;
   return h('div', { class: 'stops-header' }, [
-    count,
-    h('div', { class: 'stops-actions' }, [
-      toggle,
-      withMap && h('button', { class: 'text-button stops-toggle map-button', attrs: { type: 'button' }, on: { click: () => props.onMap() } }, [mapIcon(), t(lang, 'map')]),
-    ]),
+    h('div', { class: 'stops-count' }, [count, toggle]),
+    withMap && h('button', { class: 'text-button map-button', attrs: { type: 'button' }, on: { click: () => props.onMap() } }, [mapIcon(), t(lang, 'map')]),
   ]);
 }
 
@@ -324,7 +321,7 @@ function renderStopList(props: DetailViewProps, direction: Direction, stops: Rec
       props,
       h('span', { class: 'direction-count', text: countLine(lang, upcoming.length, prominent.size, onRoute, condensed && !props.showAllStops) }),
       direction.shape !== undefined,
-      condensed && h('button', { class: 'text-button stops-toggle', attrs: { type: 'button' }, text: t(lang, props.showAllStops ? 'showFewerStops' : 'showAllStops'), on: { click: props.onToggleAllStops } }),
+      condensed && h('button', { class: 'link-button stops-toggle', attrs: { type: 'button' }, text: t(lang, props.showAllStops ? 'showFewerStops' : 'showAllStops'), on: { click: props.onToggleAllStops } }),
     ),
     hailAndRide > 0 && renderHailAndRide(lang, hailAndRide, true),
     earlier.length > 0 &&

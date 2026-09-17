@@ -528,16 +528,27 @@ body {
   gap: 8px;
 }
 
-.stops-actions {
+/* The count and the show-all link together on the left; the toggle is a link, the secondary action here. */
+.stops-count {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  min-width: 0;
+}
+
+.link-button {
+  font: inherit;
+  color: var(--accent);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .stops-toggle {
-  min-height: 32px;
-  padding: 2px 12px;
   font-size: 0.85rem;
 }
 
@@ -971,11 +982,15 @@ body {
 }
 
 /* Rightmost in the stops header: under the thumb of a right hand holding the phone. */
+/* The map is the route page's main action: the one filled button on the row, on the right. */
 .map-button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-weight: 600;
+  flex-shrink: 0;
+  background: var(--accent-soft);
+  border-color: var(--accent);
 }
 
 .location-button {
