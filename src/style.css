@@ -962,7 +962,8 @@ body {
   filter: invert(var(--map-icon-invert));
 }
 
-.map-canvas .maplibregl-ctrl-attrib {
+/* .maplibregl-ctrl is repeated for specificity: MapLibre's compact-attribution rule loads later and would keep its white. */
+.map-canvas .maplibregl-ctrl.maplibregl-ctrl-attrib {
   background: var(--surface);
   color: var(--muted);
   border: 1px solid var(--map-control-border);
@@ -1206,6 +1207,11 @@ body {
   padding: 20px 0 16px;
   font-size: 0.75rem;
   color: var(--footer);
+}
+
+/* No footer, no space for it: the board's map page has none, and Bus Check's is empty until the index arrives. */
+.footer:empty {
+  display: none;
 }
 
 .footer-line {
