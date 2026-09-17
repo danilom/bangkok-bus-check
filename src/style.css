@@ -686,6 +686,15 @@ body {
   gap: 12px;
 }
 
+/* What follows the front sign sits closer to it. */
+.front-sign + .detail-actions {
+  margin-top: -4px;
+}
+
+.detail-actions:empty {
+  display: none;
+}
+
 .direction,
 /* Openable panels on the route page ("Front sign (Thai)", "Notes (Thai)"): a quiet heading with the marker, then a boxed body. */
 .disclosure > summary {
