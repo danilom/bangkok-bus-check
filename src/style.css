@@ -829,9 +829,11 @@ body {
   gap: 12px;
 }
 
-/* The card's number line at the card's size; badges are not shown here. */
+/* The card's number line at the card's size; badges are not shown here. Tight line box and a nudge up so the digits centre on the Back button. */
 .map-title {
   min-width: 0;
+  line-height: 1.1;
+  margin-top: -3px;
 }
 
 .map-title .badges {
