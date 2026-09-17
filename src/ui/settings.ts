@@ -34,12 +34,12 @@ export function renderOnOff(lang: Lang, label: string, current: boolean, onPick:
   return renderChoice(label, [false, true] as const, current, (on) => t(lang, on ? 'on' : 'off'), onPick);
 }
 
-/** A pointer to the other app: a plain link with a one-line description. */
+/** A pointer to the other app, its own section: a link that opens in a new tab, with a one-line description. */
 export function renderSeeAlso(label: string, name: string, description: string, href: string): HTMLElement {
   return h('div', { class: 'setting' }, [
-    h('p', { class: 'setting-label', text: label }),
-    h('a', { class: 'see-also', attrs: { href } }, [
-      h('span', { class: 'see-also-name', text: name }),
+    h('h2', { class: 'settings-title', text: label }),
+    h('a', { class: 'see-also', attrs: { href, target: '_blank', rel: 'noopener' } }, [
+      h('span', { class: 'see-also-name', text: `${name} ↗` }),
       h('span', { class: 'see-also-description', text: description }),
     ]),
   ]);

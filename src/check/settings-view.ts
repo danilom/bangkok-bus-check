@@ -33,7 +33,7 @@ export function renderSettingsView(props: SettingsViewProps): HTMLElement {
 /** Only with a ?test param: aids for exercising location on a desktop. */
 function renderTestSection(lang: Lang, simulated: { position: Position | undefined; onChange: (position: Position | undefined) => void; onClear: () => void }): HTMLElement {
   return h('div', { class: 'test-section' }, [
-    h('h3', { class: 'settings-subtitle', text: t(lang, 'testSection') }),
+    h('h2', { class: 'settings-title', text: t(lang, 'testSection') }),
     renderSimulatedLocation(lang, simulated),
     h('div', { class: 'setting' }, [
       h('button', { class: 'chip', attrs: { type: 'button' }, text: t(lang, 'clearLocation'), on: { click: simulated.onClear } }),

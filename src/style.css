@@ -1095,7 +1095,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin: 0 4px;
+  margin: 8px 4px 0;
   color: inherit;
   text-decoration: none;
 }
@@ -1108,12 +1108,6 @@ body {
 .see-also-description {
   color: var(--muted);
   font-size: 0.9rem;
-}
-
-.settings-subtitle {
-  margin: 0;
-  font-size: 0.95rem;
-  color: var(--muted);
 }
 
 .location-explain {
