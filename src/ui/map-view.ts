@@ -639,6 +639,7 @@ function fitToRoute(map: MapLibreMap, props: RouteMapProps): void {
     maxLat = Math.max(maxLat, lat);
   }
   const bounds: LngLatBoundsLike = [[minLon, minLat], [maxLon, maxLat]];
-  // Room for the termini's label cards, which sit outside their dots on whichever side is free.
-  map.fitBounds(bounds, { padding: { top: 56, bottom: 64, left: 76, right: 76 }, duration: 0, maxZoom: 15 });
+  // With names on, room for the termini's label cards, which sit outside their dots on whichever side is free.
+  const padding = props.labels ? { top: 56, bottom: 64, left: 76, right: 76 } : 40;
+  map.fitBounds(bounds, { padding, duration: 0, maxZoom: 15 });
 }
