@@ -828,7 +828,8 @@ body {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 10px 16px;
+  /* The card's right margin matches the bar's top and bottom. */
+  padding: 10px 10px 10px 16px;
   padding-top: max(10px, env(safe-area-inset-top));
 }
 
