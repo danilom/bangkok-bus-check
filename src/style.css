@@ -389,7 +389,7 @@ body {
 .route-number {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
@@ -413,7 +413,7 @@ body {
 .number-former {
   display: inline-flex;
   align-items: baseline;
-  gap: 4px;
+  gap: 3px;
   font-size: 1.3rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
