@@ -11,7 +11,7 @@
  */
 
 import { isVanNumber, isZoneNumber, pickPrimaryNumber } from '../src/lib/route-number.ts';
-import { simplify } from './lib/geometry.ts';
+import { metersBetween, simplify, type LonLat } from './lib/geometry.ts';
 import { displayPlace, LOOP_LEFT, LOOP_PREFIX, LOOP_RIGHT, placeVariants, stripLoopMarkers } from './lib/places.ts';
 import type { Direction, LocalizedText, LoopSide, Route, RouteDataset, ServiceFlags, SourceAgreement, Stop } from '../src/lib/types.ts';
 import type { GtfsFeed, GtfsRoute, GtfsTrip } from './sources/gtfs.ts';
@@ -453,6 +453,22 @@ function namedEnds(trip: GtfsTrip): [LocalizedText, LocalizedText] {
   return [named[0]?.name ?? { th: '' }, named.at(-1)?.name ?? { th: '' }];
 }
 
+/**
+ * The feed occasionally gives both directions of a route one shape (1-8,
+ * 3-47), drawn one way. A shape that ends nearer the run's first stop than
+ * it starts is backwards for that run and is reversed: the line then runs
+ * the right way, though it is still the other direction's road path.
+ */
+export function orientedShape(trip: GtfsTrip): LonLat[] {
+  const shape = trip.shape ?? [];
+  const first = trip.stops.find((stop) => stop.lat !== undefined && stop.lon !== undefined);
+  const start = shape[0];
+  const end = shape.at(-1);
+  if (!first || first.lat === undefined || first.lon === undefined || !start || !end) return shape;
+  const origin: LonLat = [first.lon, first.lat];
+  return metersBetween(end, origin) < metersBetween(start, origin) ? [...shape].reverse() : shape;
+}
+
 function toDirection(trip: GtfsTrip, origin: 0 | 1 | undefined, variant: boolean): Direction {
   const [first, last] = namedEnds(trip);
   const direction: Direction = {
@@ -464,7 +480,7 @@ function toDirection(trip: GtfsTrip, origin: 0 | 1 | undefined, variant: boolean
   };
   if (trip.headsign) direction.headsign = trip.headsign;
   if (origin !== undefined) direction.origin = origin;
-  if (trip.shape) direction.shape = simplify(trip.shape, SHAPE_TOLERANCE_METERS);
+  if (trip.shape) direction.shape = simplify(orientedShape(trip), SHAPE_TOLERANCE_METERS);
   return direction;
 }
 

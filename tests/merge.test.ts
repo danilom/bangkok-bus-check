@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { mergeRoutes, operatorKey, terminusSimilarity } from '../scripts/merge.ts';
+import { mergeRoutes, operatorKey, orientedShape, terminusSimilarity } from '../scripts/merge.ts';
 import type { GtfsFeed, GtfsRoute, GtfsTrip } from '../scripts/sources/gtfs.ts';
 import type { WikiParseResult, WikiRoute } from '../scripts/sources/wikipedia.ts';
 import type { Stop } from '../src/lib/types.ts';
@@ -46,6 +46,16 @@ function wiki(routes: WikiRoute[] = [], mapping: [string, string[]][] = []): Wik
 const A = stop('บ้านเอื้ออาทรบึงกุ่ม', 'Buengkum');
 const MID = stop('สยาม', 'Siam');
 const B = stop('ท่ารถสะพานพุทธ', 'Saphan Phut Bus Station');
+
+describe('orientedShape', () => {
+  it('reverses a shape drawn towards the run first stop (the feed sometimes shares one shape between directions)', () => {
+    const a: Stop = { id: 'a', name: { th: 'A' }, lat: 13.7, lon: 100.5 };
+    const b: Stop = { id: 'b', name: { th: 'B' }, lat: 13.9, lon: 100.6 };
+    const shape: [number, number][] = [[100.5, 13.7], [100.55, 13.8], [100.6, 13.9]];
+    assert.deepEqual(orientedShape({ tripId: 't', directionId: 0, stops: [a, b], shape }), shape);
+    assert.deepEqual(orientedShape({ tripId: 't', directionId: 1, stops: [b, a], shape }), [...shape].reverse());
+  });
+});
 
 describe('mergeRoutes', () => {
   it('builds a route from the feed with a main run per side, decided by headsign', () => {
