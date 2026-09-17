@@ -403,8 +403,8 @@ function stopFeatures(props: RouteMapProps): FeatureCollection<Point> {
       type: 'Feature',
       properties: {
         id: stop.id,
-        // The destination's label is styled like the pill's selected half, with an arrow: an end, not a start.
-        name: index === named.length - 1 ? `→ ${localize(props.lang, stop.name)}` : localize(props.lang, stop.name),
+        // The destination's label is styled like the pill's selected half, with a drawn arrow before it: an end, not a start.
+        name: localize(props.lang, stop.name),
         destination: index === named.length - 1,
         rank,
         index: index + 1,
@@ -426,6 +426,7 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
   addLabelBoxImage(map, LABEL_BOX, props.dark, props.dark ? '#3a3a3a' : '#d6d6d6');
   addLabelBoxImage(map, LABEL_BOX_NEAREST, props.dark, props.accent);
   addLabelBoxImage(map, LABEL_BOX_DESTINATION, props.dark, props.accent, props.accentSoft);
+  addDestinationArrowImage(map, props.accent);
   map.addSource(STOPS_SOURCE, { type: 'geojson', data: stopFeatures(props) });
   map.addLayer({
     id: 'stops-dot',
@@ -480,7 +481,8 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
     filter,
     minzoom,
     layout: {
-      'text-field': ['get', 'name'],
+      // The destination's name is preceded by a drawn arrow (the glyph packs' arrows have small heads).
+      'text-field': ['case', ['get', 'destination'], ['format', ['image', DEST_ARROW], {}, ' ', {}, ['get', 'name'], {}], ['get', 'name']],
       // The nearest stop's label: medium weight on an accent-bordered card.
       'text-font': ['case', ['any', ['get', 'emphasised'], ['get', 'destination']], ['literal', FONT_MEDIUM], ['literal', FONT]],
       // The map page's pill is 0.85rem of a 17px root: the labels match it at every zoom.
@@ -514,6 +516,37 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
 const LABEL_BOX = 'label-box';
 const LABEL_BOX_NEAREST = 'label-box-nearest';
 const LABEL_BOX_DESTINATION = 'label-box-destination';
+const DEST_ARROW = 'destination-arrow';
+
+/** An arrow with a proper head, drawn in the accent, placed inline before the destination's name. */
+function addDestinationArrowImage(map: MapLibreMap, accent: string): void {
+  if (map.hasImage(DEST_ARROW)) map.removeImage(DEST_ARROW);
+  const scale = 2;
+  const w = 15 * scale;
+  const h = 12 * scale;
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  ctx.strokeStyle = accent;
+  ctx.fillStyle = accent;
+  ctx.lineWidth = 2 * scale;
+  ctx.lineCap = 'round';
+  // Shaft.
+  ctx.beginPath();
+  ctx.moveTo(1 * scale, h / 2);
+  ctx.lineTo(8.5 * scale, h / 2);
+  ctx.stroke();
+  // Head: a filled triangle taking the right half.
+  ctx.beginPath();
+  ctx.moveTo(7 * scale, 1.5 * scale);
+  ctx.lineTo(14 * scale, h / 2);
+  ctx.lineTo(7 * scale, h - 1.5 * scale);
+  ctx.closePath();
+  ctx.fill();
+  map.addImage(DEST_ARROW, ctx.getImageData(0, 0, w, h), { pixelRatio: scale });
+}
 
 /**
  * The label background: a small card in the app's terms (surface colour,
