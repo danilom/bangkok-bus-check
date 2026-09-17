@@ -1012,7 +1012,7 @@ body {
   min-height: 44px;
   padding: 6px 18px;
   margin-top: 4px;
-  border: 2px solid var(--accent);
+  border: 1.5px solid var(--accent);
 }
 
 .map-button svg {
