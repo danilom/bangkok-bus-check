@@ -618,11 +618,12 @@ body {
   font-size: 0.85rem;
 }
 
+/* Badges in a row, wrapping right-aligned when the number line leaves no room. */
 .badges {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px 6px;
 }
 
 .near-stop {
