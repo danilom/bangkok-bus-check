@@ -45,15 +45,41 @@ export function fanLegs(stop: BoardStop, routes: readonly RouteSummary[], detail
   return colourLegs(legs);
 }
 
-/** One hue per route, spaced evenly in the order of each route's first (lowest-bearing) leg. */
+/** The hue wheel is used this far round: the first and the last route must not both come out red. */
+const HUE_SPAN = 330;
+
+/**
+ * One hue per route, spaced evenly in the order of each route's first
+ * (lowest-bearing) leg. The order starts after the widest gap in bearing
+ * between neighbours, so the rainbow's two ends face a direction no bus
+ * leaves in rather than each other.
+ */
 function colourLegs(legs: Omit<FanLeg, 'hue'>[]): FanLeg[] {
   const firstBearing = new Map<string, number>();
   for (const leg of legs) firstBearing.set(leg.routeId, Math.min(firstBearing.get(leg.routeId) ?? Infinity, leg.bearing));
-  const order = [...firstBearing.entries()].sort(([, a], [, b]) => a - b).map(([routeId]) => routeId);
-  const hues = new Map(order.map((routeId, index) => [routeId, (index / order.length) * 360]));
+  const byBearing = [...firstBearing.entries()].sort(([, a], [, b]) => a - b);
+  const order = rotateToWidestGap(byBearing).map(([routeId]) => routeId);
+  const hues = new Map(order.map((routeId, index) => [routeId, (index / order.length) * HUE_SPAN]));
+  // In rainbow order, so the chips read as one too.
   return legs
     .map((leg) => ({ ...leg, hue: hues.get(leg.routeId) ?? 0 }))
-    .sort((a, b) => a.bearing - b.bearing);
+    .sort((a, b) => a.hue - b.hue || a.bearing - b.bearing);
+}
+
+/** The bearings, sorted, rotated to begin just past the widest gap between neighbours (the wrap-around gap included). */
+function rotateToWidestGap(sorted: [string, number][]): [string, number][] {
+  if (sorted.length < 2) return sorted;
+  let start = 0;
+  let widest = -1;
+  sorted.forEach(([, bearing], index) => {
+    const previous = sorted.at(index - 1)?.[1] ?? bearing;
+    const gap = (bearing - previous + 360) % 360;
+    if (gap > widest) {
+      widest = gap;
+      start = index;
+    }
+  });
+  return [...sorted.slice(start), ...sorted.slice(0, start)];
 }
 
 /**

@@ -37,7 +37,7 @@ describe('pointAlong', () => {
 });
 
 describe('fanLegs', () => {
-  it('orders legs clockwise from north and spaces their hues evenly', () => {
+  it('orders legs clockwise from north; hues start past the widest gap and stop short of a full turn', () => {
     const details = new Map<string, RouteDetail>([
       ['north', detail('north', [[100.49, 13.75], [100.5, 13.75], [100.5, 13.8]])],
       ['east', detail('east', [[100.49, 13.75], [100.5, 13.75], [100.55, 13.75]])],
@@ -45,7 +45,8 @@ describe('fanLegs', () => {
     ]);
     const legs = fanLegs(stop, ['north', 'east', 'south'].map(summary), details);
     assert.deepEqual(legs.map((leg) => leg.routeId), ['north', 'east', 'south']);
-    assert.deepEqual(legs.map((leg) => leg.hue), [0, 120, 240]);
+    // The widest gap is south round to north (180°), so north starts the wheel; 330° shared by three.
+    assert.deepEqual(legs.map((leg) => leg.hue), [0, 110, 220]);
   });
 
   it('starts each leg at the stop, not at the run’s origin', () => {
