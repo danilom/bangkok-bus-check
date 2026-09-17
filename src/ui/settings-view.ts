@@ -12,6 +12,8 @@ export interface SettingsViewProps {
   onBack: () => void;
   locationEnabled: boolean;
   onLocationEnabled: (enabled: boolean) => void;
+  vansEnabled: boolean;
+  onVansEnabled: (enabled: boolean) => void;
   /** Test mode only: a pasted position that replaces the real one. */
   simulated?: { position: Position | undefined; onChange: (position: Position | undefined) => void; onClear: () => void };
 }
@@ -27,6 +29,7 @@ export function renderSettingsView(props: SettingsViewProps): HTMLElement {
     renderChoice(t(lang, 'theme'), THEMES, props.theme, (theme) => t(lang, THEME_LABELS[theme]), props.onTheme),
     renderChoice(t(lang, 'accent'), ACCENTS, props.accent, (accent) => t(lang, ACCENT_LABELS[accent]), props.onAccent, true),
     renderChoice(t(lang, 'locationSetting'), [false, true] as const, props.locationEnabled, (on) => t(lang, on ? 'on' : 'off'), props.onLocationEnabled),
+    renderChoice(t(lang, 'vansSetting'), [false, true] as const, props.vansEnabled, (on) => t(lang, on ? 'on' : 'off'), props.onVansEnabled),
     props.simulated && renderTestSection(lang, props.simulated),
   ]);
 }

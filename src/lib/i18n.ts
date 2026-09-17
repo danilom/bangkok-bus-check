@@ -76,6 +76,7 @@ const STRINGS = {
   showAllStops: { en: 'Show all stops', th: 'แสดงป้ายทั้งหมด' },
   showFewerStops: { en: 'Show fewer stops', th: 'แสดงป้ายน้อยลง' },
   locationSetting: { en: 'Location on route pages', th: 'ตำแหน่งในหน้าเส้นทาง' },
+  vansSetting: { en: 'Vans in results (experimental)', th: 'รถตู้ในผลการค้นหา (ทดลอง)' },
   off: { en: 'Off', th: 'ปิด' },
   on: { en: 'On', th: 'เปิด' },
   testSection: { en: 'Test', th: 'ทดสอบ' },

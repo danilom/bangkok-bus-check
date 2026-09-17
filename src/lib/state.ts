@@ -61,6 +61,7 @@ const SIMULATED_LOCATION_KEY = 'bbc.simulatedLocation';
 const THEME_KEY = 'bbc.theme';
 const FRONT_SIGN_KEY = 'bbc.frontSign';
 const MAP_LABELS_KEY = 'bbc.mapLabels';
+const VANS_KEY = 'bbc.vans';
 const ACCENT_KEY = 'bbc.accent';
 const RECENT_KEY = 'bbc.recent';
 const MAX_RECENT = 8;
@@ -102,6 +103,15 @@ export function loadLocationEnabled(): boolean {
 
 export function saveLocationEnabled(enabled: boolean): void {
   write(LOCATION_KEY, enabled ? 'on' : 'off');
+}
+
+/** Van lines in search results: off unless switched on (experimental; vans rarely show a readable number). */
+export function loadVansEnabled(): boolean {
+  return read(VANS_KEY) === 'on';
+}
+
+export function saveVansEnabled(enabled: boolean): void {
+  write(VANS_KEY, enabled ? 'on' : 'off');
 }
 
 /** Stop names on the map: shown unless hidden once. */

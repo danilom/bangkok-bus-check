@@ -2,7 +2,7 @@ import { loadDetail, loadIndex } from '../lib/data.ts';
 import { detectLang, t, type Lang } from '../lib/i18n.ts';
 import { requestPosition, type Position } from '../lib/location.ts';
 import { findRoutes } from '../lib/matcher.ts';
-import { formatHash, loadAccent, loadFrontSignOpen, loadLang, loadMapLabels, loadLocationAccepted, loadLocationEnabled, loadRecent, loadSimulatedLocation, loadTheme, pushRecent, readHash, saveAccent, saveFrontSignOpen, saveLang, saveMapLabels, saveLocationAccepted, saveLocationEnabled, saveSimulatedLocation, saveTheme, type Accent, type Theme } from '../lib/state.ts';
+import { formatHash, loadAccent, loadFrontSignOpen, loadLang, loadMapLabels, loadVansEnabled, loadLocationAccepted, loadLocationEnabled, loadRecent, loadSimulatedLocation, loadTheme, pushRecent, readHash, saveAccent, saveFrontSignOpen, saveLang, saveMapLabels, saveVansEnabled, saveLocationAccepted, saveLocationEnabled, saveSimulatedLocation, saveTheme, type Accent, type Theme } from '../lib/state.ts';
 import type { RouteDetail, RouteIndex, RouteSummary } from '../lib/types.ts';
 import { renderDetailView, type DetailStatus, type LocationStatus } from './detail-view.ts';
 import { renderDirectionPill, type Side } from './direction-pill.ts';
@@ -29,6 +29,8 @@ interface AppState {
   recent: string[];
   /** Route pages may offer location (settings toggle; on by default). */
   locationEnabled: boolean;
+  /** Van lines appear in results (settings toggle; off by default). */
+  vansEnabled: boolean;
   /** The user has accepted the explanation once; fixes are then automatic. */
   locationAccepted: boolean;
   location: LocationStatus;
@@ -100,6 +102,7 @@ export function createApp(root: HTMLElement): void {
     expandedDirections: new Set(),
     recent: loadRecent(),
     locationEnabled: loadLocationEnabled(),
+    vansEnabled: loadVansEnabled(),
     locationAccepted: loadLocationAccepted(),
     location: { kind: 'off' },
     simulatedLocation: loadSimulatedLocation(),
@@ -286,6 +289,12 @@ export function createApp(root: HTMLElement): void {
     render();
   }
 
+  function setVansEnabled(enabled: boolean): void {
+    state.vansEnabled = enabled;
+    saveVansEnabled(enabled);
+    render();
+  }
+
   function setLocationEnabled(enabled: boolean): void {
     state.locationEnabled = enabled;
     saveLocationEnabled(enabled);
@@ -462,6 +471,8 @@ export function createApp(root: HTMLElement): void {
         onBack: closeSettings,
         locationEnabled: state.locationEnabled,
         onLocationEnabled: setLocationEnabled,
+        vansEnabled: state.vansEnabled,
+        onVansEnabled: setVansEnabled,
         ...(testMode ? { simulated: { position: state.simulatedLocation, onChange: setSimulatedLocation, onClear: clearLocation } } : {}),
       });
     }
@@ -499,7 +510,8 @@ export function createApp(root: HTMLElement): void {
 
   function renderResults(index: RouteIndex): HTMLElement {
     const { lang } = state;
-    const matches = findRoutes(index.routes, state.query);
+    // Vans rarely show a readable number, so by default they stay out of the results; the data and their pages remain.
+    const matches = findRoutes(state.vansEnabled ? index.routes : index.routes.filter((route) => !route.service.van), state.query);
     if (matches.length === 0) return h('p', { class: 'empty', text: `${t(lang, 'noMatch')} “${state.query.trim()}”` });
     const truncated = matches.some((match) => match.tier === 'prefix');
     return h('div', { class: 'results' }, [

@@ -145,6 +145,12 @@ Data-source status, reliability checks and product backlog. Last revised 2026-09
 - [x] Phase 2: map — feed shapes, MapLibre + self-hosted Protomaps tiles;
       route line, stops and landmarks labelled, position dot, pill in the
       top bar. Needs WebGL2 (says so when unavailable).
+- [ ] Vans: hidden from results by default (Settings → "Vans in results",
+      experimental). Field check: numbers are rarely visible on the vehicle.
+      The useful van feature is a different shape — where am I, what departs
+      from here, big Thai destination boards — i.e. the reverse lookup below,
+      with vans as the motivating case. Decide after a last real-world look
+      whether to drop the toggle or build that.
 - [ ] Map popup: "stop 16 of 64" is filler. Candidates for that line: the
       other routes serving the stop (the reverse lookup, needs a stop→routes
       index), distance from the user, or the next landmark ahead.
