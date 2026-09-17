@@ -881,17 +881,19 @@ body {
   filter: invert(var(--map-icon-invert));
 }
 
-/* The stop-names button; struck through when names are hidden. */
-.map-canvas .bbc-labels-button {
+/* The stop-names button: lit in the accent like a selected pill half when names are on; plain and struck through when off. */
+.map-canvas .maplibregl-ctrl-group button.bbc-labels-button {
   font: inherit;
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--text);
+  color: var(--accent);
+  background-color: var(--accent-soft);
 }
 
-.map-canvas .bbc-labels-button.is-off {
+.map-canvas .maplibregl-ctrl-group button.bbc-labels-button.is-off {
   text-decoration: line-through;
   color: var(--muted);
+  background-color: transparent;
 }
 
 /* The tap popup: unlike the label cards, it is accent-bordered with an accent tip, so it reads as an answer to a tap. */
