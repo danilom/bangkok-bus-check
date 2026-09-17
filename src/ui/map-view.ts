@@ -499,7 +499,8 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
       'icon-image': ['case', ['get', 'destination'], LABEL_BOX_DESTINATION, ['get', 'emphasised'], LABEL_BOX_NEAREST, LABEL_BOX],
       'icon-text-fit': 'both',
       // The fit already follows the text's offset; an icon offset of its own would double it.
-      'icon-text-fit-padding': [3, 7, 4, 7],
+      // Slightly less on the left so the destination's arrow sits close to the card's edge.
+      'icon-text-fit-padding': [3, 7, 4, 5],
       'icon-anchor': 'center',
       'icon-offset': [0, 0],
       // Only the text is collision-tested: the fitted box is evaluated at the anchor, not where the text went.
