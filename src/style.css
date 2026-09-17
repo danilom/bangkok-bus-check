@@ -7,11 +7,11 @@
   --font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Thai", "Leelawadee UI", Tahoma, sans-serif;
 
   /* Material 2 palette: neutrals from the Grey swatch; accents below. */
-  --bg: #fafafa;
+  --bg: #f2f2f2;
   --surface: #ffffff;
   --text: #212121;
   --muted: #757575;
-  --border: #e0e0e0;
+  --border: #d9d9d9;
   --chip: #eeeeee;
   /* Map controls: MapLibre's icons are black; inverted on dark. */
   --map-icon-invert: 0;

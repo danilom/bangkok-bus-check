@@ -83,7 +83,7 @@ function applyAppearance(theme: Theme, accent: Accent): void {
   else html.dataset['theme'] = theme;
   html.dataset['accent'] = accent;
   const dark = theme === 'dark' || (theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#121212' : '#fafafa');
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#121212' : '#f2f2f2');
 }
 
 export function createApp(root: HTMLElement): void {
