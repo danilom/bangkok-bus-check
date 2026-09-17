@@ -125,7 +125,7 @@ const BADGES: [keyof ServiceFlags, StringKey][] = [
   ['van', 'badgeVan'],
   ['expressway', 'badgeExpressway'],
   ['night', 'badgeNight'],
-  ['extra', 'badgeExtra'],
+  // `extra` (supplementary trips) stays in the data but not on cards: not actionable at the kerb, and noisy.
   ['airport', 'badgeAirport'],
   ['suburban', 'badgeSuburban'],
 ];
