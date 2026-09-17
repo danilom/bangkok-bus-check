@@ -24,7 +24,7 @@ export function renderNumber(lang: Lang, route: RouteSummary, matchedAlias?: str
     h('div', { class: 'title-aside' }, [
       renderBadges(lang, route),
       // Like "formerly 73": a whispered label and the value.
-      nearMeters !== undefined && h('span', { class: 'near-stop' }, [h('span', { class: 'near-stop-label', text: `${t(lang, 'nearestStopCard')} ` }), h('span', { class: 'near-stop-value', text: formatDistance(nearMeters) })]),
+      nearMeters !== undefined && h('span', { class: 'near-stop' }, [h('span', { class: 'near-stop-label', text: `${t(lang, 'nearestStopCard')} ` }), ...distanceParts(nearMeters)]),
     ]),
   ]);
 }
@@ -35,6 +35,12 @@ export function renderBadges(lang: Lang, route: RouteSummary): HTMLElement | fal
   const warning = agreementBadge(lang, route.agreement);
   if (warning) badges.unshift(h('span', { class: 'badge badge-warning', text: warning }));
   return badges.length > 0 && h('div', { class: 'badges' }, badges);
+}
+
+/** "350 m" as a number and a small unit ("1.2 km" happens: the cut-off is 1.5 km). */
+function distanceParts(meters: number): HTMLElement[] {
+  const [value = '', unit = ''] = formatDistance(meters).split(' ');
+  return [h('span', { class: 'near-stop-value', text: value }), h('span', { class: 'near-stop-unit', text: unit })];
 }
 
 /** A filled crescent, tilted like the usual night-mode icon; takes the badge's text colour. */

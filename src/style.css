@@ -644,6 +644,11 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+.near-stop-unit {
+  font-size: 0.7rem;
+  margin-left: 1px;
+}
+
 /* Grey chips: quiet, so the filled match highlight on the number stays the one thing that pops. */
 .badge {
   color: var(--muted);
