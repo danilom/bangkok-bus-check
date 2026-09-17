@@ -403,8 +403,8 @@ function stopFeatures(props: RouteMapProps): FeatureCollection<Point> {
       type: 'Feature',
       properties: {
         id: stop.id,
-        name: localize(props.lang, stop.name),
-        // The destination's label is styled like the pill's selected half.
+        // The destination's label is styled like the pill's selected half, with a small chevron: an end, not a start.
+        name: index === named.length - 1 ? `› ${localize(props.lang, stop.name)}` : localize(props.lang, stop.name),
         destination: index === named.length - 1,
         rank,
         index: index + 1,
