@@ -642,7 +642,6 @@ body {
 .near-stop-value {
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--text);
   font-variant-numeric: tabular-nums;
 }
 
