@@ -11,10 +11,10 @@ import { h, replaceChildren } from '../ui/dom.ts';
 import type { RouteMap, RouteMapProps } from '../ui/map-view.ts';
 import { renderNumber, renderRouteCard } from '../ui/route-card.ts';
 import { createTopbar } from '../ui/topbar.ts';
-import { fitTestViewport, trackVisibleHeight } from '../ui/viewport.ts';
+import { applyTestViewport, testViewport, trackVisibleHeight } from '../ui/viewport.ts';
 import { renderDetailView, type DetailStatus, type LocationStatus } from './detail-view.ts';
 import { formatHash, readHash } from './hash.ts';
-import { keypadEnabled, renderKeypad, testViewport } from './keypad.ts';
+import { keypadEnabled, renderKeypad } from './keypad.ts';
 import { renderSettingsView } from './settings-view.ts';
 
 interface AppState {
@@ -81,11 +81,7 @@ export function createApp(root: HTMLElement): void {
   const testMode = new URLSearchParams(location.search).has('test');
   const viewport = testViewport(location.search);
   if (!viewport) trackVisibleHeight();
-  if (viewport) {
-    root.classList.add(`test-${viewport}`);
-    fitTestViewport(root);
-    window.addEventListener('resize', () => fitTestViewport(root));
-  }
+  if (viewport) applyTestViewport(root, viewport);
 
   const input = h('input', {
     class: 'search-input',

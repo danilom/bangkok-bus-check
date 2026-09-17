@@ -1,6 +1,7 @@
 import type { Lang } from '../lib/i18n.ts';
 import { t } from '../lib/i18n.ts';
 import { h } from '../ui/dom.ts';
+import { testViewport } from '../ui/viewport.ts';
 
 export interface KeypadHandlers {
   onDigit: (digit: string) => void;
@@ -60,15 +61,4 @@ export function keypadEnabled(search: string, coarsePointer: boolean): boolean {
   if (override === '1' || override === 'true') return true;
   if (override === '0' || override === 'false') return false;
   return coarsePointer || testViewport(search) !== undefined;
-}
-
-export type TestViewport = 'phone' | 'phone-full';
-
-/**
- * `?test=phone` sizes the page like the reference phone's browser viewport;
- * `?test=phone-full` like the viewport when launched from the home screen.
- */
-export function testViewport(search: string): TestViewport | undefined {
-  const value = new URLSearchParams(search).get('test');
-  return value === 'phone' || value === 'phone-full' ? value : undefined;
 }

@@ -1287,8 +1287,17 @@ body {
 
 /*
  * Board app: the map fills the page under the header, full bleed; the hint
- * and the stop card float over its bottom edge.
+ * and the stop card float over its bottom edge. On anything but a phone the
+ * page takes the whole window; the settings keep the phone width.
  */
+#app.is-wide {
+  max-width: none;
+}
+
+#app.is-wide .settings {
+  max-width: var(--page-width);
+}
+
 .is-board .main {
   display: flex;
   flex-direction: column;
@@ -1340,6 +1349,7 @@ body {
 
 .board-card {
   width: 100%;
+  max-width: 480px;
   box-sizing: border-box;
   background: var(--surface);
   border: 1px solid var(--border);

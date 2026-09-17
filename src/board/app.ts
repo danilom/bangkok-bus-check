@@ -6,7 +6,7 @@ import { applyAppearance, isDark } from '../ui/appearance.ts';
 import { renderBuildLine } from '../ui/build-info.ts';
 import { h, replaceChildren } from '../ui/dom.ts';
 import { createTopbar } from '../ui/topbar.ts';
-import { trackVisibleHeight } from '../ui/viewport.ts';
+import { applyTestViewport, testViewport, trackVisibleHeight } from '../ui/viewport.ts';
 import type { BoardMap, BoardMapProps } from './board-map.ts';
 import { renderStopCard, type FanStatus } from './card.ts';
 import { fanLegs } from './fan.ts';
@@ -49,7 +49,13 @@ export function createApp(root: HTMLElement): void {
     zoom: 0,
     fit: 0,
   };
-  trackVisibleHeight();
+  // A map wants the whole window: the phone-width page is for phones (and the ?test=phone box).
+  const viewport = testViewport(location.search);
+  if (viewport) applyTestViewport(root, viewport);
+  else {
+    trackVisibleHeight();
+    root.classList.toggle('is-wide', !matchMedia('(pointer: coarse)').matches);
+  }
 
   const topbar = createTopbar(openSettings, toggleLang);
   const content = h('div', { class: 'content board-content' });

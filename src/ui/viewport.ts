@@ -22,3 +22,21 @@ export function fitTestViewport(root: HTMLElement): void {
   const scale = Math.min(1, (innerHeight - margin) / root.offsetHeight, (innerWidth - margin) / root.offsetWidth);
   root.style.setProperty('--test-scale', String(scale));
 }
+
+export type TestViewport = 'phone' | 'phone-full';
+
+/**
+ * `?test=phone` sizes the page like the reference phone's browser viewport;
+ * `?test=phone-full` like the viewport when launched from the home screen.
+ */
+export function testViewport(search: string): TestViewport | undefined {
+  const value = new URLSearchParams(search).get('test');
+  return value === 'phone' || value === 'phone-full' ? value : undefined;
+}
+
+/** Boxes the page to the test viewport, scaled to fit the window. */
+export function applyTestViewport(root: HTMLElement, viewport: TestViewport): void {
+  root.classList.add(`test-${viewport}`);
+  fitTestViewport(root);
+  window.addEventListener('resize', () => fitTestViewport(root));
+}
