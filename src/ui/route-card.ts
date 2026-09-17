@@ -24,11 +24,26 @@ export function renderNumber(lang: Lang, route: RouteSummary, matchedAlias?: str
 }
 
 export function renderBadges(lang: Lang, route: RouteSummary): HTMLElement | false {
-  const badges = serviceBadges(lang, route.service).map((badge) => h('span', { class: 'badge', text: badge }));
+  const badges = serviceBadges(lang, route.service).map(({ flag, label }) => h('span', { class: 'badge' }, [flag === 'night' && moonIcon(), label]));
   // The data warning outranks the service badges: it goes first.
   const warning = agreementBadge(lang, route.agreement);
   if (warning) badges.unshift(h('span', { class: 'badge badge-warning', text: warning }));
   return badges.length > 0 && h('div', { class: 'badges' }, badges);
+}
+
+/** A filled crescent, tilted like the usual night-mode icon; takes the badge's text colour. */
+function moonIcon(): SVGElement {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('class', 'badge-icon');
+  svg.setAttribute('aria-hidden', 'true');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  // A circle with a smaller circle cut from its upper right, rotated 40° clockwise.
+  path.setAttribute('d', 'M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z');
+  path.setAttribute('fill', 'currentColor');
+  path.setAttribute('transform', 'rotate(40 12 12)');
+  svg.append(path);
+  return svg;
 }
 
 export interface RouteCardProps {

@@ -628,6 +628,13 @@ body {
 }
 
 /* The data warning is the one badge that should be louder. */
+.badge-icon {
+  width: 0.9em;
+  height: 0.9em;
+  vertical-align: -0.1em;
+  margin-right: 3px;
+}
+
 .badge-warning {
   background: var(--warning);
   color: var(--text);

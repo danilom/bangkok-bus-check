@@ -33,8 +33,7 @@ const STRINGS = {
   switchLang: { en: 'ไทย', th: 'EN' },
   moreRoutes: { en: 'Type more digits to narrow down.', th: 'พิมพ์ตัวเลขเพิ่มเพื่อค้นหาให้แคบลง' },
   badgeExpressway: { en: 'Expressway', th: 'ทางด่วน' },
-  // A text moon (U+263E), not the colour emoji, so it takes the badge's colour.
-  badgeNight: { en: '☾ All night', th: '☾ ตลอดคืน' },
+  badgeNight: { en: 'All night', th: 'ตลอดคืน' },
   badgeExtra: { en: 'Extra', th: 'เสริม' },
   badgeAirport: { en: 'Airport', th: 'สนามบิน' },
   badgeSuburban: { en: 'Suburban', th: 'ชานเมือง' },
@@ -123,8 +122,8 @@ const BADGES: [keyof ServiceFlags, StringKey][] = [
   ['suburban', 'badgeSuburban'],
 ];
 
-export function serviceBadges(lang: Lang, service: ServiceFlags): string[] {
-  return BADGES.filter(([flag]) => service[flag]).map(([, key]) => t(lang, key));
+export function serviceBadges(lang: Lang, service: ServiceFlags): { flag: keyof ServiceFlags; label: string }[] {
+  return BADGES.filter(([flag]) => service[flag]).map(([flag, key]) => ({ flag, label: t(lang, key) }));
 }
 
 /** Data-quality badges: shown so a stale or single-source answer never looks authoritative. */
