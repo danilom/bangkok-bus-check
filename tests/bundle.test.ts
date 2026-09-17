@@ -78,4 +78,18 @@ describe('bundleLegs', () => {
     assert.deepEqual(first, ['A', 'B', 'C']);
     assert.deepEqual(second, ['B', 'C']);
   });
+
+  it('lays an express leg that skips a stop onto the bundles along its road', () => {
+    // X runs s0 → north without calling at s1; its shape is the same straight road.
+    const strands = bundle([run('B', ['s0', 's1', 'north']), run('C', ['s0', 's1', 'north']), run('X', ['s0', 'north'])]);
+    const express = strands.filter((strand) => strand.leg.routeId === 'X').map((strand) => strand.key).sort();
+    assert.deepEqual(express, ['s0>s1', 's1>north']);
+    assert.equal(strands.find((strand) => strand.key === 's0>s1')?.count, 3);
+  });
+
+  it('leaves a lone leg alone when no bundle runs its road', () => {
+    const strands = bundle([run('B', ['s0', 's1', 'north']), run('C', ['s0', 's1', 'north']), run('S', ['s0', 'south'])]);
+    const lone = strands.filter((strand) => strand.leg.routeId === 'S');
+    assert.deepEqual(lone.map((strand) => strand.key), ['s0>south']);
+  });
 });
