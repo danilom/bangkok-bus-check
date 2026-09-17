@@ -67,6 +67,21 @@ export interface NearestStop {
 }
 
 /** Index of the stop closest to the position among those with coordinates; ties go to the earlier stop. */
+/** Metres to the closest of a route's named stops across its main runs, for "nearest stop 350 m" on a card. */
+export function nearestRouteStop(detail: { directions: { variant: boolean; stops: string[] }[]; stops: Record<string, Stop> }, position: Position): number | undefined {
+  let best: number | undefined;
+  for (const direction of detail.directions) {
+    if (direction.variant) continue;
+    for (const id of direction.stops) {
+      const stop = detail.stops[id];
+      if (!stop || stop.lat === undefined || stop.lon === undefined || stop.name.th.length === 0) continue;
+      const meters = distanceMeters(position, { lat: stop.lat, lon: stop.lon });
+      if (best === undefined || meters < best) best = meters;
+    }
+  }
+  return best;
+}
+
 export function nearestStop(stops: readonly Stop[], position: Position): NearestStop | undefined {
   let best: NearestStop | undefined;
   stops.forEach((stop, index) => {

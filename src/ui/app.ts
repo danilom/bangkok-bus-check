@@ -1,6 +1,6 @@
 import { loadDetail, loadIndex } from '../lib/data.ts';
 import { detectLang, t, type Lang } from '../lib/i18n.ts';
-import { requestPosition, type Position } from '../lib/location.ts';
+import { NEAR_ROUTE_METERS, nearestRouteStop, requestPosition, type Position } from '../lib/location.ts';
 import { findRoutes } from '../lib/matcher.ts';
 import { formatHash, loadAccent, loadFrontSignOpen, loadLang, loadMapLabels, loadVansEnabled, loadLocationAccepted, loadLocationEnabled, loadRecent, loadSimulatedLocation, loadTheme, pushRecent, readHash, saveAccent, saveFrontSignOpen, saveLang, saveMapLabels, saveVansEnabled, saveLocationAccepted, saveLocationEnabled, saveSimulatedLocation, saveTheme, type Accent, type Theme } from '../lib/state.ts';
 import type { RouteDetail, RouteIndex, RouteSummary } from '../lib/types.ts';
@@ -514,10 +514,33 @@ export function createApp(root: HTMLElement): void {
     const matches = findRoutes(state.vansEnabled ? index.routes : index.routes.filter((route) => !route.service.van), state.query);
     if (matches.length === 0) return h('p', { class: 'empty', text: `${t(lang, 'noMatch')} “${state.query.trim()}”` });
     const truncated = matches.some((match) => match.tier === 'prefix');
+    const position = state.locationEnabled && state.location.kind === 'ready' ? state.location.position : undefined;
+    // Results also want a fix (for the nearest-stop distance); once accepted, fixes are automatic, as on route pages.
+    if (!position && state.locationEnabled && state.locationAccepted && state.location.kind === 'off') void locate();
     return h('div', { class: 'results' }, [
-      ...matches.map((match) => renderRouteCard({ lang, match, onOpen: openRoute })),
+      ...matches.map((match) => {
+        const near = position ? nearMeters(match.route.id, position) : undefined;
+        return renderRouteCard({ lang, match, onOpen: openRoute, ...(near !== undefined ? { nearMeters: near } : {}) });
+      }),
       truncated && h('p', { class: 'muted hint', text: t(lang, 'moreRoutes') }),
     ]);
+  }
+
+  /**
+   * "nearest stop 350 m" for a results card: exact, from the route file,
+   * fetched on demand for the cards on screen (the service worker keeps it,
+   * and it is the file the next tap needs). Undefined until loaded or when
+   * the route is farther than the route page's own on-route limit.
+   */
+  function nearMeters(routeId: string, position: Position): number | undefined {
+    const status = state.details.get(routeId);
+    if (!status) {
+      void ensureDetail(routeId);
+      return undefined;
+    }
+    if (status.kind !== 'ready') return undefined;
+    const meters = nearestRouteStop(status.detail, position);
+    return meters !== undefined && meters <= NEAR_ROUTE_METERS ? meters : undefined;
   }
 
   function renderRecent(): HTMLElement {

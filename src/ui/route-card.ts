@@ -1,4 +1,5 @@
 import { agreementBadge, localize, serviceBadges, t, type Lang } from '../lib/i18n.ts';
+import { formatDistance } from '../lib/location.ts';
 import type { RouteMatch } from '../lib/matcher.ts';
 import type { RouteSummary, Vehicle } from '../lib/types.ts';
 import { renderDirectionPill, renderLoopLine, sideAt, type Side } from './direction-pill.ts';
@@ -6,7 +7,7 @@ import { h } from './dom.ts';
 
 /** The number as on the bus, with former numbers small; the matched alias is highlighted. */
 /** The title row: number, former numbers, and the badges right-aligned in the space the row has left. */
-export function renderNumber(lang: Lang, route: RouteSummary, matchedAlias?: string): HTMLElement {
+export function renderNumber(lang: Lang, route: RouteSummary, matchedAlias?: string, nearMeters?: number): HTMLElement {
   const former = route.formerNumbers.filter((number) => number !== route.number);
   return h('div', { class: 'route-number' }, [
     // A van is not the bus of the same number: say so in the title itself.
@@ -19,7 +20,11 @@ export function renderNumber(lang: Lang, route: RouteSummary, matchedAlias?: str
           h('span', { class: `number-former-item${matchedAlias === number ? ' is-match' : ''}`, text: index < former.length - 1 ? `${number}, ` : number }),
         ),
       ]),
-    renderBadges(lang, route),
+    // Badges and the nearest-stop distance share the right-hand column.
+    h('div', { class: 'title-aside' }, [
+      renderBadges(lang, route),
+      nearMeters !== undefined && h('span', { class: 'near-stop', text: t(lang, 'nearestStopCard').replace('{d}', formatDistance(nearMeters)) }),
+    ]),
   ]);
 }
 
@@ -52,11 +57,13 @@ function moonIcon(): SVGElement {
 export interface RouteCardProps {
   lang: Lang;
   match: RouteMatch;
+  /** Metres to the route's nearest stop, when location is on and it is within reach; shown on the title row. */
+  nearMeters?: number;
   /** Opens the route; `side` is set when a direction half was tapped. */
   onOpen: (route: RouteSummary, side?: Side) => void;
 }
 
-export function renderRouteCard({ lang, match, onOpen }: RouteCardProps): HTMLElement {
+export function renderRouteCard({ lang, match, onOpen, nearMeters }: RouteCardProps): HTMLElement {
   const { route } = match;
   const card = h(
     'article',
@@ -75,7 +82,7 @@ export function renderRouteCard({ lang, match, onOpen }: RouteCardProps): HTMLEl
       },
     },
     [
-      renderNumber(lang, route, match.alias),
+      renderNumber(lang, route, match.alias, nearMeters),
       renderLoopLine(lang, route),
       renderDirectionPill({ lang, route, onSelect: (side) => onOpen(route, side) }),
       renderMeta(lang, route, false),
