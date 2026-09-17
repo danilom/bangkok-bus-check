@@ -527,9 +527,9 @@ const DEST_ARROW = 'destination-arrow';
 function addDestinationArrowImage(map: MapLibreMap, accent: string): void {
   if (map.hasImage(DEST_ARROW)) map.removeImage(DEST_ARROW);
   const scale = 2;
-  const w = 14 * scale;
+  const w = 13 * scale;
   const h = 14 * scale;
-  const mid = 5.5 * scale;
+  const mid = 7 * scale;
   const halfHead = 4 * scale;
   const canvas = document.createElement('canvas');
   canvas.width = w;
@@ -542,14 +542,14 @@ function addDestinationArrowImage(map: MapLibreMap, accent: string): void {
   ctx.lineCap = 'round';
   // Shaft.
   ctx.beginPath();
-  ctx.moveTo(1 * scale, mid);
-  ctx.lineTo(7.5 * scale, mid);
+  ctx.moveTo(0, mid);
+  ctx.lineTo(6.5 * scale, mid);
   ctx.stroke();
   // Head: a filled triangle.
   ctx.beginPath();
-  ctx.moveTo(6.5 * scale, mid - halfHead);
-  ctx.lineTo(13 * scale, mid);
-  ctx.lineTo(6.5 * scale, mid + halfHead);
+  ctx.moveTo(5.5 * scale, mid - halfHead);
+  ctx.lineTo(12 * scale, mid);
+  ctx.lineTo(5.5 * scale, mid + halfHead);
   ctx.closePath();
   ctx.fill();
   map.addImage(DEST_ARROW, ctx.getImageData(0, 0, w, h), { pixelRatio: scale });
