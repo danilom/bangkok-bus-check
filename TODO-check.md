@@ -1,5 +1,10 @@
 
 
+[ ] User testing insight: map button not obvious. 
+    It's logcal, but not prominent. Explore alternatives.
+
+[ ] How does "open in new tab" behave in standalone mode?
+
 [x] Bug: on Android full screen, pressing the back button leads to an empty page
     -- firefox bug, not an issue in Chrome
 

@@ -35,9 +35,26 @@ in `src/lib/i18n.ts` (`boardName`, `boardTagline`, `boardBlurb`), the folder
   their first ~500 m from the stop and assign hues around the wheel in that
   order, so lines leaving the same way get neighbouring colours and the fan
   reads as a rainbow. Route numbers as line-placed labels.
+- **Colours in OKLCH, one set per basemap** (`src/board/colour.ts`,
+  `legColour`): HSL at fixed numbers glared at yellow/cyan and went dull at
+  blue. Dark map L 0.76 C 0.12, light map L 0.52 C 0.17; chroma gives way
+  when a hue does not fit sRGB.
+- **Taps never move the map.** The user may be studying the block or about
+  to tap a neighbour. The card's "Zoom to all" button fits all routes (or
+  the singled-out route), and turns into "Zoom to stop". The one
+  exception: opening the page on a stop from the URL fits its fan, there
+  being no view to protect yet. Considered and dropped: double-tap (fights
+  MapLibre's double-tap zoom, and delays every single tap) and long-press
+  (undiscoverable, fights the phone's context menu; maybe a bonus later).
 - **Per stop, not per road.** A stop is one kerb; the twin across the road is
   a later refinement (no pairing rule exists yet).
-- **Stops shown from about zoom 13**, with a hint to zoom in below that.
+- **Stops shown from zoom 13**, with a hint at the top of the map below
+  that, showing the current zoom and the threshold (`zoom-hint.ts`).
+- **Own icon**: the same bus in the green accent (`public/icons/board-*`),
+  so the two apps tell apart on a home screen. Made by hue-shifting the
+  purple set; no source file, redo the shift if the bus changes.
+- **Settings → Test → Viewport** switches between the window and the
+  `?test=phone` / `?test=phone-full` boxes (a reload); shown on desktops.
 - **Hash `#<stopId>`** (`#s2369`) with Bus Check's stop ids, so a jump between the apps
   is possible later.
 - **Reliability tiers** (below): `confirmed` + `official` drawn by default.
@@ -95,14 +112,15 @@ badge; that is the "curated shared data" idea, alongside the landmark rules.
        its destination and an "Open in Bus Check ↗" link (`src/board/card.ts`)
 
 First working version 2026-09-17. Not yet judged on a phone. Known rough
-edges: the fitted overview of a busy stop (30 routes, some 40 km long) is
-citywide and the stop itself is small in it; the card takes ~40% of a
-phone screen; loops and termini draw the whole run; the map's attribution
+edges: a busy stop's fan at street zoom is mostly lines running off the
+edges, and zoomed out to all of them (30 routes, some 40 km long) the view
+is citywide — the fans themselves are due a rethink; the card takes ~40% of
+a phone screen; loops and termini draw the whole run; the map's attribution
 control hides behind the card.
 
-Later, if it earns it: focus on the user's location; twin stops across the
-road; incoming vs outgoing look for loops and termini; landmarks as labels;
-a jump from Bus Check's map to here.
+The backlog, including the "later, if it earns it" ideas (user's location,
+twin stops, incoming vs outgoing for loops, landmarks, a jump from Bus
+Check's map), is in [TODO-board.md](TODO-board.md).
 
 ## Working notes
 

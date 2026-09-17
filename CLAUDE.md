@@ -64,9 +64,12 @@ What does: code whose wrong answer still looks like an answer.
 ## Git
 
 - Commits should be atomic. Keep the descriptions brief.
+- Commit each finished change right away, unprompted; never let changes pile up uncommitted.
+- Preserve a file's line endings (the repo is mixed CRLF/LF); a wholesale ending change makes every line a diff.
 - Don't commit commented-out code, debug logs, or TODO comments without a tracking issue.
 
 ## Project notes
 
 - README.md describes the data pipeline and the site layout (two apps, one build).
 - BOARD.md holds the working notes for the Bangkok Bus Board experiment (`/board/`): decisions, status, next steps. Update it when you change course there.
+- TODO-check.md and TODO-board.md are the two apps' backlogs (the data pipeline's items are in TODO-check.md).
