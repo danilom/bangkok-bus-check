@@ -618,9 +618,16 @@ body {
   font-size: 0.85rem;
 }
 
-/* Badges in a row, wrapping right-aligned when the number line leaves no room. */
+/* Badges stack; with the distance line beneath them they go on one row so the column stays at two lines. */
 .badges {
   display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.title-aside.has-distance .badges {
+  flex-direction: row;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 4px 6px;

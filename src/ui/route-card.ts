@@ -21,7 +21,7 @@ export function renderNumber(lang: Lang, route: RouteSummary, matchedAlias?: str
         ),
       ]),
     // Badges and the nearest-stop distance share the right-hand column.
-    h('div', { class: 'title-aside' }, [
+    h('div', { class: nearMeters !== undefined ? 'title-aside has-distance' : 'title-aside' }, [
       renderBadges(lang, route),
       nearMeters !== undefined && h('span', { class: 'near-stop', text: t(lang, 'nearestStopCard').replace('{d}', formatDistance(nearMeters)) }),
     ]),
