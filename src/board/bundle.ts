@@ -18,15 +18,24 @@ export interface Hop {
   coordinates: LonLat[];
 }
 
+/** A place in a bundle: slot 0 is leftmost in the direction of travel; `count` members in all. */
+export interface Slot {
+  slot: number;
+  count: number;
+}
+
 /** A leg's stretch of one bundle: drawn on the bundle's geometry, offset by its slot. */
-export interface Strand {
+export interface Strand extends Slot {
   leg: FanLeg;
   key: string;
   coordinates: LonLat[];
-  /** 0 = leftmost in the direction of travel. */
-  slot: number;
-  /** Members of this bundle. */
-  count: number;
+  /**
+   * A taper piece: the offset is blended `factor` of the way from this
+   * strand's slot to `towards` (the next strand's, or the centreline where
+   * the leg leaves the stop), so strands slide between bundles and fan out
+   * of the stop instead of jumping.
+   */
+  blend?: { towards: Slot; factor: number };
 }
 
 /** How far into a hop its direction is judged, for the turn at a divergence. */
@@ -52,14 +61,64 @@ export function bundleLegs(stopId: string, legs: readonly FanLeg[], details: Rea
       members.set(hop.key, list);
     }
   }
-  const strands: Strand[] = [];
+  const slots = new Map<string, Map<LegHops, Slot>>();
   for (const [key, list] of members) {
-    const coordinates = geometry.get(key);
-    if (!coordinates) continue;
     const sorted = [...list].sort((a, b) => (rank.get(a) ?? 0) - (rank.get(b) ?? 0));
-    sorted.forEach((entry, slot) => strands.push({ leg: entry.leg, key, coordinates, slot, count: sorted.length }));
+    slots.set(key, new Map(sorted.map((entry, slot) => [entry, { slot, count: sorted.length }])));
   }
-  return strands;
+  return legHops.flatMap((entry) => {
+    const strands: Strand[] = [];
+    for (const hop of entry.hops) {
+      const coordinates = geometry.get(hop.key);
+      const slot = slots.get(hop.key)?.get(entry);
+      if (coordinates && slot) strands.push({ leg: entry.leg, key: hop.key, coordinates, ...slot });
+    }
+    return taper(strands);
+  });
+}
+
+/** Over how many metres a strand slides from one slot to the next, and out of the stop. */
+const TAPER_METERS = 40;
+/** In how many pieces: each is a straight offset, so more pieces are a smoother slide. */
+const TAPER_PIECES = 4;
+const CENTRE: Slot = { slot: 0, count: 1 };
+
+/** A leg's strands in order, with the taper pieces cut in where the offset changes. */
+function taper(strands: readonly Strand[]): Strand[] {
+  return strands.flatMap((strand, index) => {
+    const next = strands[index + 1];
+    const from = index === 0 ? CENTRE : undefined;
+    const to = next && (next.slot !== strand.slot || next.count !== strand.count) ? { slot: next.slot, count: next.count } : undefined;
+    return cutTapers(strand, from, to);
+  });
+}
+
+/** The strand with its first stretch sliding in from `from` and its last sliding out to `to`, where given. */
+function cutTapers(strand: Strand, from: Slot | undefined, to: Slot | undefined): Strand[] {
+  const line = new MeterLine(strand.coordinates);
+  // Too short to taper at both ends: slide over the whole strand, or not at all.
+  const wanted = (from ? TAPER_METERS : 0) + (to ? TAPER_METERS : 0);
+  const stretch = Math.min(TAPER_METERS, line.length / (wanted / TAPER_METERS || 1));
+  const pieces: Strand[] = [];
+  let cursor = 0;
+  if (from) {
+    for (let i = 0; i < TAPER_PIECES; i += 1) {
+      const end = cursor + stretch / TAPER_PIECES;
+      pieces.push({ ...strand, coordinates: line.slice(cursor, end), blend: { towards: from, factor: 1 - (i + 0.5) / TAPER_PIECES } });
+      cursor = end;
+    }
+  }
+  const middleEnd = to ? line.length - stretch : line.length;
+  if (middleEnd > cursor) pieces.push({ ...strand, coordinates: line.slice(cursor, middleEnd) });
+  cursor = Math.max(cursor, middleEnd);
+  if (to) {
+    for (let i = 0; i < TAPER_PIECES; i += 1) {
+      const end = i === TAPER_PIECES - 1 ? line.length : cursor + stretch / TAPER_PIECES;
+      pieces.push({ ...strand, coordinates: line.slice(cursor, end), blend: { towards: to, factor: (i + 0.5) / TAPER_PIECES } });
+      cursor = end;
+    }
+  }
+  return pieces.filter((piece) => piece.coordinates.length >= 2);
 }
 
 interface LegHops {

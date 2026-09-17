@@ -82,10 +82,24 @@ function stepAt(step: number, ribbon: number): ExpressionSpecification {
   return ['min', step, ['/', ribbon, ['max', 1, ['-', ['get', 'count'], 1]]]];
 }
 
-/** `['zoom']` may only feed a top-level interpolate, so the zoom steps are the outer expression and the slot arithmetic each output. */
+/** A slot's offset from the centreline at one zoom: the slot, centred, times the bundle's step. */
+function offsetAt(slot: string, count: string, step: number, ribbon: number): ExpressionSpecification {
+  const centred: ExpressionSpecification = ['-', ['get', slot], ['/', ['-', ['get', count], 1], 2]];
+  return ['*', centred, ['min', step, ['/', ribbon, ['max', 1, ['-', ['get', count], 1]]]]];
+}
+
+/**
+ * `['zoom']` may only feed a top-level interpolate, so the zoom steps are the
+ * outer expression and the slot arithmetic each output. A taper piece is
+ * `blend` of the way from its own slot's offset to the other's.
+ */
 const STRAND_OFFSET: ExpressionSpecification = [
   'interpolate', ['linear'], ['zoom'],
-  ...STRAND_STEPS.flatMap(([zoom, step, ribbon]) => [zoom, ['*', ['-', ['get', 'slot'], ['/', ['-', ['get', 'count'], 1], 2]], stepAt(step, ribbon)] as ExpressionSpecification]),
+  ...STRAND_STEPS.flatMap(([zoom, step, ribbon]) => [zoom, [
+    '+',
+    ['*', ['-', 1, ['get', 'blend']], offsetAt('slot', 'count', step, ribbon)],
+    ['*', ['get', 'blend'], offsetAt('slot2', 'count2', step, ribbon)],
+  ] as ExpressionSpecification]),
 ];
 
 /**
@@ -187,6 +201,10 @@ function strandFeatures(props: BoardMapProps): FeatureCollection<LineString> {
       faded: props.highlight !== undefined && props.highlight !== strand.leg.routeId,
       slot: strand.slot,
       count: strand.count,
+      // A taper piece blends towards another slot; a plain piece towards itself.
+      slot2: strand.blend?.towards.slot ?? strand.slot,
+      count2: strand.blend?.towards.count ?? strand.count,
+      blend: strand.blend?.factor ?? 0,
     },
     geometry: { type: 'LineString', coordinates: strand.coordinates },
   }));

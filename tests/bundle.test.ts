@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { bundleLegs, turnDegrees } from '../src/board/bundle.ts';
+import { bundleLegs, turnDegrees, type Strand } from '../src/board/bundle.ts';
 import type { FanLeg } from '../src/board/fan.ts';
 import type { LonLat } from '../src/lib/geometry.ts';
 import type { RouteDetail, RouteSummary } from '../src/lib/types.ts';
@@ -34,8 +34,24 @@ function run(id: string, stops: string[]): { leg: FanLeg; detail: RouteDetail } 
   return { leg, detail };
 }
 
-function bundle(runs: { leg: FanLeg; detail: RouteDetail }[]): ReturnType<typeof bundleLegs> {
-  return bundleLegs('s0', runs.map((r) => r.leg), new Map(runs.map((r) => [r.detail.id, r.detail])));
+/** The strands with their taper pieces merged back into one per leg and hop, the geometry joined. */
+function bundle(runs: { leg: FanLeg; detail: RouteDetail }[]): Strand[] {
+  const strands = bundleLegs('s0', runs.map((r) => r.leg), new Map(runs.map((r) => [r.detail.id, r.detail])));
+  const merged: Strand[] = [];
+  for (const piece of strands) {
+    const last = merged.at(-1);
+    if (last && last.leg === piece.leg && last.key === piece.key) {
+      const tail = piece.coordinates.filter((point, index) => index > 0 || !samePoint(point, last.coordinates.at(-1)));
+      last.coordinates = [...last.coordinates, ...tail];
+    } else {
+      merged.push({ leg: piece.leg, key: piece.key, coordinates: [...piece.coordinates], slot: piece.slot, count: piece.count });
+    }
+  }
+  return merged;
+}
+
+function samePoint(a: LonLat, b: LonLat | undefined): boolean {
+  return b !== undefined && Math.abs(a[0] - b[0]) < 1e-9 && Math.abs(a[1] - b[1]) < 1e-9;
 }
 
 describe('turnDegrees', () => {
@@ -54,11 +70,24 @@ describe('bundleLegs', () => {
     assert.deepEqual(shared.map((strand) => strand.count), [3, 3, 3]);
   });
 
-  it('draws every member of a bundle on the same geometry', () => {
+  it('draws every member of a bundle on the same geometry, from the stop to the next', () => {
     const strands = bundle([run('B', ['s0', 's1', 'north']), run('A', ['s0', 's1', 'west'])]);
     const shared = strands.filter((strand) => strand.key === 's0>s1');
     assert.equal(shared.length, 2);
-    assert.deepEqual(shared[0]?.coordinates, shared[1]?.coordinates);
+    const ends = (strand: Strand | undefined): LonLat[] => [strand?.coordinates[0] ?? [0, 0], strand?.coordinates.at(-1) ?? [0, 0]];
+    assert.deepEqual(ends(shared[0]), ends(shared[1]));
+    assert.deepEqual(ends(shared[0]).map((point) => point.map((value) => Math.round(value * 1e6) / 1e6)), [STOPS.s0, STOPS.s1]);
+  });
+
+  it('slides a strand from the centreline out of the stop, and towards its next slot before a divergence', () => {
+    const runs = [run('B', ['s0', 's1', 'north']), run('C', ['s0', 's1', 'east']), run('A', ['s0', 's1', 'west'])];
+    const pieces = bundleLegs('s0', runs.map((r) => r.leg), new Map(runs.map((r) => [r.detail.id, r.detail])));
+    const a = pieces.filter((piece) => piece.leg.routeId === 'A' && piece.key === 's0>s1');
+    assert.deepEqual(a[0]?.blend?.towards, { slot: 0, count: 1 });
+    assert.ok((a[0]?.blend?.factor ?? 0) > 0.5, 'starts nearly at the centreline');
+    assert.deepEqual(a.at(-1)?.blend?.towards, { slot: 0, count: 1 });
+    assert.ok((a.at(-1)?.blend?.factor ?? 0) > 0.5, 'ends nearly in its next, lone, slot');
+    assert.ok(a.some((piece) => piece.blend === undefined), 'has a plain middle');
   });
 
   it('keeps a leg on its own where no other runs its road', () => {
