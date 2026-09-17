@@ -545,7 +545,8 @@ function serviceFlags(key: string, entries: GtfsRoute[], rows: WikiRoute[]): Ser
     expressway: /EX?$/.test(key) || /ทางด่วน/.test(longNames) || categories.has('expressway'),
     night: entries.some((entry) => entry.night) || categories.has('night'),
     extra: /X$/.test(key) || /เส้นทางเสริม|เสริมพิเศษ/.test(notes),
-    airport: /^[AS]\d/.test(key) || /ท่าอากาศยาน|สนามบิน/.test(longNames) || categories.has('airport'),
+    // สนามบินน้ำ (Sanambin Nam, Nonthaburi) is a place name from a 1930s seaplane base, not an airport.
+    airport: /^[AS]\d/.test(key) || /ท่าอากาศยาน|สนามบิน(?!น้ำ)/.test(longNames) || categories.has('airport'),
     suburban: /^\d{4}/.test(key) || categories.has('suburban'),
     van: isVanNumber(key),
   };
