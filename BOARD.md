@@ -69,11 +69,16 @@ members are ordered left to right by where they part (a leg turning left
 sits on the left, recursively from the stop out), and the map offsets each
 strand by its slot (`line-offset`, a zoom-dependent step). A bundle is never
 wider than a ribbon cap per zoom, so twenty routes on one avenue are a
-striped ribbon, not a motorway. Labels and the fits still use the whole
-legs. Known gaps: express legs that skip stops form their own hops (not
-matched into the locals' bundles); strands jog where a bundle's membership
-changes; loops are walked forward only; the strands start with a cut edge
-at the stop.
+striped ribbon, not a motorway. A hop no other leg shares (an express run
+skipping stops) is laid geometrically onto the bundles along its road and
+re-keyed to them. Where a strand's slot changes at the next hop it slides
+over the last 40 m in four pieces (`blend` towards the next slot), and out
+of the stop it slides from the centreline, so the strands fan out of the dot.
+Legs and hops are cut at the stop's projection onto the simplified shape
+(`MeterLine` in `src/lib/geometry.ts`). Labels and the fits still use the
+whole legs. Known gaps: loops are walked forward only; the hue wheel's seam
+puts the first and last routes by bearing both near red; labels sit on the
+centreline, not on their strand.
 
 ## Data reliability
 
