@@ -413,7 +413,7 @@ function stopFeatures(props: RouteMapProps): FeatureCollection<Point> {
         nearest: ahead !== undefined && index === ahead.index,
         // Nearest to the user, or tapped in the list: drawn large with an emphasised label.
         emphasised: (ahead !== undefined && index === ahead.index) || stop.id === props.focusStop,
-        // Tapped in the list: the loudest of the three, a solid accent card.
+        // Tapped in the list: the nearest stop's card with a thick accent outline, like the tap popup.
         focused: stop.id === props.focusStop,
       },
       geometry: { type: 'Point', coordinates: [stop.lon, stop.lat] },
@@ -428,7 +428,7 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
   addLabelBoxImage(map, LABEL_BOX, props.dark, props.dark ? '#3a3a3a' : '#d6d6d6');
   addLabelBoxImage(map, LABEL_BOX_NEAREST, props.dark, props.accent);
   addLabelBoxImage(map, LABEL_BOX_DESTINATION, props.dark, props.accent, props.accentSoft);
-  addLabelBoxImage(map, LABEL_BOX_FOCUS, props.dark, props.accent, props.accent);
+  addLabelBoxImage(map, LABEL_BOX_FOCUS, props.dark, props.accent, undefined, 2.5);
   addDestinationArrowImage(map, props.accent);
   map.addSource(STOPS_SOURCE, { type: 'geojson', data: stopFeatures(props) });
   map.addLayer({
@@ -512,7 +512,7 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
       'symbol-sort-key': ['case', ['get', 'emphasised'], -1, ['match', ['get', 'rank'], 'terminus', 0, 'major', 1, 'listed', 2, 3]],
     },
     paint: {
-      'text-color': ['case', ['get', 'focused'], props.dark ? '#121212' : '#ffffff', ['get', 'destination'], props.accent, props.dark ? '#e0e0e0' : '#212121'],
+      'text-color': ['case', ['get', 'destination'], props.accent, props.dark ? '#e0e0e0' : '#212121'],
     },
   });
 }
@@ -565,7 +565,7 @@ function addDestinationArrowImage(map: MapLibreMap, accent: string): void {
  * 1px border, rounded), drawn at 2x for crisp corners and stretched to each
  * label; the stretch zones keep the border and corners at their size.
  */
-function addLabelBoxImage(map: MapLibreMap, name: string, dark: boolean, border: string, fill?: string): void {
+function addLabelBoxImage(map: MapLibreMap, name: string, dark: boolean, border: string, fill?: string, borderWidth = 1): void {
   if (map.hasImage(name)) map.removeImage(name);
   const scale = 2;
   const radius = 8 * scale;
@@ -577,9 +577,10 @@ function addLabelBoxImage(map: MapLibreMap, name: string, dark: boolean, border:
   if (!ctx) return;
   ctx.fillStyle = fill ?? (dark ? 'rgba(30, 30, 30, 0.6)' : 'rgba(255, 255, 255, 0.6)');
   ctx.strokeStyle = border;
-  ctx.lineWidth = scale;
+  ctx.lineWidth = borderWidth * scale;
+  const inset = (borderWidth * scale) / 2;
   ctx.beginPath();
-  ctx.roundRect(scale / 2, scale / 2, size - scale, size - scale, radius);
+  ctx.roundRect(inset, inset, size - 2 * inset, size - 2 * inset, radius);
   ctx.fill();
   ctx.stroke();
   map.addImage(name, ctx.getImageData(0, 0, size, size), {
