@@ -518,12 +518,19 @@ const LABEL_BOX_NEAREST = 'label-box-nearest';
 const LABEL_BOX_DESTINATION = 'label-box-destination';
 const DEST_ARROW = 'destination-arrow';
 
-/** An arrow with a proper head, drawn in the accent, placed inline before the destination's name. */
+/**
+ * An arrow with a proper head, drawn in the accent, placed inline before the
+ * destination's name. MapLibre sets an inline image's bottom on the text
+ * baseline, so the arrow is drawn in the top of a taller image: the
+ * transparent space beneath lifts it to the middle of the letters.
+ */
 function addDestinationArrowImage(map: MapLibreMap, accent: string): void {
   if (map.hasImage(DEST_ARROW)) map.removeImage(DEST_ARROW);
   const scale = 2;
-  const w = 15 * scale;
-  const h = 12 * scale;
+  const w = 14 * scale;
+  const h = 14 * scale;
+  const mid = 5.5 * scale;
+  const halfHead = 4 * scale;
   const canvas = document.createElement('canvas');
   canvas.width = w;
   canvas.height = h;
@@ -535,14 +542,14 @@ function addDestinationArrowImage(map: MapLibreMap, accent: string): void {
   ctx.lineCap = 'round';
   // Shaft.
   ctx.beginPath();
-  ctx.moveTo(1 * scale, h / 2);
-  ctx.lineTo(8.5 * scale, h / 2);
+  ctx.moveTo(1 * scale, mid);
+  ctx.lineTo(7.5 * scale, mid);
   ctx.stroke();
-  // Head: a filled triangle taking the right half.
+  // Head: a filled triangle.
   ctx.beginPath();
-  ctx.moveTo(7 * scale, 1.5 * scale);
-  ctx.lineTo(14 * scale, h / 2);
-  ctx.lineTo(7 * scale, h - 1.5 * scale);
+  ctx.moveTo(6.5 * scale, mid - halfHead);
+  ctx.lineTo(13 * scale, mid);
+  ctx.lineTo(6.5 * scale, mid + halfHead);
   ctx.closePath();
   ctx.fill();
   map.addImage(DEST_ARROW, ctx.getImageData(0, 0, w, h), { pixelRatio: scale });
