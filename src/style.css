@@ -639,8 +639,9 @@ body {
   letter-spacing: 0.02em;
 }
 
+/* The badges' size. */
 .near-stop-value {
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   font-variant-numeric: tabular-nums;
 }
 
