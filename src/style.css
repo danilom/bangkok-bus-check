@@ -891,9 +891,22 @@ body {
 }
 
 .map-canvas .maplibregl-ctrl-group button.bbc-labels-button.is-off {
-  text-decoration: line-through;
-  color: var(--muted);
+  position: relative;
+  color: var(--footer);
   background-color: transparent;
+}
+
+/* A diagonal slash across the faint "Aa": the universal "off". */
+.map-canvas .maplibregl-ctrl-group button.bbc-labels-button.is-off::after {
+  content: '';
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  top: 50%;
+  height: 2px;
+  background: var(--muted);
+  transform: rotate(-40deg);
+  border-radius: 1px;
 }
 
 /* The tap popup: unlike the label cards, it is accent-bordered with an accent tip, so it reads as an answer to a tap. */
