@@ -34,6 +34,15 @@ export function testViewport(search: string): TestViewport | undefined {
   return value === 'phone' || value === 'phone-full' ? value : undefined;
 }
 
+/** The same page with another test viewport (or none), the hash kept: the box is set up at boot, so this is a reload. */
+export function switchTestViewport(viewport: TestViewport | undefined): void {
+  const params = new URLSearchParams(location.search);
+  if (viewport) params.set('test', viewport);
+  else params.delete('test');
+  const query = params.toString();
+  location.assign(`${location.pathname}${query ? `?${query}` : ''}${location.hash}`);
+}
+
 /** Boxes the page to the test viewport, scaled to fit the window. */
 export function applyTestViewport(root: HTMLElement, viewport: TestViewport): void {
   root.classList.add(`test-${viewport}`);
