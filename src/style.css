@@ -817,22 +817,37 @@ body {
 
 .map-topbar {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: 8px;
   padding: 10px 16px;
   padding-top: max(10px, env(safe-area-inset-top));
 }
 
+.map-topbar-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* The card's number line, slightly smaller; badges are not shown here. */
 .map-title {
-  font-weight: 700;
-  color: var(--accent);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+  min-width: 0;
+}
+
+.map-title .number-primary {
+  font-size: 1.4rem;
+}
+
+.map-title .number-former {
+  font-size: 1.1rem;
+}
+
+.map-title .badges {
+  display: none;
 }
 
 /* A slim pill: one line per half, clipped, so the bar stays one row. */
 .map-pill {
-  flex: 1;
   min-width: 0;
 }
 

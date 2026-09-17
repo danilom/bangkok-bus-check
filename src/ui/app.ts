@@ -8,7 +8,7 @@ import { renderDetailView, type DetailStatus, type LocationStatus } from './deta
 import { renderDirectionPill, type Side } from './direction-pill.ts';
 import { h, replaceChildren } from './dom.ts';
 import { keypadEnabled, renderKeypad, testViewport } from './keypad.ts';
-import { renderRouteCard } from './route-card.ts';
+import { renderNumber, renderRouteCard } from './route-card.ts';
 import type { RouteMap, RouteMapProps } from './map-view.ts';
 import { renderSettingsView } from './settings-view.ts';
 
@@ -377,9 +377,12 @@ export function createApp(root: HTMLElement): void {
     // The top bar is cheap to rebuild each render; the map beneath it is not.
     const topbar = routeMap.element.querySelector('.map-topbar');
     if (topbar) {
+      // Two rows: Back with the full number line (old numbers included, as on the card), then the pill at full width.
       replaceChildren(topbar,
-        h('button', { class: 'back-button', attrs: { type: 'button' }, text: `‹ ${t(lang, 'back')}`, on: { click: closeMap } }),
-        h('span', { class: 'map-title', text: route.number }),
+        h('div', { class: 'map-topbar-row' }, [
+          h('button', { class: 'back-button', attrs: { type: 'button' }, text: `‹ ${t(lang, 'back')}`, on: { click: closeMap } }),
+          h('div', { class: 'map-title' }, [renderNumber(lang, route)]),
+        ]),
         h('div', { class: 'map-pill' }, [renderDirectionPill({ lang, route, selected: state.side, onSelect: (side) => {
           // A tap on the pill, either half, brings the route overview back.
           state.mapFit += 1;
