@@ -1102,6 +1102,9 @@ body {
 }
 
 .see-also-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
   color: var(--accent);
   font-weight: 600;
 }

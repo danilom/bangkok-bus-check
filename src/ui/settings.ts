@@ -1,6 +1,7 @@
 import { t, type Lang, type StringKey } from '../lib/i18n.ts';
 import { ACCENTS, THEMES, type Accent, type Theme } from '../lib/preferences.ts';
 import { h } from './dom.ts';
+import { openInNewIcon } from './icons.ts';
 
 export interface AppearanceProps {
   lang: Lang;
@@ -39,7 +40,7 @@ export function renderSeeAlso(label: string, name: string, description: string, 
   return h('div', { class: 'setting' }, [
     h('h2', { class: 'settings-title', text: label }),
     h('a', { class: 'see-also', attrs: { href, target: '_blank', rel: 'noopener' } }, [
-      h('span', { class: 'see-also-name', text: `${name} ↗` }),
+      h('span', { class: 'see-also-name' }, [name, ' ', openInNewIcon(15)]),
       h('span', { class: 'see-also-description', text: description }),
     ]),
   ]);
