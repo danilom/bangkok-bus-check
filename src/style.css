@@ -834,10 +834,6 @@ body {
 
 .map-back {
   flex-shrink: 0;
-  color: var(--accent);
-  font-size: 1.5rem;
-  line-height: 1;
-  padding-bottom: 3px;
 }
 
 /* The route card, compact: number line over the pill. */
