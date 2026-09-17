@@ -41,7 +41,11 @@ function moonIcon(): SVGElement {
   // A crescent open to the upper right: a circle (r 10 at 12,12) less a circle (r 9 at 17.5,9), traced between their intersections.
   path.setAttribute('d', 'M11.84 2A10 10 0 1 0 20.32 17.55A9 9 0 0 1 11.84 2Z');
   path.setAttribute('fill', 'currentColor');
-  svg.append(path);
+  // A four-point star in the opening.
+  const star = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  star.setAttribute('d', 'M19 3.5l1 2.5 2.5 1-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1z');
+  star.setAttribute('fill', 'currentColor');
+  svg.append(path, star);
   return svg;
 }
 
