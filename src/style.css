@@ -409,9 +409,22 @@ body {
   border-radius: 6px;
 }
 
+/* The old number still leads on many buses: nearly the size and weight of the new one, in the text colour; the word is a whisper. */
 .number-former {
-  font-size: 0.95rem;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.number-former-label {
+  font-size: 0.7rem;
+  font-weight: 400;
   color: var(--muted);
+  letter-spacing: 0.02em;
 }
 
 .number-former-item {
