@@ -2,9 +2,9 @@ import { localize, t, type Lang } from '../lib/i18n.ts';
 import { condenseStops, type Segment } from '../lib/condense.ts';
 import { formatDistance, NEAR_ROUTE_METERS, nearestStop, type Position } from '../lib/location.ts';
 import type { Direction, RouteDetail, RouteSummary, Stop } from '../lib/types.ts';
-import { renderDirectionPill, renderLoopLine, sideAt, type Side } from './direction-pill.ts';
-import { h } from './dom.ts';
-import { renderMeta, renderNumber } from './route-card.ts';
+import { renderDirectionPill, renderLoopLine, sideAt, type Side } from '../ui/direction-pill.ts';
+import { h } from '../ui/dom.ts';
+import { renderMeta, renderNumber } from '../ui/route-card.ts';
 
 /** Where the location feature stands for this view. */
 export type LocationStatus =

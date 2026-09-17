@@ -1,7 +1,8 @@
-import { t, type Lang, type StringKey } from '../lib/i18n.ts';
+import { t, type Lang } from '../lib/i18n.ts';
 import { parseLocationText, type Position } from '../lib/location.ts';
-import { ACCENTS, THEMES, type Accent, type Theme } from '../lib/state.ts';
-import { h } from './dom.ts';
+import type { Accent, Theme } from '../lib/preferences.ts';
+import { h } from '../ui/dom.ts';
+import { renderAppearanceSettings, renderOnOff, renderSettingsPage } from '../ui/settings.ts';
 
 export interface SettingsViewProps {
   lang: Lang;
@@ -18,43 +19,13 @@ export interface SettingsViewProps {
   simulated?: { position: Position | undefined; onChange: (position: Position | undefined) => void; onClear: () => void };
 }
 
-const THEME_LABELS: Record<Theme, StringKey> = { system: 'themeSystem', light: 'themeLight', dark: 'themeDark' };
-const ACCENT_LABELS: Record<Accent, StringKey> = { blue: 'accentBlue', green: 'accentGreen', purple: 'accentPurple', orange: 'accentOrange', red: 'accentRed', gray: 'accentGray' };
-
 export function renderSettingsView(props: SettingsViewProps): HTMLElement {
   const { lang } = props;
-  return h('section', { class: 'settings' }, [
-    h('button', { class: 'back-button', attrs: { type: 'button' }, text: `‹ ${t(lang, 'back')}`, on: { click: props.onBack } }),
-    h('h2', { class: 'settings-title', text: t(lang, 'settings') }),
-    renderChoice(t(lang, 'theme'), THEMES, props.theme, (theme) => t(lang, THEME_LABELS[theme]), props.onTheme),
-    renderChoice(t(lang, 'accent'), ACCENTS, props.accent, (accent) => t(lang, ACCENT_LABELS[accent]), props.onAccent, true),
-    renderChoice(t(lang, 'locationSetting'), [false, true] as const, props.locationEnabled, (on) => t(lang, on ? 'on' : 'off'), props.onLocationEnabled),
-    renderChoice(t(lang, 'vansSetting'), [false, true] as const, props.vansEnabled, (on) => t(lang, on ? 'on' : 'off'), props.onVansEnabled),
+  return renderSettingsPage(lang, props.onBack, [
+    ...renderAppearanceSettings(props),
+    renderOnOff(lang, t(lang, 'locationSetting'), props.locationEnabled, props.onLocationEnabled),
+    renderOnOff(lang, t(lang, 'vansSetting'), props.vansEnabled, props.onVansEnabled),
     props.simulated && renderTestSection(lang, props.simulated),
-  ]);
-}
-
-function renderChoice<T extends string | boolean>(
-  label: string,
-  options: readonly T[],
-  current: T,
-  name: (option: T) => string,
-  onPick: (option: T) => void,
-  swatches = false,
-): HTMLElement {
-  return h('div', { class: swatches ? 'setting setting-accent' : 'setting' }, [
-    h('p', { class: 'setting-label', text: label }),
-    h('div', { class: 'chips', attrs: { role: 'radiogroup', 'aria-label': label } }, options.map((option) =>
-      h('button', {
-        class: `chip${option === current ? ' is-selected' : ''}`,
-        // (boolean options have no swatch)
-        attrs: { type: 'button', role: 'radio', 'aria-checked': String(option === current) },
-        on: { click: () => onPick(option) },
-      }, [
-        swatches && h('span', { class: 'swatch', attrs: { 'data-accent': String(option) } }),
-        name(option),
-      ]),
-    )),
   ]);
 }
 

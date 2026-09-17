@@ -1,6 +1,6 @@
 import type { Lang } from '../lib/i18n.ts';
 import { t } from '../lib/i18n.ts';
-import { h } from './dom.ts';
+import { h } from '../ui/dom.ts';
 
 export interface KeypadHandlers {
   onDigit: (digit: string) => void;
