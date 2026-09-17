@@ -982,15 +982,13 @@ body {
 }
 
 /* Rightmost in the stops header: under the thumb of a right hand holding the phone. */
-/* The map is the route page's main action: the one filled button on the row, on the right. */
+/* The map is the route page's main action: the one real button on the row, on the right. */
 .map-button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-weight: 600;
   flex-shrink: 0;
-  background: var(--accent-soft);
-  border-color: var(--accent);
 }
 
 .location-button {
