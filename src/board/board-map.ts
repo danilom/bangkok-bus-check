@@ -165,12 +165,14 @@ function addLayers(map: MapLibreMap, props: BoardMapProps): void {
     },
     paint: { 'text-color': ['get', 'colour'], 'text-halo-color': surface, 'text-halo-width': 2 },
   });
+  // The selected stop's name card: hidden while the card below names the stop anyway; kept for when it is wanted.
   map.addLayer({
     id: 'board-selected-label',
     type: 'symbol',
     source: STOPS_SOURCE,
     filter: ['get', 'selected'],
     layout: {
+      visibility: 'none',
       'text-field': ['get', 'name'],
       'text-font': FONT_MEDIUM,
       'text-size': 13.5,
