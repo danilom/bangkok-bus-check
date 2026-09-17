@@ -829,17 +829,9 @@ body {
   gap: 12px;
 }
 
-/* The card's number line, slightly smaller; badges are not shown here. */
+/* The card's number line at the card's size; badges are not shown here. */
 .map-title {
   min-width: 0;
-}
-
-.map-title .number-primary {
-  font-size: 1.4rem;
-}
-
-.map-title .number-former {
-  font-size: 1.1rem;
 }
 
 .map-title .badges {
