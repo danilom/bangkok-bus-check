@@ -1,22 +1,18 @@
 /**
- * The route map: a Protomaps basemap served from the app's own tiles file,
- * with the route's lines on top. Loaded on demand (this module pulls in
+ * The route map: the shared basemap with the route's lines, stops and the
+ * user's position on top. Loaded on demand (this module pulls in
  * MapLibre), so the text app's bundle is unchanged.
  */
 
-import { DARK, LIGHT, layers } from '@protomaps/basemaps';
 import type { Feature, FeatureCollection, Point } from 'geojson';
-import { addProtocol, GeoJSONSource, Map as MapLibreMap, NavigationControl, Popup, setWorkerUrl, type FilterSpecification, type IControl, type LngLatBoundsLike, type StyleSpecification } from 'maplibre-gl';
-// MapLibre finds its worker by a computed URL that bundlers cannot follow; Vite bundles it for us via ?worker&url.
-import mapWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
-import { Protocol } from 'pmtiles';
-
-import 'maplibre-gl/dist/maplibre-gl.css';
+import { GeoJSONSource, Map as MapLibreMap, Popup, type FilterSpecification } from 'maplibre-gl';
 
 import { condenseStops } from '../lib/condense.ts';
+import { nearestShapeIndex } from '../lib/geometry.ts';
 import { localize, t, type Lang } from '../lib/i18n.ts';
 import { NEAR_ROUTE_METERS, distanceMeters, formatDistance, nearestStop, type Position } from '../lib/location.ts';
 import type { Direction, RouteDetail, RouteSummary, Stop } from '../lib/types.ts';
+import { addLabelBoxImage, addPositionLayers, basemapStyle, boundsOf, createBaseMap, FONT, FONT_MEDIUM, LabelsControl, pointerOver, setLayersVisible, setPositionData } from './base-map.ts';
 import type { Side } from './direction-pill.ts';
 
 export interface RouteMapProps {
@@ -46,14 +42,8 @@ export interface RouteMap {
   destroy(): void;
 }
 
-const ASSETS = 'https://protomaps.github.io/basemaps-assets';
 const ROUTE_SOURCE = 'route';
 const STOPS_SOURCE = 'stops';
-const POSITION_SOURCE = 'position';
-const FONT = ['Noto Sans Regular'];
-const FONT_MEDIUM = ['Noto Sans Medium'];
-/** The blue every map app uses for "you are here"; deliberately not the accent, so it reads the same on any theme. */
-const POSITION_BLUE = '#1a73e8';
 /**
  * "N stops from here" claims you are at the route, a stronger claim than the
  * 1.5 km that greys the passed stretch: a few minutes' walk, well above
@@ -61,39 +51,11 @@ const POSITION_BLUE = '#1a73e8';
  */
 const AT_ROUTE_METERS = 300;
 
-let protocolRegistered = false;
-
-function registerProtocol(): void {
-  if (protocolRegistered) return;
-  setWorkerUrl(mapWorkerUrl);
-  addProtocol('pmtiles', new Protocol().tile);
-  protocolRegistered = true;
-}
-
 export function createRouteMap(container: HTMLElement, initial: RouteMapProps): RouteMap {
-  registerProtocol();
   let props = initial;
-  const map = new MapLibreMap({
-    container,
-    style: basemapStyle(props),
-    attributionControl: { compact: true },
-    // The line is what matters; a spinning globe is not.
-    dragRotate: false,
-    pitchWithRotate: false,
-    touchPitch: false,
-  });
-  map.touchZoomRotate.disableRotation();
-  map.addControl(new NavigationControl({ showCompass: false }), 'top-right');
-  const labelsControl = new LabelsControl(() => props);
+  const map = createBaseMap(container, props);
+  const labelsControl = new LabelsControl(() => props, () => props.onToggleLabels());
   map.addControl(labelsControl, 'top-right');
-
-  map.on('error', (event) => console.error('map error', event.error?.message ?? event));
-  if (import.meta.env.DEV || location.search.includes('mapdebug')) {
-    Object.assign(globalThis, { __bbcMap: map });
-    for (const type of ['load', 'idle', 'styledata', 'sourcedata', 'dataloading', 'render'] as const) {
-      map.on(type, (event: unknown) => console.debug('bbc map', type, (event as { sourceId?: string }).sourceId ?? '', map.getZoom().toFixed(2), map.isStyleLoaded()));
-    }
-  }
   wireStopPopups(map, () => props);
   let loaded = false;
   map.on('load', () => {
@@ -102,8 +64,8 @@ export function createRouteMap(container: HTMLElement, initial: RouteMapProps): 
     addArrowLayer(map, props);
     addStopLayers(map, props);
     addLineBlockers(map);
-    addPositionLayers(map, props);
-    setLabelsVisible(map, props.labels);
+    addPositionLayers(map, props.position);
+    setLayersVisible(map, LABEL_LAYERS, props.labels);
     if (!focusStop(map, props)) fitToRoute(map, props);
   });
 
@@ -124,15 +86,15 @@ export function createRouteMap(container: HTMLElement, initial: RouteMapProps): 
           addArrowLayer(map, props);
           addStopLayers(map, props);
           addLineBlockers(map);
-          addPositionLayers(map, props);
-          setLabelsVisible(map, props.labels);
+          addPositionLayers(map, props.position);
+          setLayersVisible(map, LABEL_LAYERS, props.labels);
         });
         return;
       }
       setRouteData(map, props);
       setStopData(map, props);
-      setPositionData(map, props);
-      setLabelsVisible(map, props.labels);
+      setPositionData(map, props.position);
+      setLayersVisible(map, LABEL_LAYERS, props.labels);
       labelsControl.refresh();
       if (next.focusStop && next.focusStop !== previousFocus) focusStop(map, props);
       else if (sideChanged || aheadChanged || next.fitRequest !== previousFit) fitToRoute(map, props);
@@ -140,23 +102,6 @@ export function createRouteMap(container: HTMLElement, initial: RouteMapProps): 
     destroy() {
       map.remove();
     },
-  };
-}
-
-function basemapStyle(props: RouteMapProps): StyleSpecification {
-  const flavor = props.dark ? DARK : LIGHT;
-  return {
-    version: 8,
-    glyphs: `${ASSETS}/fonts/{fontstack}/{range}.pbf`,
-    sprite: `${ASSETS}/sprites/v4/${props.dark ? 'dark' : 'light'}`,
-    sources: {
-      protomaps: {
-        type: 'vector',
-        url: `pmtiles://${props.tilesUrl}`,
-        attribution: '<a href="https://openstreetmap.org/copyright">© OpenStreetMap</a> · <a href="https://protomaps.com">Protomaps</a>',
-      },
-    },
-    layers: layers('protomaps', flavor, { lang: props.lang }),
   };
 }
 
@@ -173,7 +118,7 @@ function routeFeatures(props: RouteMapProps): FeatureCollection {
   for (const direction of runs) {
     const selected = direction.origin === departsFrom;
     const shape = direction.shape ?? [];
-    const split = selected && ahead ? nearestShapeIndex(shape, ahead.stop) : undefined;
+    const split = selected && ahead ? nearestShapeIndex(shape, ahead.place) : undefined;
     if (split === undefined) {
       features.push({ type: 'Feature', properties: { selected, passed: false }, geometry: { type: 'LineString', coordinates: shape } });
       continue;
@@ -188,7 +133,7 @@ function routeFeatures(props: RouteMapProps): FeatureCollection {
 interface Ahead {
   /** Index into the run's named stops of the nearest one. */
   index: number;
-  stop: Stop;
+  place: Position;
 }
 
 /** The nearest named stop of the selected run, when the user is close enough to be on the route (same rule as the list). */
@@ -198,29 +143,14 @@ function aheadFrom(props: RouteMapProps): Ahead | undefined {
   const nearest = nearestStop(named, props.position);
   if (!nearest || nearest.meters > NEAR_ROUTE_METERS) return undefined;
   const stop = named[nearest.index];
-  return stop ? { index: nearest.index, stop } : undefined;
+  if (!stop || stop.lat === undefined || stop.lon === undefined) return undefined;
+  return { index: nearest.index, place: { lat: stop.lat, lon: stop.lon } };
 }
 
 function namedStops(props: RouteMapProps): Stop[] {
   const run = selectedRun(props);
   if (!run) return [];
   return run.stops.map((id) => props.detail.stops[id]).filter((stop): stop is Stop => stop !== undefined && stop.name.th.length > 0);
-}
-
-/** The shape point closest to a stop: the line is cut there. Good to a few metres, which is all the eye needs. */
-function nearestShapeIndex(shape: readonly [number, number][], stop: Stop): number | undefined {
-  if (stop.lat === undefined || stop.lon === undefined || shape.length === 0) return undefined;
-  const target = { lat: stop.lat, lon: stop.lon };
-  let best = 0;
-  let bestMeters = Infinity;
-  shape.forEach(([lon, lat], index) => {
-    const meters = distanceMeters(target, { lat, lon });
-    if (meters < bestMeters) {
-      bestMeters = meters;
-      best = index;
-    }
-  });
-  return best;
 }
 
 function addRouteLayers(map: MapLibreMap, props: RouteMapProps): void {
@@ -340,48 +270,6 @@ function addLineBlockers(map: MapLibreMap): void {
 }
 
 const LABEL_LAYERS = ['stops-label', 'stops-label-all'];
-
-function setLabelsVisible(map: MapLibreMap, visible: boolean): void {
-  for (const id of LABEL_LAYERS) {
-    if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none');
-  }
-}
-
-/** A map button under the zoom buttons that shows or hides the stop names. */
-class LabelsControl implements IControl {
-  private button: HTMLButtonElement | undefined;
-  private readonly current: () => RouteMapProps;
-
-  constructor(current: () => RouteMapProps) {
-    this.current = current;
-  }
-
-  onAdd(): HTMLElement {
-    const container = document.createElement('div');
-    container.className = 'maplibregl-ctrl maplibregl-ctrl-group';
-    this.button = document.createElement('button');
-    this.button.type = 'button';
-    this.button.className = 'bbc-labels-button';
-    this.button.addEventListener('click', () => this.current().onToggleLabels());
-    container.append(this.button);
-    this.refresh();
-    return container;
-  }
-
-  onRemove(): void {
-    this.button?.parentElement?.remove();
-    this.button = undefined;
-  }
-
-  refresh(): void {
-    if (!this.button) return;
-    const props = this.current();
-    this.button.textContent = 'Aa';
-    this.button.classList.toggle('is-off', !props.labels);
-    this.button.setAttribute('aria-label', t(props.lang, props.labels ? 'mapLabelsHide' : 'mapLabelsShow'));
-    this.button.title = t(props.lang, props.labels ? 'mapLabelsHide' : 'mapLabelsShow');
-  }
-}
 
 /** The run the page shows: the one departing from the other terminus. */
 function selectedRun(props: RouteMapProps): Direction | undefined {
@@ -566,37 +454,6 @@ function addDestinationArrowImage(map: MapLibreMap, accent: string): void {
   map.addImage(DEST_ARROW, ctx.getImageData(0, 0, w, h), { pixelRatio: scale });
 }
 
-/**
- * The label background: a small card in the app's terms (surface colour,
- * 1px border, rounded), drawn at 2x for crisp corners and stretched to each
- * label; the stretch zones keep the border and corners at their size.
- */
-function addLabelBoxImage(map: MapLibreMap, name: string, dark: boolean, border: string, fill?: string, borderWidth = 1): void {
-  if (map.hasImage(name)) map.removeImage(name);
-  const scale = 2;
-  const radius = 8 * scale;
-  const size = radius * 2 + 4 * scale;
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
-  ctx.fillStyle = fill ?? (dark ? 'rgba(30, 30, 30, 0.6)' : 'rgba(255, 255, 255, 0.6)');
-  ctx.strokeStyle = border;
-  ctx.lineWidth = borderWidth * scale;
-  const inset = (borderWidth * scale) / 2;
-  ctx.beginPath();
-  ctx.roundRect(inset, inset, size - 2 * inset, size - 2 * inset, radius);
-  ctx.fill();
-  ctx.stroke();
-  map.addImage(name, ctx.getImageData(0, 0, size, size), {
-    pixelRatio: scale,
-    stretchX: [[radius, size - radius]],
-    stretchY: [[radius, size - radius]],
-    content: [radius, radius, size - radius, size - radius],
-  });
-}
-
 function setStopData(map: MapLibreMap, props: RouteMapProps): void {
   const source = map.getSource(STOPS_SOURCE);
   if (source instanceof GeoJSONSource) source.setData(stopFeatures(props));
@@ -637,6 +494,8 @@ function popupLine(props: RouteMapProps, feature: StopFeature, index: number, to
   return parts.join(' \u00b7 ');
 }
 
+const STOP_LAYERS = ['stops-dot', 'stops-major', 'stops-nearest', 'stops-label', 'stops-label-all', 'stops-label-focus'];
+
 /** Tapping a stop shows its name and place in the run. Returns the function that shows the popup for a stop feature. */
 function wireStopPopups(map: MapLibreMap, current: () => RouteMapProps): (feature: StopFeature) => void {
   const popup = new Popup({ closeButton: false, closeOnClick: true, offset: 10, maxWidth: '260px' });
@@ -652,45 +511,14 @@ function wireStopPopups(map: MapLibreMap, current: () => RouteMapProps): (featur
     content.append(title, position);
     popup.setLngLat(feature.geometry.coordinates as [number, number]).setDOMContent(content).addTo(map);
   };
-  for (const layer of ['stops-dot', 'stops-major', 'stops-nearest', 'stops-label', 'stops-label-all', 'stops-label-focus']) {
+  for (const layer of STOP_LAYERS) {
     map.on('click', layer, (event) => {
       const feature = event.features?.[0];
       if (feature && feature.geometry.type === 'Point') show({ geometry: feature.geometry, properties: feature.properties as StopFeature['properties'] });
     });
-    map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer'; });
-    map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = ''; });
   }
+  pointerOver(map, STOP_LAYERS);
   return show;
-}
-
-function positionFeatures(props: RouteMapProps): FeatureCollection<Point> {
-  const { position } = props;
-  return {
-    type: 'FeatureCollection',
-    features: position ? [{ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [position.lon, position.lat] } }] : [],
-  };
-}
-
-/** The user's position: a soft halo and a solid dot, above the stops. */
-function addPositionLayers(map: MapLibreMap, props: RouteMapProps): void {
-  map.addSource(POSITION_SOURCE, { type: 'geojson', data: positionFeatures(props) });
-  map.addLayer({
-    id: 'position-halo',
-    type: 'circle',
-    source: POSITION_SOURCE,
-    paint: { 'circle-radius': 16, 'circle-color': POSITION_BLUE, 'circle-opacity': 0.2 },
-  });
-  map.addLayer({
-    id: 'position-dot',
-    type: 'circle',
-    source: POSITION_SOURCE,
-    paint: { 'circle-radius': 7, 'circle-color': POSITION_BLUE, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2.5 },
-  });
-}
-
-function setPositionData(map: MapLibreMap, props: RouteMapProps): void {
-  const source = map.getSource(POSITION_SOURCE);
-  if (source instanceof GeoJSONSource) source.setData(positionFeatures(props));
 }
 
 function setRouteData(map: MapLibreMap, props: RouteMapProps): void {
@@ -704,14 +532,8 @@ function fitToRoute(map: MapLibreMap, props: RouteMapProps): void {
   const coordinates = [...(ahead?.geometry.type === 'LineString' ? ahead.geometry.coordinates : [])] as [number, number][];
   if (coordinates.length === 0) return;
   if (props.position && aheadFrom(props)) coordinates.push([props.position.lon, props.position.lat]);
-  let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
-  for (const [lon, lat] of coordinates) {
-    minLon = Math.min(minLon, lon);
-    maxLon = Math.max(maxLon, lon);
-    minLat = Math.min(minLat, lat);
-    maxLat = Math.max(maxLat, lat);
-  }
-  const bounds: LngLatBoundsLike = [[minLon, minLat], [maxLon, maxLat]];
+  const bounds = boundsOf(coordinates);
+  if (!bounds) return;
   // With names on, room for the termini's label cards, which sit outside their dots on whichever side is free.
   const padding = props.labels ? { top: 56, bottom: 64, left: 76, right: 76 } : 40;
   map.fitBounds(bounds, { padding, duration: 0, maxZoom: 15 });

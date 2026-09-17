@@ -83,7 +83,7 @@ badge; that is the "curated shared data" idea, alongside the landmark rules.
 1. [x] Reliability rule + `Route.reliability` (`scripts/reliability.ts`)
 2. [x] `bbc reliability` audit command (`-v` lists routes; `bbc reliability 2-45` judges one)
 3. [x] `stops.json` in the build (`scripts/board-data.ts`; 6.7k stops, 1.4 MB, 300 KB gzipped)
-4. [ ] Base-map extraction from `src/ui/map-view.ts` (protocol, style,
+4. [x] Base-map extraction: `src/ui/base-map.ts` (protocol, style,
        controls, theme, label images, popups) so the board can add its own
        layers; no visible change to Bus Check — re-verify its map
 5. [ ] Board: map + stop dots + selection + hash
