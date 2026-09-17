@@ -528,6 +528,13 @@ body {
   gap: 8px;
 }
 
+.stops-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 .stops-toggle {
   min-height: 32px;
   padding: 2px 12px;
@@ -963,12 +970,12 @@ body {
   align-items: flex-start;
 }
 
-/* On the right: under the thumb of a right hand holding the phone. */
+/* Rightmost in the stops header: under the thumb of a right hand holding the phone. */
 .map-button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  align-self: flex-end;
+  font-weight: 600;
 }
 
 .location-button {

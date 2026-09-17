@@ -92,7 +92,6 @@ function renderDetailBody(props: DetailViewProps, detail: RouteDetail | undefine
   return h('div', { class: 'detail-body' }, [
     lang === 'en' && renderFrontSign(props, detail),
     h('div', { class: 'detail-actions' }, [
-      (detail === undefined || main?.shape) && h('button', { class: 'text-button map-button', attrs: { type: 'button' }, on: { click: () => props.onMap() } }, [mapIcon(), t(lang, 'map')]),
       (detail === undefined || main) && renderLocationPanel(props),
     ]),
     renderStopsSlot(props, detail, main),
@@ -111,15 +110,28 @@ function renderDetailBody(props: DetailViewProps, detail: RouteDetail | undefine
 /** The stop list, or what stands in for it while the route file loads or after it failed. */
 function renderStopsSlot(props: DetailViewProps, detail: RouteDetail | undefined, main: Direction | undefined): HTMLElement {
   const { lang, status } = props;
-  if (status.kind === 'loading') return h('p', { class: 'muted', text: t(lang, 'loading') });
+  // The header row (count, toggle, Map) exists in every state so the Map button never moves.
+  if (status.kind === 'loading') return h('div', { class: 'stops-panel' }, [stopsHeader(props, h('span', { class: 'direction-count', text: t(lang, 'loading') }))]);
   if (status.kind === 'error' || !detail) {
-    return h('div', { class: 'error' }, [
-      h('p', { text: t(lang, 'loadFailed') }),
+    return h('div', { class: 'stops-panel' }, [
+      stopsHeader(props, h('span', { class: 'direction-count', text: t(lang, 'loadFailed') })),
       h('button', { class: 'text-button', attrs: { type: 'button' }, text: t(lang, 'retry'), on: { click: props.onRetry } }),
     ]);
   }
-  if (!main) return h('p', { class: 'muted', text: t(lang, detail.directions.length === 0 ? 'noDirections' : 'noStops') });
+  if (!main) return h('div', { class: 'stops-panel' }, [stopsHeader(props, h('span', { class: 'direction-count', text: t(lang, detail.directions.length === 0 ? 'noDirections' : 'noStops') }), false)]);
   return renderStopList(props, main, detail.stops, props.location.kind === 'ready' ? props.location.position : undefined);
+}
+
+/** The row above the stops: the count (or a status) on the left, the toggle and the Map button on the right. */
+function stopsHeader(props: DetailViewProps, count: HTMLElement, withMap = true, toggle?: HTMLElement | false): HTMLElement {
+  const { lang } = props;
+  return h('div', { class: 'stops-header' }, [
+    count,
+    h('div', { class: 'stops-actions' }, [
+      toggle,
+      withMap && h('button', { class: 'text-button stops-toggle map-button', attrs: { type: 'button' }, on: { click: () => props.onMap() } }, [mapIcon(), t(lang, 'map')]),
+    ]),
+  ]);
 }
 
 /**
@@ -308,10 +320,12 @@ function renderStopList(props: DetailViewProps, direction: Direction, stops: Rec
   }
   const earlier = named.slice(0, start);
   return h('div', { class: 'stops-panel' }, [
-    h('div', { class: 'stops-header' }, [
+    stopsHeader(
+      props,
       h('span', { class: 'direction-count', text: countLine(lang, upcoming.length, prominent.size, onRoute, condensed && !props.showAllStops) }),
+      direction.shape !== undefined,
       condensed && h('button', { class: 'text-button stops-toggle', attrs: { type: 'button' }, text: t(lang, props.showAllStops ? 'showFewerStops' : 'showAllStops'), on: { click: props.onToggleAllStops } }),
-    ]),
+    ),
     hailAndRide > 0 && renderHailAndRide(lang, hailAndRide, true),
     earlier.length > 0 &&
       h('details', { class: 'earlier-stops' }, [
