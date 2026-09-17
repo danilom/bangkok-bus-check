@@ -33,7 +33,8 @@ const STRINGS = {
   switchLang: { en: 'ไทย', th: 'EN' },
   moreRoutes: { en: 'Type more digits to narrow down.', th: 'พิมพ์ตัวเลขเพิ่มเพื่อค้นหาให้แคบลง' },
   badgeExpressway: { en: 'Expressway', th: 'ทางด่วน' },
-  badgeNight: { en: 'All night', th: 'ตลอดคืน' },
+  // A text moon (U+263E), not the colour emoji, so it takes the badge's colour.
+  badgeNight: { en: '☾ All night', th: '☾ ตลอดคืน' },
   badgeExtra: { en: 'Extra', th: 'เสริม' },
   badgeAirport: { en: 'Airport', th: 'สนามบิน' },
   badgeSuburban: { en: 'Suburban', th: 'ชานเมือง' },
