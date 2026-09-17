@@ -23,7 +23,8 @@ export function renderNumber(lang: Lang, route: RouteSummary, matchedAlias?: str
     // Badges and the nearest-stop distance share the right-hand column.
     h('div', { class: 'title-aside' }, [
       renderBadges(lang, route),
-      nearMeters !== undefined && h('span', { class: 'near-stop', text: t(lang, 'nearestStopCard').replace('{d}', formatDistance(nearMeters)) }),
+      // Like "formerly 73": a whispered label and the value.
+      nearMeters !== undefined && h('span', { class: 'near-stop' }, [h('span', { class: 'near-stop-label', text: `${t(lang, 'nearestStopCard')} ` }), h('span', { class: 'near-stop-value', text: formatDistance(nearMeters) })]),
     ]),
   ]);
 }

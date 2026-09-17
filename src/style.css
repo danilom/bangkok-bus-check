@@ -629,6 +629,21 @@ body {
 .near-stop {
   color: var(--muted);
   white-space: nowrap;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+}
+
+.near-stop-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+}
+
+.near-stop-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Grey chips: quiet, so the filled match highlight on the number stays the one thing that pops. */

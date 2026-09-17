@@ -76,7 +76,7 @@ const STRINGS = {
   locationUnavailable: { en: 'Could not get a position right now.', th: 'ขณะนี้หาตำแหน่งไม่ได้' },
   locationUnsupported: { en: 'This browser cannot provide a location.', th: 'เบราว์เซอร์นี้ไม่รองรับตำแหน่ง' },
   nearestStop: { en: 'nearest stop', th: 'ป้ายใกล้ที่สุด' },
-  nearestStopCard: { en: 'nearest stop {d}', th: 'ป้ายใกล้สุด {d}' },
+  nearestStopCard: { en: 'nearest stop', th: 'ป้ายใกล้สุด' },
   earlierStops: { en: 'earlier stops', th: 'ป้ายก่อนหน้า' },
   stopsAhead: { en: 'stops ahead', th: 'ป้ายข้างหน้า' },
   shown: { en: 'shown', th: 'แสดง' },
