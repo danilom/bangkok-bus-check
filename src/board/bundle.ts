@@ -73,7 +73,25 @@ export function bundleLegs(stopId: string, legs: readonly FanLeg[], details: Rea
       const slot = slots.get(hop.key)?.get(entry);
       if (coordinates && slot) strands.push({ leg: entry.leg, key: hop.key, coordinates, ...slot });
     }
-    return taper(strands);
+    return taper(bridge(strands));
+  });
+}
+
+/** A seam between two bundles' shapes is bridged up to this far; beyond it the shapes really part. */
+const BRIDGE_METERS = 30;
+
+/**
+ * Consecutive hops of a leg drawn on different routes' shapes end and start
+ * a few metres apart; the next strand is made to start where the last one
+ * ended, so the line stays whole.
+ */
+function bridge(strands: readonly Strand[]): Strand[] {
+  return strands.map((strand, index) => {
+    const end = strands[index - 1]?.coordinates.at(-1);
+    const start = strand.coordinates[0];
+    if (!end || !start) return strand;
+    const gap = new MeterLine([end, start]).length;
+    return gap > 0.5 && gap <= BRIDGE_METERS ? { ...strand, coordinates: [end, ...strand.coordinates] } : strand;
   });
 }
 
