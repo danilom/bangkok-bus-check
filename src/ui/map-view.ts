@@ -413,6 +413,8 @@ function stopFeatures(props: RouteMapProps): FeatureCollection<Point> {
         nearest: ahead !== undefined && index === ahead.index,
         // Nearest to the user, or tapped in the list: drawn large with an emphasised label.
         emphasised: (ahead !== undefined && index === ahead.index) || stop.id === props.focusStop,
+        // Tapped in the list: the loudest of the three, a solid accent card.
+        focused: stop.id === props.focusStop,
       },
       geometry: { type: 'Point', coordinates: [stop.lon, stop.lat] },
     }];
@@ -426,6 +428,7 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
   addLabelBoxImage(map, LABEL_BOX, props.dark, props.dark ? '#3a3a3a' : '#d6d6d6');
   addLabelBoxImage(map, LABEL_BOX_NEAREST, props.dark, props.accent);
   addLabelBoxImage(map, LABEL_BOX_DESTINATION, props.dark, props.accent, props.accentSoft);
+  addLabelBoxImage(map, LABEL_BOX_FOCUS, props.dark, props.accent, props.accent);
   addDestinationArrowImage(map, props.accent);
   map.addSource(STOPS_SOURCE, { type: 'geojson', data: stopFeatures(props) });
   map.addLayer({
@@ -496,7 +499,7 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
       'text-max-width': 9,
       'text-optional': true,
       // A translucent dark box behind the text: a stretched 1-colour image sized to the label.
-      'icon-image': ['case', ['get', 'destination'], LABEL_BOX_DESTINATION, ['get', 'emphasised'], LABEL_BOX_NEAREST, LABEL_BOX],
+      'icon-image': ['case', ['get', 'focused'], LABEL_BOX_FOCUS, ['get', 'destination'], LABEL_BOX_DESTINATION, ['get', 'emphasised'], LABEL_BOX_NEAREST, LABEL_BOX],
       'icon-text-fit': 'both',
       // The fit already follows the text's offset; an icon offset of its own would double it.
       // Symmetric sides; a touch more below than above lifts the letters to the card's visual centre.
@@ -509,7 +512,7 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
       'symbol-sort-key': ['case', ['get', 'emphasised'], -1, ['match', ['get', 'rank'], 'terminus', 0, 'major', 1, 'listed', 2, 3]],
     },
     paint: {
-      'text-color': ['case', ['get', 'destination'], props.accent, props.dark ? '#e0e0e0' : '#212121'],
+      'text-color': ['case', ['get', 'focused'], props.dark ? '#121212' : '#ffffff', ['get', 'destination'], props.accent, props.dark ? '#e0e0e0' : '#212121'],
     },
   });
 }
@@ -517,6 +520,7 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
 const LABEL_BOX = 'label-box';
 const LABEL_BOX_NEAREST = 'label-box-nearest';
 const LABEL_BOX_DESTINATION = 'label-box-destination';
+const LABEL_BOX_FOCUS = 'label-box-focus';
 const DEST_ARROW = 'destination-arrow';
 
 /**
