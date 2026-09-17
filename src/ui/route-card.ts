@@ -38,10 +38,9 @@ function moonIcon(): SVGElement {
   svg.setAttribute('class', 'badge-icon');
   svg.setAttribute('aria-hidden', 'true');
   const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  // A slim crescent: the outer arc of a circle (r 9) and the inner arc of a circle (r 8) shifted right, between their two intersections; tilted clockwise.
-  path.setAttribute('d', 'M16.33 4.11A9 9 0 1 0 16.33 19.89A8 8 0 0 1 16.33 4.11Z');
+  // A crescent open to the upper right: a circle (r 10 at 12,12) less a circle (r 9 at 17.5,9), traced between their intersections.
+  path.setAttribute('d', 'M11.84 2A10 10 0 1 0 20.32 17.55A9 9 0 0 1 11.84 2Z');
   path.setAttribute('fill', 'currentColor');
-  path.setAttribute('transform', 'rotate(30 12 12)');
   svg.append(path);
   return svg;
 }
