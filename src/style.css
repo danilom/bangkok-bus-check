@@ -826,23 +826,34 @@ body {
 
 .map-topbar {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 10px;
   padding: 10px 16px;
   padding-top: max(10px, env(safe-area-inset-top));
 }
 
-.map-topbar-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.map-back {
+  flex-shrink: 0;
+  color: var(--accent);
+  font-size: 1.5rem;
+  line-height: 1;
+  padding-bottom: 3px;
+}
+
+/* The route card, compact: number line over the pill. */
+.map-card {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 10px 8px;
 }
 
 /* The card's number line at the card's size; badges are not shown here. Tight line box and a nudge up so the digits centre on the Back button. */
 .map-title {
   min-width: 0;
   line-height: 1.1;
-  margin-top: -3px;
 }
 
 .map-title .badges {
@@ -855,7 +866,7 @@ body {
 }
 
 .map-pill .dir-pill {
-  margin: 0;
+  margin: 6px 0 0;
   border-radius: 10px;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }

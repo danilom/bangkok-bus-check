@@ -377,18 +377,18 @@ export function createApp(root: HTMLElement): void {
     // The top bar is cheap to rebuild each render; the map beneath it is not.
     const topbar = routeMap.element.querySelector('.map-topbar');
     if (topbar) {
-      // Two rows: Back with the full number line (old numbers included, as on the card), then the pill at full width.
+      // An icon-only Back beside a compact route card (number line and pill), so it reads as the route page's card shrunk.
       replaceChildren(topbar,
-        h('div', { class: 'map-topbar-row' }, [
-          h('button', { class: 'back-button', attrs: { type: 'button' }, text: `‹ ${t(lang, 'back')}`, on: { click: closeMap } }),
+        h('button', { class: 'icon-button map-back', attrs: { type: 'button', 'aria-label': t(lang, 'back') }, text: '‹', on: { click: closeMap } }),
+        h('div', { class: 'map-card' }, [
           h('div', { class: 'map-title' }, [renderNumber(lang, route)]),
+          h('div', { class: 'map-pill' }, [renderDirectionPill({ lang, route, selected: state.side, onSelect: (side) => {
+            // A tap on the pill, either half, brings the route overview back.
+            state.mapFit += 1;
+            delete state.focusStop;
+            selectSide(side);
+          } })]),
         ]),
-        h('div', { class: 'map-pill' }, [renderDirectionPill({ lang, route, selected: state.side, onSelect: (side) => {
-          // A tap on the pill, either half, brings the route overview back.
-          state.mapFit += 1;
-          delete state.focusStop;
-          selectSide(side);
-        } })]),
       );
     }
     if (status?.kind === 'ready') void showMap(route, status.detail);
