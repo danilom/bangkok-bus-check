@@ -7,6 +7,7 @@ import { extractPlaces } from './extract-places.ts';
 import { fetchRaw, RAW_SOURCES, type RawSource } from './fetch-raw.ts';
 import { reviewLandmarks } from './review-landmarks.ts';
 import { reviewMap } from './review-map.ts';
+import { reviewReliability } from './review-reliability.ts';
 
 const program = new Command('bbc').description('Bangkok Bus Check data tooling');
 
@@ -44,6 +45,15 @@ program
   .option('--audit', 'whole-dataset numbers for judging the keyword rules', false)
   .action(async (ids: string[], options: { all: boolean; audit: boolean }) => {
     await reviewLandmarks(ids, options);
+  });
+
+program
+  .command('reliability')
+  .description('the routes the board may draw, by tier, and what the rule excludes; or the verdict on named routes')
+  .argument('[route...]', 'route ids or numbers, e.g. 2-45 73')
+  .option('-v, --verbose', 'list the routes under each heading', false)
+  .action(async (ids: string[], options: { verbose: boolean }) => {
+    await reviewReliability(ids, options);
   });
 
 program

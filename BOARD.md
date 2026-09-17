@@ -56,9 +56,14 @@ Tiers on what remains, stored as `Route.reliability` in the shared data:
 
 | tier | meaning | routes (2026-09 data) |
 |---|---|---|
-| `confirmed` | feed and Wikipedia agree on the termini | ~280 |
-| `official` | numbered bus in the feed alone | ~46 |
-| `thin` | suburban route (songthaew) in the feed alone | ~270 |
+| `confirmed` | feed and Wikipedia agree on the termini | 271 |
+| `official` | numbered bus in the feed alone | 39 |
+| `thin` | suburban route (songthaew) in the feed alone | 166 |
+
+Excluded: 97 without a stop list, 18 conflicts, 167 vans, 115 hail-and-ride
+only. Note `official` is mostly provincial local routes with plain numbers
+(Nonthaburi, Pak Kret, Paknam: 1~2, 2, 3, 4…) plus a handful of real buses
+(34X, 39, 74, 91, 203); the four-digit `suburban` flag does not catch them.
 
 The board draws `confirmed` + `official` (`BOARD_TIERS`). `thin` is behind
 nothing yet; if ever, a setting. A hand-kept "verified" list (routes ridden,
@@ -76,8 +81,8 @@ badge; that is the "curated shared data" idea, alongside the landmark rules.
 ## Plan and status
 
 1. [x] Reliability rule + `Route.reliability` (`scripts/reliability.ts`)
-2. [ ] `bbc reliability` audit command
-3. [ ] `stops.json` in the build
+2. [x] `bbc reliability` audit command (`-v` lists routes; `bbc reliability 2-45` judges one)
+3. [x] `stops.json` in the build (`scripts/board-data.ts`; 6.7k stops, 1.4 MB, 300 KB gzipped)
 4. [ ] Base-map extraction from `src/ui/map-view.ts` (protocol, style,
        controls, theme, label images, popups) so the board can add its own
        layers; no visible change to Bus Check — re-verify its map

@@ -7,6 +7,7 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { RouteDataset, RouteDetail, RouteIndex, Stop } from '../src/lib/types.ts';
+import { writeBoardData } from './board-data.ts';
 import { NAMTANG_DIR, SHAPES_FILE, WIKI_FILE } from './fetch-raw.ts';
 import { loadLandmarkRules, tagLandmarks } from './landmarks.ts';
 import { loadVehicleColours, tagVehicleColours, VEHICLE_COLOURS_FILE } from './vehicle-colours.ts';
@@ -82,6 +83,7 @@ export async function buildData(options: BuildOptions): Promise<void> {
   const untranslated = warnUntranslated(translation);
   if (untranslated > 0 && options.strict) throw new Error(`${untranslated} untranslated items (see warning above); run "bbc extract-places"`);
   await writeOutput(dataset, options.out);
+  await writeBoardData(dataset, options.out);
 }
 
 /**

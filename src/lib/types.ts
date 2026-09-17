@@ -142,6 +142,21 @@ export interface Stop {
   hailAndRide?: true;
 }
 
+/** `public/data/board/stops.json`: the board app's stops, each with the drawable routes serving it. */
+export interface BoardStops {
+  generatedAt: string;
+  stops: BoardStop[];
+}
+
+export interface BoardStop {
+  id: string;
+  name: LocalizedText;
+  lat: number;
+  lon: number;
+  /** Ids of routes (`Route.id`) whose main runs call here. */
+  routes: string[];
+}
+
 export interface Vehicle extends LocalizedText {
   /** Swatch bands, from the colour words of the name via data/overrides/vehicle-colours.json. */
   colours?: string[];
