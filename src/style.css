@@ -389,7 +389,7 @@ body {
 .route-number {
   display: flex;
   align-items: baseline;
-  gap: 2px;
+  gap: 4px;
   flex-wrap: wrap;
 }
 
