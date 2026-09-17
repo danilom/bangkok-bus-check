@@ -469,7 +469,7 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
   const labelLayers: { id: string; filter: FilterSpecification; minzoom: number }[] = [
     // Passed stops keep their dots but lose their labels; the nearest stop is always labelled. The focused stop's label
     // has its own layer, which the names toggle leaves alone.
-    { id: 'stops-label', filter: ['all', ['!', ['get', 'passed']], ['!', ['get', 'emphasised']], ['!=', ['get', 'rank'], 'stop']], minzoom: 10 },
+    { id: 'stops-label', filter: ['all', ['!', ['get', 'passed']], ['!', ['get', 'emphasised']], ['!=', ['get', 'rank'], 'stop']], minzoom: 9 },
     { id: 'stops-label-all', filter: ['all', ['!', ['get', 'passed']], ['!', ['get', 'emphasised']], ['==', ['get', 'rank'], 'stop']], minzoom: 14 },
     { id: 'stops-label-focus', filter: ['get', 'emphasised'], minzoom: 0 },
   ];
@@ -639,5 +639,6 @@ function fitToRoute(map: MapLibreMap, props: RouteMapProps): void {
     maxLat = Math.max(maxLat, lat);
   }
   const bounds: LngLatBoundsLike = [[minLon, minLat], [maxLon, maxLat]];
-  map.fitBounds(bounds, { padding: 40, duration: 0, maxZoom: 15 });
+  // Room for the termini's label cards, which sit outside their dots on whichever side is free.
+  map.fitBounds(bounds, { padding: { top: 56, bottom: 64, left: 76, right: 76 }, duration: 0, maxZoom: 15 });
 }
