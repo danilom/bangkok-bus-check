@@ -15,7 +15,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 
 import { condenseStops } from '../lib/condense.ts';
 import { localize, t, type Lang } from '../lib/i18n.ts';
-import { NEAR_ROUTE_METERS, distanceMeters, nearestStop, type Position } from '../lib/location.ts';
+import { NEAR_ROUTE_METERS, distanceMeters, formatDistance, nearestStop, type Position } from '../lib/location.ts';
 import type { Direction, RouteDetail, RouteSummary, Stop } from '../lib/types.ts';
 import type { Side } from './direction-pill.ts';
 
@@ -54,6 +54,12 @@ const FONT = ['Noto Sans Regular'];
 const FONT_MEDIUM = ['Noto Sans Medium'];
 /** The blue every map app uses for "you are here"; deliberately not the accent, so it reads the same on any theme. */
 const POSITION_BLUE = '#1a73e8';
+/**
+ * "N stops from here" claims you are at the route, a stronger claim than the
+ * 1.5 km that greys the passed stretch: a few minutes' walk, well above
+ * city GPS error.
+ */
+const AT_ROUTE_METERS = 300;
 
 let protocolRegistered = false;
 
@@ -610,6 +616,27 @@ interface StopFeature {
   properties: { name: string; index: number; total: number };
 }
 
+/**
+ * The popup's second line. With a fix: how far the stop is, and — when the
+ * user is at the route (within AT_ROUTE_METERS of a stop) — how many stops
+ * away it is along the run. Without a fix, the stop's place in the run.
+ */
+function popupLine(props: RouteMapProps, feature: StopFeature, index: number, total: number): string {
+  const { lang, position } = props;
+  if (!position) return t(lang, 'stopOfTotal').replace('{i}', String(index)).replace('{n}', String(total));
+  const [lon, lat] = feature.geometry.coordinates as [number, number];
+  const parts = [t(lang, 'awayFromYou').replace('{d}', formatDistance(distanceMeters(position, { lat, lon })))];
+  const named = namedStops(props);
+  const nearest = nearestStop(named, position);
+  if (nearest && nearest.meters <= AT_ROUTE_METERS) {
+    const ahead = index - 1 - nearest.index;
+    if (ahead === 0) parts.push(t(lang, 'yourNearestStop'));
+    else if (ahead > 0) parts.push(ahead === 1 ? t(lang, 'stopFromHere') : t(lang, 'stopsFromHere').replace('{n}', String(ahead)));
+    else parts.push(ahead === -1 ? t(lang, 'stopBack') : t(lang, 'stopsBack').replace('{n}', String(-ahead)));
+  }
+  return parts.join(' \u00b7 ');
+}
+
 /** Tapping a stop shows its name and place in the run. Returns the function that shows the popup for a stop feature. */
 function wireStopPopups(map: MapLibreMap, current: () => RouteMapProps): (feature: StopFeature) => void {
   const popup = new Popup({ closeButton: false, closeOnClick: true, offset: 10, maxWidth: '260px' });
@@ -621,7 +648,7 @@ function wireStopPopups(map: MapLibreMap, current: () => RouteMapProps): (featur
     title.textContent = name;
     const position = document.createElement('div');
     position.className = 'map-popup-position';
-    position.textContent = t(props.lang, 'stopOfTotal').replace('{i}', String(index)).replace('{n}', String(total));
+    position.textContent = popupLine(props, feature, index, total);
     content.append(title, position);
     popup.setLngLat(feature.geometry.coordinates as [number, number]).setDOMContent(content).addTo(map);
   };
