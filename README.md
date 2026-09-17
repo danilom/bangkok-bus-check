@@ -22,8 +22,8 @@ Two apps share this site, one Vite build and one deploy:
 
 - `/` — **Bangkok Bus Check**, the app above. `index.html` → `src/check/`.
 - `/board/` — **Bangkok Bus Board**, an exploration of the reverse question:
-  where the buses go from a stop or an area. A skeleton for now.
-  `board/index.html` → `src/board/`.
+  where the buses go from a stop or an area. `board/index.html` →
+  `src/board/`. Working notes, decisions and status in [BOARD.md](BOARD.md).
 
 `src/lib/` is the pure, shared core (types, i18n, location, condensing,
 preferences); `src/ui/` the shared pieces (topbar, settings, cards, pills,

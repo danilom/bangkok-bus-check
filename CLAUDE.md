@@ -65,3 +65,8 @@ What does: code whose wrong answer still looks like an answer.
 
 - Commits should be atomic. Keep the descriptions brief.
 - Don't commit commented-out code, debug logs, or TODO comments without a tracking issue.
+
+## Project notes
+
+- README.md describes the data pipeline and the site layout (two apps, one build).
+- BOARD.md holds the working notes for the Bangkok Bus Board experiment (`/board/`): decisions, status, next steps. Update it when you change course there.

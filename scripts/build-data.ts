@@ -13,6 +13,7 @@ import { loadVehicleColours, tagVehicleColours, VEHICLE_COLOURS_FILE } from './v
 import { loadTranslations, type Translations } from './lib/translations.ts';
 import { mergeRoutes, type MergeReport } from './merge.ts';
 import { parseGtfs, type GtfsFeed } from './sources/gtfs.ts';
+import { tagReliability } from './reliability.ts';
 import { parseWikipediaRoutes, type WikiParseResult } from './sources/wikipedia.ts';
 import { applyTranslations, type TranslationReport } from './translate.ts';
 
@@ -61,6 +62,7 @@ export async function loadSources(): Promise<Sources> {
 export function compile(sources: Sources): { dataset: RouteDataset; report: MergeReport; translation: TranslationReport } {
   const { dataset, report } = mergeRoutes(sources.feed, sources.wiki);
   const translation = applyTranslations(dataset, sources.feed, sources.translations);
+  tagReliability(dataset);
   return { dataset, report, translation };
 }
 

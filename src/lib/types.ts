@@ -68,8 +68,17 @@ export interface Route {
   /** Service window from the feed, e.g. "05:00–22:00" or "24 h". */
   hours?: string;
   agreement: SourceAgreement;
+  /** Whether the route is trusted enough to be drawn as "where the buses go" (scripts/reliability.ts); absent when not. */
+  reliability?: Reliability;
   sources: RouteSources;
 }
+
+/**
+ * `confirmed`: the feed and Wikipedia agree on the termini. `official`: a
+ * numbered bus in the feed alone. `thin`: a suburban route (songthaew) in
+ * the feed alone.
+ */
+export type Reliability = 'confirmed' | 'official' | 'thin';
 
 export interface ServiceFlags {
   expressway: boolean;
