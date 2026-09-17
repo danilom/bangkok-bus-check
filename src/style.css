@@ -1318,6 +1318,10 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 0;
+}
+
+/* Only the map bleeds to the edges; the settings keep the page's 16px sides like Bus Check's. */
+.is-board .board-content {
   margin: 8px -16px 0;
 }
 
