@@ -2,7 +2,7 @@ import { t, type Lang } from '../lib/i18n.ts';
 import { parseLocationText, type Position } from '../lib/location.ts';
 import type { Accent, Theme } from '../lib/preferences.ts';
 import { h } from '../ui/dom.ts';
-import { renderAppearanceSettings, renderOnOff, renderSettingsPage } from '../ui/settings.ts';
+import { renderAppearanceSettings, renderOnOff, renderSeeAlso, renderSettingsPage } from '../ui/settings.ts';
 
 export interface SettingsViewProps {
   lang: Lang;
@@ -25,6 +25,7 @@ export function renderSettingsView(props: SettingsViewProps): HTMLElement {
     ...renderAppearanceSettings(props),
     renderOnOff(lang, t(lang, 'locationSetting'), props.locationEnabled, props.onLocationEnabled),
     renderOnOff(lang, t(lang, 'vansSetting'), props.vansEnabled, props.onVansEnabled),
+    renderSeeAlso(t(lang, 'seeAlso'), t(lang, 'boardName'), t(lang, 'boardBlurb'), `${import.meta.env.BASE_URL}board/`),
     props.simulated && renderTestSection(lang, props.simulated),
   ]);
 }

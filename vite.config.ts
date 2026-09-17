@@ -17,7 +17,11 @@ function buildCommit(): string {
 // BASE_PATH accordingly. Local dev and preview use the root.
 export default defineConfig({
   base: process.env['BASE_PATH'] ?? '/',
-  build: { target: 'es2022' },
+  build: {
+    target: 'es2022',
+    // Two apps, one build: the check app at the root and the board app under /board/, sharing chunks, data and tiles.
+    rollupOptions: { input: { check: 'index.html', board: 'board/index.html' } },
+  },
   // MapLibre loads its worker as a sibling module via import.meta.url, which dev pre-bundling would break.
   optimizeDeps: { exclude: ['maplibre-gl', 'pmtiles'] },
   define: {

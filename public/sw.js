@@ -6,8 +6,8 @@
 // that are missing from the cache. The first visit after a deploy shows the
 // previous version; the next visit shows the new one.
 
-const CACHE = 'bbc-v3';
-const PRECACHE = ['./', './data/index.json', './manifest.webmanifest'];
+const CACHE = 'bbc-v4';
+const PRECACHE = ['./', './data/index.json', './manifest.webmanifest', './board/', './board/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

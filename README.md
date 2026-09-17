@@ -16,6 +16,21 @@ npm run typecheck
 npm run build      # → dist/  (set BASE_PATH=/<repo>/ for GitHub Pages)
 ```
 
+## Layout
+
+Two apps share this site, one Vite build and one deploy:
+
+- `/` — **Bangkok Bus Check**, the app above. `index.html` → `src/check/`.
+- `/board/` — **Bangkok Bus Board**, an exploration of the reverse question:
+  where the buses go from a stop or an area. A skeleton for now.
+  `board/index.html` → `src/board/`.
+
+`src/lib/` is the pure, shared core (types, i18n, location, condensing,
+preferences); `src/ui/` the shared pieces (topbar, settings, cards, pills,
+map); `src/style.css` the one stylesheet. Each app has its own folder with
+its entry, controller and hash scheme. Data, tiles and the service worker
+are shared, and each app links to the other from its settings page.
+
 ## Data
 
 Route data is compiled at build time and shipped with the page; the app makes

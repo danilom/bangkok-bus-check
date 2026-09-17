@@ -5,6 +5,12 @@ export type Lang = 'en' | 'th';
 const STRINGS = {
   appName: { en: 'Bangkok Bus Check', th: 'เช็กรถเมล์กรุงเทพ' },
   tagline: { en: 'Type the bus number. See where it goes.', th: 'พิมพ์เลขสาย แล้วดูว่ารถไปไหน' },
+  // The board app (a second entry point on this site): where the buses go from a stop or an area.
+  boardName: { en: 'Bangkok Bus Board', th: 'ป้ายรถเมล์กรุงเทพ' },
+  boardTagline: { en: 'Where the buses go from a stop near you. Nothing here yet.', th: 'รถเมล์จากป้ายใกล้คุณไปไหนบ้าง ยังไม่มีอะไรที่นี่' },
+  boardBlurb: { en: 'Where the buses go from a stop near you (experimental)', th: 'รถเมล์จากป้ายใกล้คุณไปไหนบ้าง (ทดลอง)' },
+  checkBlurb: { en: 'Type a bus number, see where it goes', th: 'พิมพ์เลขสาย แล้วดูว่ารถไปไหน' },
+  seeAlso: { en: 'See also', th: 'ดูเพิ่มเติม' },
   inputPlaceholder: { en: 'Bus number', th: 'เลขสายรถเมล์' },
   clear: { en: 'Clear', th: 'ล้าง' },
   backspace: { en: 'Delete', th: 'ลบ' },
