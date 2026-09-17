@@ -75,10 +75,13 @@ re-keyed to them. Where a strand's slot changes at the next hop it slides
 over the last 40 m in four pieces (`blend` towards the next slot), and out
 of the stop it slides from the centreline, so the strands fan out of the dot.
 Legs and hops are cut at the stop's projection onto the simplified shape
-(`MeterLine` in `src/lib/geometry.ts`). Labels and the fits still use the
-whole legs. Known gaps: loops are walked forward only; the hue wheel's seam
-puts the first and last routes by bearing both near red; labels sit on the
-centreline, not on their strand.
+(`MeterLine` in `src/lib/geometry.ts`); seams of a few metres between a
+leg's hops (different routes' shapes) are bridged. Route numbers are drawn
+only where a strand runs alone or in a pair — a ribbon's key is the chips.
+The hue wheel is 330° wide and starts past the widest gap in bearing, so
+the rainbow's ends never meet; chips are in rainbow order. The fits still
+use the whole legs. Known: a shape that ends before the run's last stops
+(1-8 from Victory Monument) leaves those hops undrawn, rightly.
 
 ## Data reliability
 
