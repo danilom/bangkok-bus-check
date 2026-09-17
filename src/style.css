@@ -618,19 +618,12 @@ body {
   font-size: 0.85rem;
 }
 
-/* Badges stack; with the distance line beneath them they go on one row so the column stays at two lines. */
+/* Badges and the distance line always stack, one per line. */
 .badges {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 4px;
-}
-
-.title-aside.has-distance .badges {
-  flex-direction: row;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 4px 6px;
 }
 
 .near-stop {
