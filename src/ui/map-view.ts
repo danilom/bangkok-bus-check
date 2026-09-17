@@ -13,6 +13,7 @@ import { Protocol } from 'pmtiles';
 
 import 'maplibre-gl/dist/maplibre-gl.css';
 
+import { condenseStops } from '../lib/condense.ts';
 import { localize, t, type Lang } from '../lib/i18n.ts';
 import { NEAR_ROUTE_METERS, distanceMeters, nearestStop, type Position } from '../lib/location.ts';
 import type { Direction, RouteDetail, RouteSummary, Stop } from '../lib/types.ts';
@@ -386,15 +387,18 @@ function selectedRun(props: RouteMapProps): Direction | undefined {
 /**
  * The selected run's named stops as points. `rank` drives what is drawn:
  * termini and major landmarks get a filled dot and a label at every zoom,
- * ordinary stops a small dot and a label only when zoomed in.
+ * the condensed list's other picks (`listed`) a small dot and a label at
+ * every zoom, ordinary stops a small dot and a label only when zoomed in.
  */
 function stopFeatures(props: RouteMapProps): FeatureCollection<Point> {
   const named = namedStops(props);
   const ahead = aheadFrom(props);
+  // The stops the condensed list shows are the ones labelled at the overview zoom, so map and list agree by construction.
+  const listed = new Set(condenseStops(named).flatMap((segment) => (segment.kind === 'stop' ? [segment.index] : [])));
   const features = named.flatMap((stop, index): Feature<Point>[] => {
     if (stop.lon === undefined || stop.lat === undefined) return [];
     const terminus = index === 0 || index === named.length - 1;
-    const rank = terminus ? 'terminus' : stop.landmark?.rank === 'major' ? 'major' : 'stop';
+    const rank = terminus ? 'terminus' : stop.landmark?.rank === 'major' ? 'major' : listed.has(index) ? 'listed' : 'stop';
     return [{
       type: 'Feature',
       properties: {
@@ -427,7 +431,7 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
     id: 'stops-dot',
     type: 'circle',
     source: STOPS_SOURCE,
-    filter: ['==', ['get', 'rank'], 'stop'],
+    filter: ['!', ['in', ['get', 'rank'], ['literal', ['terminus', 'major']]]],
     minzoom: 11,
     paint: {
       'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 2, 14, 4, 16, 6],
@@ -440,7 +444,7 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
     id: 'stops-major',
     type: 'circle',
     source: STOPS_SOURCE,
-    filter: ['!=', ['get', 'rank'], 'stop'],
+    filter: ['in', ['get', 'rank'], ['literal', ['terminus', 'major']]],
     paint: {
       'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, 3, 14, 6, 16, 8],
       'circle-color': ['case', ['get', 'passed'], grey, props.accent],
@@ -499,7 +503,7 @@ function addStopLayers(map: MapLibreMap, props: RouteMapProps): void {
       // Only the text is collision-tested: the fitted box is evaluated at the anchor, not where the text went.
       'icon-allow-overlap': true,
       'icon-ignore-placement': true,
-      'symbol-sort-key': ['case', ['get', 'emphasised'], -1, ['match', ['get', 'rank'], 'terminus', 0, 'major', 1, 2]],
+      'symbol-sort-key': ['case', ['get', 'emphasised'], -1, ['match', ['get', 'rank'], 'terminus', 0, 'major', 1, 'listed', 2, 3]],
     },
     paint: {
       'text-color': ['case', ['get', 'destination'], props.accent, props.dark ? '#e0e0e0' : '#212121'],
