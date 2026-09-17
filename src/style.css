@@ -1021,6 +1021,8 @@ body {
   padding: 6px 18px;
   margin-top: 4px;
   border: 1px solid var(--accent);
+  /* Filled like a card so it does not read as disabled on the light page background. */
+  background: var(--surface);
 }
 
 .map-button svg {
