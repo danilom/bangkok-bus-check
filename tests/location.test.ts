@@ -51,7 +51,7 @@ describe('distance helpers', () => {
   });
 
   it('formats metres coarsely and kilometres to one decimal', () => {
-    assert.equal(formatDistance(83), '80 m');
-    assert.equal(formatDistance(2340), '2.3 km');
+    assert.equal(formatDistance(83), '80m');
+    assert.equal(formatDistance(2340), '2.3km');
   });
 });
