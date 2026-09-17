@@ -145,6 +145,16 @@ Data-source status, reliability checks and product backlog. Last revised 2026-09
 - [x] Phase 2: map — feed shapes, MapLibre + self-hosted Protomaps tiles;
       route line, stops and landmarks labelled, position dot, pill in the
       top bar. Needs WebGL2 (says so when unavailable).
+- [ ] Data reliability (inglorious, essential): sign checks against real
+      buses as they come; review the 17 source conflicts; "Not in official
+      feed" means nothing to a stranger — a per-route source line and a
+      one-line explanation on the route page. Nudge: do this before any push
+      to publish.
+- [ ] Light theme on the map and the Thai UI have had less eyeballing than
+      dark/English; Thai text sizes in particular may be too small.
+- [ ] First-run hints (front sign panel, Aa button, tap a stop → map): one
+      line, dismissed forever. Part of a publish/popularise push, with some
+      user testing; not before.
 - [ ] Vans: hidden from results by default (Settings → "Vans in results",
       experimental). Field check: numbers are rarely visible on the vehicle.
       The useful van feature is a different shape — where am I, what departs
