@@ -996,16 +996,17 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  /* Same size and weight as the destinations in the pill. */
   font-weight: 600;
-  font-size: 1.05rem;
+  font-size: 1rem;
   flex-shrink: 0;
-  min-height: 48px;
-  padding: 8px 22px;
+  min-height: 44px;
+  padding: 6px 18px;
 }
 
 .map-button svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
 .location-button {
