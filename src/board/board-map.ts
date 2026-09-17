@@ -8,6 +8,7 @@ import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
 import { GeoJSONSource, type ExpressionSpecification, type Map as MapLibreMap } from 'maplibre-gl';
 
 import { localize, type Lang } from '../lib/i18n.ts';
+import type { LonLat } from '../lib/geometry.ts';
 import type { BoardStop } from '../lib/types.ts';
 import { addLabelBoxImage, basemapStyle, boundsOf, createBaseMap, FONT_MEDIUM, LabelsControl, pointerOver, setLayersVisible } from '../ui/base-map.ts';
 import type { Strand } from './bundle.ts';
@@ -52,7 +53,6 @@ export interface BoardMap {
 }
 
 const STOPS_SOURCE = 'board-stops';
-const FAN_SOURCE = 'board-fan';
 const STRANDS_SOURCE = 'board-strands';
 const LABEL_BOX_SELECTED = 'board-label-selected';
 const STOP_LAYERS = ['board-stops', 'board-selected'];
@@ -176,26 +176,32 @@ function stopFeatures(props: BoardMapProps): FeatureCollection<Point> {
   return { type: 'FeatureCollection', features };
 }
 
-function fanFeatures(props: BoardMapProps): FeatureCollection<LineString> {
-  const features = props.legs.map((leg): Feature<LineString> => ({
-    type: 'Feature',
-    properties: {
-      id: leg.routeId,
-      number: leg.route.number,
-      colour: legColour(leg.hue, props.dark),
-      fadedColour: fadedLegColour(leg.hue, props.dark),
-      faded: props.highlight !== undefined && props.highlight !== leg.routeId,
-    },
-    geometry: { type: 'LineString', coordinates: leg.coordinates },
-  }));
-  return { type: 'FeatureCollection', features };
+/**
+ * Consecutive pieces of a leg with the same slot and no taper joined into
+ * one: fewer seams, and a label needs a stretch longer than itself.
+ */
+function mergeRuns(strands: readonly Strand[]): Strand[] {
+  const runs: Strand[] = [];
+  for (const strand of strands) {
+    const last = runs.at(-1);
+    const joins = last && last.leg === strand.leg && !last.blend && !strand.blend && last.slot === strand.slot && last.count === strand.count
+      && samePoint(last.coordinates.at(-1), strand.coordinates[0]);
+    if (joins) last.coordinates = [...last.coordinates, ...strand.coordinates.slice(1)];
+    else runs.push({ ...strand, coordinates: [...strand.coordinates] });
+  }
+  return runs;
+}
+
+function samePoint(a: LonLat | undefined, b: LonLat | undefined): boolean {
+  return a !== undefined && b !== undefined && Math.abs(a[0] - b[0]) < 1e-9 && Math.abs(a[1] - b[1]) < 1e-9;
 }
 
 function strandFeatures(props: BoardMapProps): FeatureCollection<LineString> {
-  const features = props.strands.map((strand): Feature<LineString> => ({
+  const features = mergeRuns(props.strands).map((strand): Feature<LineString> => ({
     type: 'Feature',
     properties: {
       id: strand.leg.routeId,
+      number: strand.leg.route.number,
       colour: legColour(strand.leg.hue, props.dark),
       fadedColour: fadedLegColour(strand.leg.hue, props.dark),
       faded: props.highlight !== undefined && props.highlight !== strand.leg.routeId,
@@ -214,7 +220,6 @@ function strandFeatures(props: BoardMapProps): FeatureCollection<LineString> {
 function addLayers(map: MapLibreMap, props: BoardMapProps): void {
   const surface = props.dark ? '#121212' : '#ffffff';
   addLabelBoxImage(map, LABEL_BOX_SELECTED, props.dark, props.accent, undefined, 2.5);
-  map.addSource(FAN_SOURCE, { type: 'geojson', data: fanFeatures(props) });
   map.addSource(STRANDS_SOURCE, { type: 'geojson', data: strandFeatures(props) });
   map.addSource(STOPS_SOURCE, { type: 'geojson', data: stopFeatures(props) });
   // Faded legs first, so the singled-out route's casing sits over them: their own knocked-back colours,
@@ -275,11 +280,13 @@ function addLayers(map: MapLibreMap, props: BoardMapProps): void {
     filter: ['get', 'selected'],
     paint: { 'circle-radius': 8, 'circle-color': props.dark ? '#bdbdbd' : '#616161', 'circle-stroke-color': surface, 'circle-stroke-width': 2.5 },
   });
+  // Route numbers where a route runs alone or in a pair: there the line is where the label sits. A ribbon of
+  // many gets none (the chips are its key), and a taper piece is too short and oblique to carry one.
   map.addLayer({
     id: 'board-fan-labels',
     type: 'symbol',
-    source: FAN_SOURCE,
-    filter: ['!', ['get', 'faded']],
+    source: STRANDS_SOURCE,
+    filter: ['all', ['!', ['get', 'faded']], ['<=', ['get', 'count'], 2], ['==', ['get', 'blend'], 0]],
     layout: {
       'symbol-placement': 'line',
       'symbol-spacing': 220,
@@ -319,8 +326,6 @@ function addLayers(map: MapLibreMap, props: BoardMapProps): void {
 }
 
 function setData(map: MapLibreMap, props: BoardMapProps, stopsChanged: boolean): void {
-  const fan = map.getSource(FAN_SOURCE);
-  if (fan instanceof GeoJSONSource) fan.setData(fanFeatures(props));
   const strands = map.getSource(STRANDS_SOURCE);
   if (strands instanceof GeoJSONSource) strands.setData(strandFeatures(props));
   if (!stopsChanged) return;
