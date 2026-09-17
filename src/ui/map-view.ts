@@ -33,6 +33,8 @@ export interface RouteMapProps {
   position?: Position;
   /** A stop to open on (centred at street zoom, popup shown) instead of fitting the route; from a tap in the list. */
   focusStop?: string;
+  /** Changes when the app wants the route overview back (a tap on the pill); the value itself means nothing. */
+  fitRequest: number;
   /** Stop names shown; the map's own button flips it and the app remembers. */
   labels: boolean;
   onToggleLabels: () => void;
@@ -105,6 +107,7 @@ export function createRouteMap(container: HTMLElement, initial: RouteMapProps): 
       // A position arriving (or going) changes what "ahead" means; a fix moving along the route does not refit.
       const aheadChanged = (aheadFrom(next) === undefined) !== (aheadFrom(props) === undefined);
       const previousFocus = props.focusStop;
+      const previousFit = props.fitRequest;
       props = next;
       if (!loaded) return;
       if (restyle) {
@@ -125,7 +128,7 @@ export function createRouteMap(container: HTMLElement, initial: RouteMapProps): 
       setLabelsVisible(map, props.labels);
       labelsControl.refresh();
       if (next.focusStop && next.focusStop !== previousFocus) focusStop(map, props);
-      else if (sideChanged || aheadChanged) fitToRoute(map, props);
+      else if (sideChanged || aheadChanged || next.fitRequest !== previousFit) fitToRoute(map, props);
     },
     destroy() {
       map.remove();

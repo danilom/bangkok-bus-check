@@ -40,6 +40,8 @@ interface AppState {
   focusStop?: string;
   /** Stop names on the map; the map page's own button toggles it. */
   mapLabels: boolean;
+  /** Bumped when the map's pill is tapped: the map refits to the route, even for the side already selected. */
+  mapFit: number;
 }
 
 /**
@@ -106,6 +108,7 @@ export function createApp(root: HTMLElement): void {
     map: initial.map ?? false,
     ...(initial.focusStop ? { focusStop: initial.focusStop } : {}),
     mapLabels: loadMapLabels(),
+    mapFit: 0,
   };
   if (initial.routeId) state.routeId = initial.routeId;
   const useKeypad = keypadEnabled(location.search, matchMedia('(pointer: coarse)').matches);
@@ -377,7 +380,12 @@ export function createApp(root: HTMLElement): void {
       replaceChildren(topbar,
         h('button', { class: 'back-button', attrs: { type: 'button' }, text: `‹ ${t(lang, 'back')}`, on: { click: closeMap } }),
         h('span', { class: 'map-title', text: route.number }),
-        h('div', { class: 'map-pill' }, [renderDirectionPill({ lang, route, selected: state.side, onSelect: selectSide })]),
+        h('div', { class: 'map-pill' }, [renderDirectionPill({ lang, route, selected: state.side, onSelect: (side) => {
+          // A tap on the pill, either half, brings the route overview back.
+          state.mapFit += 1;
+          delete state.focusStop;
+          selectSide(side);
+        } })]),
       );
     }
     if (status?.kind === 'ready') void showMap(route, status.detail);
@@ -418,6 +426,7 @@ export function createApp(root: HTMLElement): void {
       ...(state.locationEnabled && state.location.kind === 'ready' ? { position: state.location.position } : {}),
       ...(state.focusStop ? { focusStop: state.focusStop } : {}),
       labels: state.mapLabels,
+      fitRequest: state.mapFit,
       onToggleLabels: () => {
         state.mapLabels = !state.mapLabels;
         saveMapLabels(state.mapLabels);
