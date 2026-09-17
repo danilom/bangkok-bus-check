@@ -92,8 +92,7 @@ export function nearestStop(stops: readonly Stop[], position: Position): Nearest
   return best;
 }
 
-/** "80m", "2.3km": no space, so the number and its unit never part at a line break. */
 export function formatDistance(meters: number): string {
-  if (meters < 1000) return `${Math.round(meters / 10) * 10}m`;
-  return `${(meters / 1000).toFixed(1)}km`;
+  if (meters < 1000) return `${Math.round(meters / 10) * 10} m`;
+  return `${(meters / 1000).toFixed(1)} km`;
 }
