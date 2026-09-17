@@ -1,23 +1,26 @@
 import { loadBoardStops, loadDetail, loadIndex } from '../lib/data.ts';
 import { detectLang, t, type Lang } from '../lib/i18n.ts';
-import { loadAccent, loadLang, loadTheme, saveAccent, saveLang, saveTheme, type Accent, type Theme } from '../lib/preferences.ts';
+import { loadAccent, loadBoardLabels, loadLang, loadTheme, saveAccent, saveBoardLabels, saveLang, saveTheme, type Accent, type Theme } from '../lib/preferences.ts';
 import type { BoardStop, RouteDetail, RouteSummary } from '../lib/types.ts';
 import { applyAppearance, isDark } from '../ui/appearance.ts';
 import { renderBuildLine } from '../ui/build-info.ts';
 import { h, replaceChildren } from '../ui/dom.ts';
 import { createTopbar } from '../ui/topbar.ts';
 import { applyTestViewport, testViewport, trackVisibleHeight } from '../ui/viewport.ts';
-import type { BoardMap, BoardMapProps } from './board-map.ts';
-import { renderStopCard, type FanStatus } from './card.ts';
+import type { BoardMap, BoardMapProps, ViewMove, ViewRequest } from './board-map.ts';
+import { renderRouteLink, renderStopCard, type FanStatus } from './card.ts';
 import { fanLegs } from './fan.ts';
 import { formatBoardHash, readBoardHash } from './hash.ts';
 import { renderSettingsView } from './settings-view.ts';
+import { renderZoomHint, stopsHidden, zoomLine } from './zoom-hint.ts';
 
 interface AppState {
   lang: Lang;
   theme: Theme;
   accent: Accent;
   settings: boolean;
+  /** The map's "Aa" button: route numbers along the lines. */
+  labels: boolean;
   stops?: BoardStop[];
   routes?: RouteSummary[];
   loadError?: string;
@@ -28,8 +31,10 @@ interface AppState {
   highlight?: string;
   /** The map's zoom, for the "zoom in" hint. */
   zoom: number;
-  /** Bumped when the fan should be fitted into view again. */
-  fit: number;
+  /** The last move asked of the map; taps never move it (the user may be studying the block, or about to tap a neighbour). */
+  view?: ViewRequest;
+  /** Set when the page opened on a stop from the URL: the fan is fitted once it arrives, there being no view to protect yet. */
+  fitOnArrival: boolean;
 }
 
 /**
@@ -43,19 +48,25 @@ export function createApp(root: HTMLElement): void {
     theme: loadTheme(),
     accent: loadAccent(),
     settings: initial.settings ?? false,
+    labels: loadBoardLabels(),
     ...(initial.stop ? { selectedId: initial.stop } : {}),
     fan: { kind: 'ready', legs: [] },
     details: new Map(),
     zoom: 0,
-    fit: 0,
+    fitOnArrival: initial.stop !== undefined,
   };
   // A map wants the whole window: the phone-width page is for phones (and the ?test=phone box).
   const viewport = testViewport(location.search);
+  const coarsePointer = matchMedia('(pointer: coarse)').matches;
   if (viewport) applyTestViewport(root, viewport);
   else {
     trackVisibleHeight();
-    root.classList.toggle('is-wide', !matchMedia('(pointer: coarse)').matches);
+    root.classList.toggle('is-wide', !coarsePointer);
   }
+  // The viewport switcher is for judging the board on a desktop; a phone is the real thing already.
+  const test = viewport || !coarsePointer ? { viewport } : undefined;
+  // With any ?test param, the map's zoom is read out in its corner, for judging zoom-dependent styling.
+  const zoomReadout = new URLSearchParams(location.search).has('test') ? h('p', { class: 'board-zoom-readout' }) : undefined;
 
   const topbar = createTopbar(openSettings, toggleLang);
   const content = h('div', { class: 'content board-content' });
@@ -97,6 +108,7 @@ export function createApp(root: HTMLElement): void {
     if (stop) state.selectedId = stop.id;
     else delete state.selectedId;
     delete state.highlight;
+    delete state.view;
     const hash = formatBoardHash({ ...(stop ? { stop: stop.id } : {}) });
     if (stop) history.pushState(null, '', hash);
     else history.replaceState(null, '', `${location.pathname}${location.search}`);
@@ -135,7 +147,28 @@ export function createApp(root: HTMLElement): void {
     // The selection may have moved on while the files loaded.
     if (selectedStop()?.id !== stop.id) return;
     state.fan = { kind: 'ready', legs: fanLegs(stop, state.routes, state.details) };
+    if (state.fitOnArrival) {
+      state.fitOnArrival = false;
+      requestView({ kind: 'fan' });
+    }
     render();
+  }
+
+  /** The card's zoom button: out to the whole fan (or the singled-out route), then back to the stop. */
+  function toggleView(): void {
+    requestView(farView() ? { kind: 'stop' } : state.highlight ? { kind: 'route', routeId: state.highlight } : { kind: 'fan' });
+    render();
+  }
+
+  function requestView(move: ViewMove): void {
+    state.view = { ...move, seq: (state.view?.seq ?? 0) + 1 };
+  }
+
+  /** Whether the map was last sent out to the current choice (fan, or the highlighted route), so the button offers the way back. */
+  function farView(): boolean {
+    const { view } = state;
+    if (!view || view.kind === 'stop') return false;
+    return view.kind === 'route' ? view.routeId === state.highlight : state.highlight === undefined;
   }
 
   function render(): void {
@@ -156,7 +189,7 @@ export function createApp(root: HTMLElement): void {
   function renderContent(): HTMLElement {
     const { lang } = state;
     if (state.settings) {
-      return renderSettingsView({ lang, theme: state.theme, accent: state.accent, onTheme: setTheme, onAccent: setAccent, onBack: closeSettings });
+      return renderSettingsView({ lang, theme: state.theme, accent: state.accent, ...(test ? { test } : {}), onTheme: setTheme, onAccent: setAccent, onBack: closeSettings });
     }
     if (state.loadError) {
       return h('div', { class: 'error' }, [
@@ -178,33 +211,44 @@ export function createApp(root: HTMLElement): void {
     if (!boardMap) {
       const canvas = h('div', { class: 'map-canvas board-canvas' });
       const overlay = h('div', { class: 'board-overlay' });
-      const element = h('section', { class: 'board-page' }, [canvas, overlay]);
+      const element = h('section', { class: 'board-page' }, [canvas, overlay, zoomReadout]);
       boardMap = { element, canvas, overlay };
       void showMap();
     }
-    replaceChildren(boardMap.overlay, renderOverlay());
+    refreshOverlay();
     boardMap.instance?.update(mapProps());
     return boardMap.element;
   }
 
-  function renderOverlay(): HTMLElement | false {
+  /** The card sits over the map's bottom edge; a hint, with nothing to cover, is at the top where it is read first. */
+  function refreshOverlay(): void {
+    if (!boardMap) return;
+    replaceChildren(boardMap.overlay, ...renderOverlay());
+    boardMap.overlay.classList.toggle('is-top', !selectedStop());
+  }
+
+  /** What floats over the map: the stop's card and, below it, the singled-out route's link; or a hint. */
+  function renderOverlay(): (HTMLElement | false)[] {
     const { lang } = state;
     const stop = selectedStop();
     if (stop) {
-      return renderStopCard({
+      const cardProps = {
         lang,
         dark: isDark(state.theme),
         stop,
         fan: state.fan,
         details: state.details,
         ...(state.highlight ? { highlight: state.highlight } : {}),
+        far: farView(),
         onHighlight: setHighlight,
+        onToggleView: toggleView,
         onClose: () => selectStop(undefined),
-      });
+      };
+      return [renderStopCard(cardProps), renderRouteLink(cardProps)];
     }
-    if (!boardMap?.instance) return false;
-    const zoomedOut = state.zoom < 13;
-    return h('p', { class: 'board-hint', text: t(lang, zoomedOut ? 'boardZoomHint' : 'boardPickHint') });
+    if (!boardMap?.instance) return [];
+    if (stopsHidden(state.zoom)) return [renderZoomHint(lang, state.zoom)];
+    return [h('p', { class: 'board-hint', text: t(lang, 'boardPickHint') })];
   }
 
   async function showMap(): Promise<void> {
@@ -213,7 +257,7 @@ export function createApp(root: HTMLElement): void {
     try {
       boardMap.instance = createBoardMap(boardMap.canvas, mapProps());
       // The hint waits for the map.
-      replaceChildren(boardMap.overlay, renderOverlay());
+      refreshOverlay();
     } catch (error: unknown) {
       // MapLibre throws when it cannot get a WebGL2 context; nothing to retry.
       console.warn('map unavailable', error);
@@ -232,17 +276,32 @@ export function createApp(root: HTMLElement): void {
       ...(stop ? { selected: stop } : {}),
       legs: state.fan.kind === 'ready' ? state.fan.legs : [],
       ...(state.highlight ? { highlight: state.highlight } : {}),
-      fitRequest: state.fit,
+      ...(state.view ? { view: state.view } : {}),
       insetBottom: boardMap?.overlay.offsetHeight ?? 0,
+      labels: state.labels,
       onSelect: selectStop,
       onHighlight: setHighlight,
+      onToggleLabels: () => {
+        state.labels = !state.labels;
+        saveBoardLabels(state.labels);
+        render();
+      },
       onZoom: (zoom) => {
-        const wasOut = state.zoom < 13;
+        const wasHidden = stopsHidden(state.zoom);
         state.zoom = zoom;
+        if (zoomReadout) zoomReadout.textContent = `z ${zoom.toFixed(2)}`;
         // Only the hint depends on the zoom; the whole page need not re-render per frame.
-        if (wasOut !== zoom < 13 && boardMap) replaceChildren(boardMap.overlay, renderOverlay());
+        if (selectedStop()) return;
+        if (wasHidden !== stopsHidden(zoom)) refreshOverlay();
+        else if (wasHidden) updateZoomLine();
       },
     };
+  }
+
+  /** The hint's zoom figure follows every zoom frame without rebuilding the hint. */
+  function updateZoomLine(): void {
+    const line = boardMap?.overlay.querySelector('.board-hint-zoom');
+    if (line) line.textContent = zoomLine(state.lang, state.zoom);
   }
 
   function disposeMap(): void {
@@ -273,6 +332,8 @@ export function createApp(root: HTMLElement): void {
     else delete state.selectedId;
     if (changed) {
       delete state.highlight;
+      // A stop restored from history may be anywhere; bring it into view, as a tap would not.
+      if (next.stop) requestView({ kind: 'stop' });
       void loadFan();
     }
     render();

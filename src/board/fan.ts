@@ -7,6 +7,7 @@
 
 import { bearingDegrees, nearestShapeIndex, pointAlong, type LonLat } from '../lib/geometry.ts';
 import type { BoardStop, RouteDetail, RouteSummary } from '../lib/types.ts';
+import { oklchToHex } from './colour.ts';
 
 export interface FanLeg {
   routeId: string;
@@ -55,7 +56,21 @@ function colourLegs(legs: Omit<FanLeg, 'hue'>[]): FanLeg[] {
     .sort((a, b) => a.bearing - b.bearing);
 }
 
-/** CSS colour for a hue: light enough to sit on the dark basemap, deep enough for the light one. */
+/**
+ * A line colour for a hue, one set per basemap: on the dark map, lighter and
+ * softer so the lines glow rather than blare; on the light map, deeper and
+ * fuller so they hold their own against white streets. Equal lightness
+ * across the wheel (OKLCH), so no hue shouts over its neighbours.
+ */
 export function legColour(hue: number, dark: boolean): string {
-  return dark ? `hsl(${hue.toFixed(0)} 85% 65%)` : `hsl(${hue.toFixed(0)} 80% 42%)`;
+  return dark ? oklchToHex({ l: 0.76, c: 0.12, h: hue }) : oklchToHex({ l: 0.52, c: 0.17, h: hue });
+}
+
+/**
+ * The same hue knocked back for a leg not singled out: opaque (translucent
+ * colours would blend where twenty overlap), pulled towards the basemap in
+ * lightness, a trace of chroma left so it still reads as a line, not a road.
+ */
+export function fadedLegColour(hue: number, dark: boolean): string {
+  return dark ? oklchToHex({ l: 0.54, c: 0.07, h: hue }) : oklchToHex({ l: 0.7, c: 0.08, h: hue });
 }

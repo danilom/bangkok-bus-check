@@ -14,7 +14,7 @@ import { Protocol } from 'pmtiles';
 
 import 'maplibre-gl/dist/maplibre-gl.css';
 
-import { t, type Lang } from '../lib/i18n.ts';
+import { t, type Lang, type StringKey } from '../lib/i18n.ts';
 import type { Position } from '../lib/location.ts';
 
 export interface BaseMapProps {
@@ -108,15 +108,23 @@ export function boundsOf(coordinates: readonly [number, number][]): LngLatBounds
   return [[minLon, minLat], [maxLon, maxLat]];
 }
 
+/** What the button's tooltip calls the labels; Bus Check's stop names by default. */
+export interface LabelsWording {
+  hide: StringKey;
+  show: StringKey;
+}
+
 /** A map button under the zoom buttons that shows or hides the labels. */
 export class LabelsControl implements IControl {
   private button: HTMLButtonElement | undefined;
   private readonly current: () => { labels: boolean; lang: Lang };
   private readonly onToggle: () => void;
+  private readonly wording: LabelsWording;
 
-  constructor(current: () => { labels: boolean; lang: Lang }, onToggle: () => void) {
+  constructor(current: () => { labels: boolean; lang: Lang }, onToggle: () => void, wording: LabelsWording = { hide: 'mapLabelsHide', show: 'mapLabelsShow' }) {
     this.current = current;
     this.onToggle = onToggle;
+    this.wording = wording;
   }
 
   onAdd(): HTMLElement {
@@ -141,8 +149,9 @@ export class LabelsControl implements IControl {
     const { labels, lang } = this.current();
     this.button.textContent = 'Aa';
     this.button.classList.toggle('is-off', !labels);
-    this.button.setAttribute('aria-label', t(lang, labels ? 'mapLabelsHide' : 'mapLabelsShow'));
-    this.button.title = t(lang, labels ? 'mapLabelsHide' : 'mapLabelsShow');
+    const label = t(lang, labels ? this.wording.hide : this.wording.show);
+    this.button.setAttribute('aria-label', label);
+    this.button.title = label;
   }
 }
 

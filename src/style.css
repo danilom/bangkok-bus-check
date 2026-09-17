@@ -16,6 +16,8 @@
   /* Map controls: MapLibre's icons are black; inverted on dark. */
   --map-icon-invert: 0;
   --map-control-border: #bdbdbd;
+  /* An offset-free glow that lifts a floating card off the basemap: the page background at the edge (the tight ring) fading out (the wide one). */
+  --map-glow: 0 0 2px 1px rgba(242, 242, 242, 0.9), 0 0 12px 3px rgba(242, 242, 242, 0.6);
   --warning: #fff59d;
   --footer: #9e9e9e;
   --accent: var(--accent-l);
@@ -101,6 +103,7 @@
   --chip: #2e2e2e;
   --map-icon-invert: 1;
   --map-control-border: #5a5a5a;
+  --map-glow: 0 0 2px 1px #000000, 0 0 12px 3px rgba(0, 0, 0, 0.85);
   --warning: #4d4300;
   --footer: #616161;
   --accent: var(--accent-d);
@@ -118,6 +121,7 @@
     --chip: #2e2e2e;
     --map-icon-invert: 1;
     --map-control-border: #5a5a5a;
+    --map-glow: 0 0 2px 1px #000000, 0 0 12px 3px rgba(0, 0, 0, 0.85);
     --warning: #4d4300;
     --footer: #616161;
     --accent: var(--accent-d);
@@ -1342,7 +1346,8 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0 12px calc(12px + env(safe-area-inset-bottom));
+  /* 8px sides: the card's edge lines up with the route pill, which must reach past the attribution control. */
+  padding: 0 8px calc(12px + env(safe-area-inset-bottom));
   pointer-events: none;
 }
 
@@ -1350,21 +1355,57 @@ body {
   pointer-events: auto;
 }
 
+.board-overlay.is-top {
+  top: 0;
+  bottom: auto;
+  padding: 12px 12px 0;
+}
+
+/* Test aid (?test=…): the map's zoom, top left, where neither the card nor the controls go. */
+.board-zoom-readout {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  z-index: 4;
+  margin: 0;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+/* The hint borrows the look of a selected direction half in Bus Check: accent on the soft accent, bordered. */
 .board-hint {
   margin: 0;
-  padding: 8px 16px;
-  border-radius: 999px;
-  background: var(--surface);
+  padding: 10px 18px;
   border: 1px solid var(--border);
-  color: var(--muted);
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.board-hint-zoom {
+  font-weight: 400;
   font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .board-card {
   width: 100%;
   max-width: 480px;
   box-sizing: border-box;
-  background: var(--surface);
+  /* The page background, not a card's: the buttons on it are the cards. */
+  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 12px 14px;
@@ -1373,6 +1414,11 @@ body {
   gap: 10px;
   max-height: 40%;
   overflow-y: auto;
+}
+
+/* Without the route pill below it, the card is the lowest thing: it drops the same 4px, so the attribution control does not peek out under it. */
+.board-card:last-child {
+  margin-bottom: -4px;
 }
 
 .board-card-head {
@@ -1397,10 +1443,24 @@ body {
   font-size: 0.85rem;
 }
 
-.board-card-close {
+/* The card's buttons (zoom, close), like Bus Check's Map button (accent outline, filled like a card against the page background) at the route chips' size. */
+.board-card-button {
   flex: none;
-  width: 36px;
-  height: 36px;
+  font-size: 0.9rem;
+  min-height: 30px;
+  /* A touch more below than above: the system fonts set their glyphs low in the line box. */
+  padding: 1px 12px 3px;
+  border-color: var(--accent);
+  background: var(--surface);
+  white-space: nowrap;
+}
+
+/* The × is one glyph; a round button of the same height. */
+.board-card-close {
+  width: 30px;
+  padding: 0 0 4px;
+  font-size: 1.1rem;
+  line-height: 1;
 }
 
 .board-chips {
@@ -1414,7 +1474,8 @@ body {
   font-weight: 600;
   font-size: 0.9rem;
   min-height: 30px;
-  padding: 2px 10px;
+  /* A touch more below than above, as on the card's buttons: the system fonts set their glyphs low. */
+  padding: 1px 10px 3px;
 }
 
 .fan-chip.is-selected,
@@ -1424,16 +1485,68 @@ body {
   color: var(--surface);
 }
 
-.board-highlight {
+/*
+ * The singled-out route: Bus Check's title (number, destination) as one
+ * short pill that is the link to its page there, floating under the card
+ * at its right edge.
+ */
+.board-route-row {
+  width: 100%;
+  max-width: 480px;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  justify-content: flex-end;
+  /* A little below the overlay's edge: the attribution control (10px in from the map's corner) is fully behind the pill, not peeking out. */
+  margin: 6px 0 -4px;
 }
 
-.board-highlight-to {
-  margin: 0;
+.board-route {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  /* At least the attribution's width (203px) plus the 1px it starts further in, so a short route name still covers it. */
+  min-width: 216px;
+  /* A hair in from the card's edge: the glow would otherwise make it look as if it stuck out. */
+  margin-right: 2px;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 3px 12px 5px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  /* The card's own border is too faint against the pale basemap; a glow lifts the pill off it without hardening its edge. */
+  box-shadow: var(--map-glow);
+  border-radius: 12px;
+  color: var(--text);
+  font-size: 0.9rem;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
-.board-open {
-  align-self: flex-start;
+.board-route:active {
+  background: var(--accent-soft);
+}
+
+.board-route-number {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+/* "to Sanam Luang" as in the direction pill, but muted: the number is the pill's subject, the place a note on it. */
+.board-route-to {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--muted);
+}
+
+.board-route-to .dir-to {
+  font-size: inherit;
+}
+
+/* The open-in-new icon at the pill's right end whatever the text's length, sat on the text's midline rather than the baseline. */
+.board-route-open {
+  margin-left: auto;
+  align-self: center;
+  display: inline-flex;
+  color: var(--accent);
 }

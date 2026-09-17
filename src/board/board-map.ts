@@ -5,12 +5,13 @@
  */
 
 import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
-import { GeoJSONSource, type Map as MapLibreMap } from 'maplibre-gl';
+import { GeoJSONSource, type ExpressionSpecification, type Map as MapLibreMap } from 'maplibre-gl';
 
 import { localize, type Lang } from '../lib/i18n.ts';
 import type { BoardStop } from '../lib/types.ts';
-import { addLabelBoxImage, basemapStyle, boundsOf, createBaseMap, FONT_MEDIUM, pointerOver } from '../ui/base-map.ts';
-import { legColour, type FanLeg } from './fan.ts';
+import { addLabelBoxImage, basemapStyle, boundsOf, createBaseMap, FONT_MEDIUM, LabelsControl, pointerOver, setLayersVisible } from '../ui/base-map.ts';
+import { fadedLegColour, legColour, type FanLeg } from './fan.ts';
+import { STOPS_MINZOOM } from './zoom-hint.ts';
 
 export interface BoardMapProps {
   lang: Lang;
@@ -22,14 +23,25 @@ export interface BoardMapProps {
   legs: readonly FanLeg[];
   /** A route singled out from the card: its legs at full strength, the others faded. */
   highlight?: string;
-  /** Changes when the app wants the fan fitted into view; the value itself means nothing. */
-  fitRequest: number;
+  /** The "Aa" button's state: the route numbers along the lines (more may follow). */
+  labels: boolean;
+  /** The latest move the app asked for; acted on once, when `seq` changes. Taps never move the map. */
+  view?: ViewRequest;
   /** Height of whatever floats over the map's bottom edge (the card), kept clear when fitting. */
   insetBottom: number;
   onSelect: (stop: BoardStop | undefined) => void;
   onHighlight: (routeId: string | undefined) => void;
+  onToggleLabels: () => void;
   onZoom: (zoom: number) => void;
 }
+
+/**
+ * A requested move: the whole fan fitted into view, one route's legs, or
+ * back to the stop at street zoom. `seq` tells a new request from a re-render
+ * of the old one.
+ */
+export type ViewMove = { kind: 'fan' } | { kind: 'route'; routeId: string } | { kind: 'stop' };
+export type ViewRequest = ViewMove & { seq: number };
 
 export interface BoardMap {
   update(props: BoardMapProps): void;
@@ -39,43 +51,67 @@ export interface BoardMap {
 const STOPS_SOURCE = 'board-stops';
 const FAN_SOURCE = 'board-fan';
 const LABEL_BOX_SELECTED = 'board-label-selected';
-/** Dots at neighbourhood zoom and up: 6.7k of them citywide are noise below that. */
-export const STOPS_MINZOOM = 13;
 const STOP_LAYERS = ['board-stops', 'board-selected'];
-const FAN_LAYERS = ['board-fan-line'];
+const FAN_LAYERS = ['board-fan-line', 'board-fan-faded'];
+/** What the "Aa" button hides. */
+const LABEL_LAYERS = ['board-fan-labels'];
 const BANGKOK: [number, number] = [100.53, 13.75];
+
+/**
+ * A line width in pixels that grows from `street` at zoom 14 to `close` at
+ * zoom 17 and on to nearly twice that at zoom 20: a 4px line is thread-thin
+ * among the buildings, and the roads keep widening the further in you go.
+ */
+function lineWidth(street: number, close: number): ExpressionSpecification {
+  return ['interpolate', ['linear'], ['zoom'], 14, street, 17, close, 20, close * 1.8];
+}
 
 export function createBoardMap(container: HTMLElement, initial: BoardMapProps): BoardMap {
   let props = initial;
   const map = createBaseMap(container, props);
   map.jumpTo({ center: props.selected ? [props.selected.lon, props.selected.lat] : BANGKOK, zoom: props.selected ? 14.5 : 12 });
   map.on('zoom', () => props.onZoom(map.getZoom()));
+  const labelsControl = new LabelsControl(() => props, () => props.onToggleLabels(), { hide: 'boardLabelsHide', show: 'boardLabelsShow' });
+  map.addControl(labelsControl, 'top-right');
+  // The hint shows the zoom before the style has loaded, so it is reported now, not only on 'load'.
+  props.onZoom(map.getZoom());
   wireTaps(map, () => props);
   let loaded = false;
+  let viewSeq = 0;
   map.on('load', () => {
     loaded = true;
     addLayers(map, props);
-    // A fan that arrived while the style was loading is fitted now.
-    if (props.legs.length > 0) fitToFan(map, props);
-    props.onZoom(map.getZoom());
+    setLayersVisible(map, LABEL_LAYERS, props.labels);
+    // A move asked for while the style was loading is made now.
+    applyView();
   });
+
+  function applyView(): void {
+    if (!props.view || props.view.seq === viewSeq) return;
+    viewSeq = props.view.seq;
+    moveTo(map, props, props.view);
+  }
 
   return {
     update(next) {
       const restyle = next.dark !== props.dark || next.lang !== props.lang;
-      // A new fan (a new array, not a re-render of the same one) is fitted into view; a highlight keeps the array.
-      const refit = next.fitRequest !== props.fitRequest || (next.legs !== props.legs && next.legs.length > 0);
       // 6.7k stop features are rebuilt only when they would differ; the fan is small and always is.
       const stopsChanged = next.stops !== props.stops || next.selected?.id !== props.selected?.id;
       props = next;
+      // The button reflects the preference even while the style is still loading.
+      labelsControl.refresh();
       if (!loaded) return;
       if (restyle) {
         map.setStyle(basemapStyle(props));
-        map.once('style.load', () => addLayers(map, props));
+        map.once('style.load', () => {
+          addLayers(map, props);
+          setLayersVisible(map, LABEL_LAYERS, props.labels);
+        });
         return;
       }
       setData(map, props, stopsChanged);
-      if (refit) fitToFan(map, props);
+      setLayersVisible(map, LABEL_LAYERS, props.labels);
+      applyView();
     },
     destroy() {
       map.remove();
@@ -99,6 +135,7 @@ function fanFeatures(props: BoardMapProps): FeatureCollection<LineString> {
       id: leg.routeId,
       number: leg.route.number,
       colour: legColour(leg.hue, props.dark),
+      fadedColour: fadedLegColour(leg.hue, props.dark),
       faded: props.highlight !== undefined && props.highlight !== leg.routeId,
     },
     geometry: { type: 'LineString', coordinates: leg.coordinates },
@@ -111,19 +148,39 @@ function addLayers(map: MapLibreMap, props: BoardMapProps): void {
   addLabelBoxImage(map, LABEL_BOX_SELECTED, props.dark, props.accent, undefined, 2.5);
   map.addSource(FAN_SOURCE, { type: 'geojson', data: fanFeatures(props) });
   map.addSource(STOPS_SOURCE, { type: 'geojson', data: stopFeatures(props) });
+  // Faded legs first, so the singled-out route's casing sits over them: their own knocked-back colours,
+  // opaque, with a thin casing of their own so they float over the roads as drawn lines do.
+  map.addLayer({
+    id: 'board-fan-faded-casing',
+    type: 'line',
+    source: FAN_SOURCE,
+    filter: ['get', 'faded'],
+    layout: { 'line-cap': 'round', 'line-join': 'round' },
+    paint: { 'line-color': surface, 'line-width': lineWidth(5, 9), 'line-opacity': 0.7 },
+  });
+  map.addLayer({
+    id: 'board-fan-faded',
+    type: 'line',
+    source: FAN_SOURCE,
+    filter: ['get', 'faded'],
+    layout: { 'line-cap': 'round', 'line-join': 'round' },
+    paint: { 'line-color': ['get', 'fadedColour'], 'line-width': lineWidth(3, 5.5) },
+  });
   map.addLayer({
     id: 'board-fan-casing',
     type: 'line',
     source: FAN_SOURCE,
+    filter: ['!', ['get', 'faded']],
     layout: { 'line-cap': 'round', 'line-join': 'round' },
-    paint: { 'line-color': surface, 'line-width': 7, 'line-opacity': ['case', ['get', 'faded'], 0.2, 0.8] },
+    paint: { 'line-color': surface, 'line-width': lineWidth(7, 12), 'line-opacity': 0.8 },
   });
   map.addLayer({
     id: 'board-fan-line',
     type: 'line',
     source: FAN_SOURCE,
+    filter: ['!', ['get', 'faded']],
     layout: { 'line-cap': 'round', 'line-join': 'round' },
-    paint: { 'line-color': ['get', 'colour'], 'line-width': 4, 'line-opacity': ['case', ['get', 'faded'], 0.25, 1] },
+    paint: { 'line-color': ['get', 'colour'], 'line-width': lineWidth(4, 7) },
   });
   map.addLayer({
     id: 'board-stops',
@@ -230,9 +287,21 @@ function pad(point: { x: number; y: number }, by: number): [[number, number], [n
   return [[point.x - by, point.y - by], [point.x + by, point.y + by]];
 }
 
-/** Fits the whole fan, the stop included, without leaving street zoom behind entirely. */
-function fitToFan(map: MapLibreMap, props: BoardMapProps): void {
-  const coordinates = props.legs.flatMap((leg) => leg.coordinates);
+/** Street zoom at the stop: the block around it, the legs' first stretch heading off. */
+const STOP_ZOOM = 15;
+
+function moveTo(map: MapLibreMap, props: BoardMapProps, view: ViewMove): void {
+  if (view.kind === 'stop') {
+    if (props.selected) map.easeTo({ center: [props.selected.lon, props.selected.lat], zoom: STOP_ZOOM, duration: 300 });
+    return;
+  }
+  const legs = view.kind === 'route' ? props.legs.filter((leg) => leg.routeId === view.routeId) : props.legs;
+  fitLegs(map, props, legs);
+}
+
+/** Fits the legs and the stop into view, the card kept clear, without leaving street zoom behind entirely. */
+function fitLegs(map: MapLibreMap, props: BoardMapProps, legs: readonly FanLeg[]): void {
+  const coordinates = legs.flatMap((leg) => leg.coordinates);
   if (props.selected) coordinates.push([props.selected.lon, props.selected.lat]);
   const bounds = boundsOf(coordinates);
   if (!bounds) return;

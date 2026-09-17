@@ -18,6 +18,7 @@ const SIMULATED_LOCATION_KEY = 'bbc.simulatedLocation';
 const THEME_KEY = 'bbc.theme';
 const FRONT_SIGN_KEY = 'bbc.frontSign';
 const MAP_LABELS_KEY = 'bbc.mapLabels';
+const BOARD_LABELS_KEY = 'bbc.boardLabels';
 const VANS_KEY = 'bbc.vans';
 const ACCENT_KEY = 'bbc.accent';
 const RECENT_KEY = 'bbc.recent';
@@ -78,6 +79,15 @@ export function loadMapLabels(): boolean {
 
 export function saveMapLabels(shown: boolean): void {
   write(MAP_LABELS_KEY, shown ? 'on' : 'off');
+}
+
+/** The board's labels (route numbers along the lines, for now): its own switch, as they are not the stop names. */
+export function loadBoardLabels(): boolean {
+  return read(BOARD_LABELS_KEY) !== 'off';
+}
+
+export function saveBoardLabels(shown: boolean): void {
+  write(BOARD_LABELS_KEY, shown ? 'on' : 'off');
 }
 
 /** The "Front sign (Thai)" panel on route pages: open unless closed once. */
