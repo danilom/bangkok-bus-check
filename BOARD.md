@@ -59,6 +59,22 @@ in `src/lib/i18n.ts` (`boardName`, `boardTagline`, `boardBlurb`), the folder
   is possible later.
 - **Reliability tiers** (below): `confirmed` + `official` drawn by default.
 
+## Bundles (branch `bundles`)
+
+Overlapping lines were a pile where one colour won. On this branch the fan
+is drawn as bundles (`src/board/bundle.ts`): each leg is cut into hops
+(stop to next stop, the stop projected onto the simplified shape); hops with
+the same stop pair are one bundle on the first member's geometry; a bundle's
+members are ordered left to right by where they part (a leg turning left
+sits on the left, recursively from the stop out), and the map offsets each
+strand by its slot (`line-offset`, a zoom-dependent step). A bundle is never
+wider than a ribbon cap per zoom, so twenty routes on one avenue are a
+striped ribbon, not a motorway. Labels and the fits still use the whole
+legs. Known gaps: express legs that skip stops form their own hops (not
+matched into the locals' bundles); strands jog where a bundle's membership
+changes; loops are walked forward only; the strands start with a cut edge
+at the stop.
+
 ## Data reliability
 
 Rule in `scripts/reliability.ts`; judged with `bbc reliability`. Only the
