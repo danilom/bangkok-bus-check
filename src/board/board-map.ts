@@ -141,12 +141,13 @@ function addLayers(map: MapLibreMap, props: BoardMapProps): void {
       'circle-stroke-opacity': props.selected ? 0.45 : 0.9,
     },
   });
+  // The selected stop is grey: the fan is the rainbow, and the dot should belong to none of its colours.
   map.addLayer({
     id: 'board-selected',
     type: 'circle',
     source: STOPS_SOURCE,
     filter: ['get', 'selected'],
-    paint: { 'circle-radius': 8, 'circle-color': props.accent, 'circle-stroke-color': surface, 'circle-stroke-width': 2.5 },
+    paint: { 'circle-radius': 8, 'circle-color': props.dark ? '#bdbdbd' : '#616161', 'circle-stroke-color': surface, 'circle-stroke-width': 2.5 },
   });
   map.addLayer({
     id: 'board-fan-labels',
