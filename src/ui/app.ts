@@ -503,6 +503,7 @@ export function createApp(root: HTMLElement): void {
           saveFrontSignOpen(open);
         },
         onMap: openMap,
+        ...(nearForRoute(openRouteSummary.id)),
       });
     }
     return state.query.trim() ? renderResults(index) : renderRecent();
@@ -541,6 +542,13 @@ export function createApp(root: HTMLElement): void {
     if (status.kind !== 'ready') return undefined;
     const meters = nearestRouteStop(status.detail, position);
     return meters !== undefined && meters <= NEAR_ROUTE_METERS ? meters : undefined;
+  }
+
+  /** The route page's card shows the same distance as the results card would. */
+  function nearForRoute(routeId: string): { nearMeters?: number } {
+    if (!state.locationEnabled || state.location.kind !== 'ready') return {};
+    const meters = nearMeters(routeId, state.location.position);
+    return meters === undefined ? {} : { nearMeters: meters };
   }
 
   function renderRecent(): HTMLElement {

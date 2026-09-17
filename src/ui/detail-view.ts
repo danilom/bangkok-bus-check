@@ -43,6 +43,8 @@ export interface DetailViewProps {
   onFrontSignToggle: (open: boolean) => void;
   /** Opens the map; with a stop id, centred on that stop. */
   onMap: (stopId?: string) => void;
+  /** Metres to the route's nearest stop, as on the results card; the same card on both pages. */
+  nearMeters?: number;
 }
 
 /** A hidden stretch is a fixed row of dots; the count is in the row's title only. */
@@ -61,7 +63,7 @@ export function renderDetailView(props: DetailViewProps): HTMLElement {
 function renderHeader(props: DetailViewProps): HTMLElement {
   const { lang, route, side } = props;
   const header = h('header', { class: 'detail-header', on: { click: (event) => props.onSelectSide(sideAt(event, header)) } }, [
-    renderNumber(lang, route),
+    renderNumber(lang, route, undefined, props.nearMeters),
     renderLoopLine(lang, route),
     renderDirectionPill({ lang, route, selected: side, onSelect: props.onSelectSide }),
     renderMeta(lang, route, true),
