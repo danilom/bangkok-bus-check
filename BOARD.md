@@ -38,7 +38,7 @@ in `src/lib/i18n.ts` (`boardName`, `boardTagline`, `boardBlurb`), the folder
 - **Per stop, not per road.** A stop is one kerb; the twin across the road is
   a later refinement (no pairing rule exists yet).
 - **Stops shown from about zoom 13**, with a hint to zoom in below that.
-- **Hash `#s<stopId>`** with Bus Check's stop ids, so a jump between the apps
+- **Hash `#<stopId>`** (`#s2369`) with Bus Check's stop ids, so a jump between the apps
   is possible later.
 - **Reliability tiers** (below): `confirmed` + `official` drawn by default.
 
@@ -86,10 +86,19 @@ badge; that is the "curated shared data" idea, alongside the landmark rules.
 4. [x] Base-map extraction: `src/ui/base-map.ts` (protocol, style,
        controls, theme, label images, popups) so the board can add its own
        layers; no visible change to Bus Check — re-verify its map
-5. [ ] Board: map + stop dots + selection + hash
-6. [ ] The fan: fetch, slice at the stop, bearing-sort, colour, number labels
-7. [ ] Card at the bottom: stop name, route chips in the line colours, chip
-       → Bus Check route page (new tab)
+5. [x] Board: map + stop dots + selection + hash (`src/board/app.ts`,
+       `board-map.ts`)
+6. [x] The fan: fetch, slice at the stop, bearing-sort, colour, number labels
+       (`src/board/fan.ts`, tested in `tests/fan.test.ts`)
+7. [x] Card at the bottom: stop name, route chips in the line colours; a chip
+       (or a tap on a line) singles the route out — others fade — and shows
+       its destination and an "Open in Bus Check ↗" link (`src/board/card.ts`)
+
+First working version 2026-09-17. Not yet judged on a phone. Known rough
+edges: the fitted overview of a busy stop (30 routes, some 40 km long) is
+citywide and the stop itself is small in it; the card takes ~40% of a
+phone screen; loops and termini draw the whole run; the map's attribution
+control hides behind the card.
 
 Later, if it earns it: focus on the user's location; twin stops across the
 road; incoming vs outgoing look for loops and termini; landmarks as labels;

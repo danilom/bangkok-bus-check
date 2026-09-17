@@ -1,0 +1,61 @@
+/**
+ * The fan: for a stop, each drawable route's leg from the stop onward, with
+ * a colour. Legs are sorted by the bearing of their first stretch and hues
+ * handed out around the wheel in that order, so routes leaving the same way
+ * get neighbouring colours and the whole reads as a rainbow.
+ */
+
+import { bearingDegrees, nearestShapeIndex, pointAlong, type LonLat } from '../lib/geometry.ts';
+import type { BoardStop, RouteDetail, RouteSummary } from '../lib/types.ts';
+
+export interface FanLeg {
+  routeId: string;
+  route: RouteSummary;
+  /** Index into `RouteDetail.directions` of the run this leg follows. */
+  directionIndex: number;
+  /** The run's shape from the stop to the end of the run. */
+  coordinates: LonLat[];
+  /** Compass bearing of the leg's first stretch, for the ordering. */
+  bearing: number;
+  /** Hue on the colour wheel, 0–360; all of a route's legs share it. */
+  hue: number;
+}
+
+/** How far along a leg its direction is judged: past the first corner, short of the first real turn. */
+const BEARING_METERS = 500;
+
+export function fanLegs(stop: BoardStop, routes: readonly RouteSummary[], details: ReadonlyMap<string, RouteDetail>): FanLeg[] {
+  const legs: Omit<FanLeg, 'hue'>[] = [];
+  for (const routeId of stop.routes) {
+    const route = routes.find((candidate) => candidate.id === routeId);
+    const detail = details.get(routeId);
+    if (!route || !detail) continue;
+    detail.directions.forEach((direction, directionIndex) => {
+      if (direction.variant || !direction.shape || !direction.stops.includes(stop.id)) return;
+      const from = nearestShapeIndex(direction.shape, stop);
+      if (from === undefined) return;
+      const coordinates = direction.shape.slice(from);
+      const start = coordinates[0];
+      const ahead = pointAlong(coordinates, BEARING_METERS);
+      if (!start || !ahead || coordinates.length < 2) return;
+      legs.push({ routeId, route, directionIndex, coordinates, bearing: bearingDegrees(start, ahead) });
+    });
+  }
+  return colourLegs(legs);
+}
+
+/** One hue per route, spaced evenly in the order of each route's first (lowest-bearing) leg. */
+function colourLegs(legs: Omit<FanLeg, 'hue'>[]): FanLeg[] {
+  const firstBearing = new Map<string, number>();
+  for (const leg of legs) firstBearing.set(leg.routeId, Math.min(firstBearing.get(leg.routeId) ?? Infinity, leg.bearing));
+  const order = [...firstBearing.entries()].sort(([, a], [, b]) => a - b).map(([routeId]) => routeId);
+  const hues = new Map(order.map((routeId, index) => [routeId, (index / order.length) * 360]));
+  return legs
+    .map((leg) => ({ ...leg, hue: hues.get(leg.routeId) ?? 0 }))
+    .sort((a, b) => a.bearing - b.bearing);
+}
+
+/** CSS colour for a hue: light enough to sit on the dark basemap, deep enough for the light one. */
+export function legColour(hue: number, dark: boolean): string {
+  return dark ? `hsl(${hue.toFixed(0)} 85% 65%)` : `hsl(${hue.toFixed(0)} 80% 42%)`;
+}

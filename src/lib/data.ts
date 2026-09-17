@@ -1,6 +1,6 @@
 /** Loads the compiled dataset. Shapes are checked at the boundary before use. */
 
-import type { RouteDetail, RouteIndex } from './types.ts';
+import type { BoardStops, RouteDetail, RouteIndex } from './types.ts';
 
 export type LoadResult<T> = { ok: true; value: T } | { ok: false; error: string };
 
@@ -15,6 +15,11 @@ export async function loadIndex(): Promise<LoadResult<RouteIndex>> {
 
 export async function loadDetail(id: string): Promise<LoadResult<RouteDetail>> {
   return fetchJson(`${DATA_BASE}routes/${encodeURIComponent(id)}.json`, isRouteDetail);
+}
+
+/** The board app's stops with the routes serving them. */
+export async function loadBoardStops(): Promise<LoadResult<BoardStops>> {
+  return fetchJson(`${DATA_BASE}board/stops.json`, isBoardStops);
 }
 
 async function fetchJson<T>(url: string, guard: (value: unknown) => value is T): Promise<LoadResult<T>> {
@@ -66,5 +71,14 @@ function isRouteDetail(value: unknown): value is RouteDetail {
     typeof value['id'] === 'string' &&
     Array.isArray(value['directions']) &&
     isRecord(value['stops'])
+  );
+}
+
+function isBoardStops(value: unknown): value is BoardStops {
+  return (
+    isRecord(value) &&
+    typeof value['generatedAt'] === 'string' &&
+    Array.isArray(value['stops']) &&
+    value['stops'].every((stop) => isRecord(stop) && typeof stop['id'] === 'string' && typeof stop['lat'] === 'number' && typeof stop['lon'] === 'number' && Array.isArray(stop['routes']))
   );
 }
