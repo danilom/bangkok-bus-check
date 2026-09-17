@@ -5,7 +5,7 @@
  * get neighbouring colours and the whole reads as a rainbow.
  */
 
-import { bearingDegrees, nearestShapeIndex, pointAlong, type LonLat } from '../lib/geometry.ts';
+import { bearingDegrees, MeterLine, pointAlong, type LonLat } from '../lib/geometry.ts';
 import type { BoardStop, RouteDetail, RouteSummary } from '../lib/types.ts';
 import { oklchToHex } from './colour.ts';
 
@@ -33,9 +33,9 @@ export function fanLegs(stop: BoardStop, routes: readonly RouteSummary[], detail
     if (!route || !detail) continue;
     detail.directions.forEach((direction, directionIndex) => {
       if (direction.variant || !direction.shape || !direction.stops.includes(stop.id)) return;
-      const from = nearestShapeIndex(direction.shape, stop);
-      if (from === undefined) return;
-      const coordinates = direction.shape.slice(from);
+      // The shapes are simplified, so the nearest vertex can be well past the stop: cut at the stop's projection.
+      const line = new MeterLine(direction.shape);
+      const coordinates = line.slice(line.project([stop.lon, stop.lat]).along, line.length);
       const start = coordinates[0];
       const ahead = pointAlong(coordinates, BEARING_METERS);
       if (!start || !ahead || coordinates.length < 2) return;

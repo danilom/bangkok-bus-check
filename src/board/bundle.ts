@@ -7,7 +7,7 @@
  * to get off. The map then offsets each strand by its slot.
  */
 
-import { bearingDegrees, pointAlong, type LonLat } from '../lib/geometry.ts';
+import { bearingDegrees, MeterLine, pointAlong, type LonLat } from '../lib/geometry.ts';
 import type { RouteDetail } from '../lib/types.ts';
 import type { FanLeg } from './fan.ts';
 
@@ -138,72 +138,21 @@ function hopsOf(stopId: string, leg: FanLeg, details: ReadonlyMap<string, RouteD
   if (!detail || !direction) return [];
   const start = direction.stops.indexOf(stopId);
   if (start < 0) return [];
+  const line = new MeterLine(leg.coordinates);
   const hops: Hop[] = [];
-  let cursor: ShapePosition = { segment: 0, t: 0 };
+  let cursor = 0;
   let from = stopId;
   for (const to of direction.stops.slice(start + 1)) {
     const place = detail.stops[to];
     // A stop without a position cannot cut the shape; its hop merges into the next.
     if (place?.lat === undefined || place.lon === undefined) continue;
-    const end = projectOnto(leg.coordinates, [place.lon, place.lat], cursor);
-    if (!end) break;
-    const coordinates = slicePositions(leg.coordinates, cursor, end);
+    const end = line.project([place.lon, place.lat], cursor).along;
+    const coordinates = line.slice(cursor, end);
     if (coordinates.length >= 2) hops.push({ key: `${from}>${to}`, coordinates });
-    cursor = end;
+    cursor = Math.max(cursor, end);
     from = to;
   }
   return hops;
-}
-
-/** A place on a polyline: on segment `segment` (from vertex `segment` to `segment + 1`), `t` of the way along it. */
-interface ShapePosition {
-  segment: number;
-  t: number;
-}
-
-/** The nearest point on the polyline at or after `after`, as a position; undefined for a shape too short to have a segment. */
-function projectOnto(shape: readonly LonLat[], place: LonLat, after: ShapePosition): ShapePosition | undefined {
-  let best: ShapePosition | undefined;
-  let bestMeters = Infinity;
-  for (let segment = after.segment; segment < shape.length - 1; segment += 1) {
-    const a = shape[segment];
-    const b = shape[segment + 1];
-    if (!a || !b) break;
-    const ax = (place[0] - a[0]) * METERS_PER_DEGREE_LON;
-    const ay = (place[1] - a[1]) * METERS_PER_DEGREE_LAT;
-    const bx = (b[0] - a[0]) * METERS_PER_DEGREE_LON;
-    const by = (b[1] - a[1]) * METERS_PER_DEGREE_LAT;
-    const length = bx * bx + by * by;
-    let t = length === 0 ? 0 : (ax * bx + ay * by) / length;
-    t = Math.max(segment === after.segment ? after.t : 0, Math.min(1, t));
-    const meters = Math.hypot(ax - bx * t, ay - by * t);
-    if (meters < bestMeters) {
-      bestMeters = meters;
-      best = { segment, t };
-    }
-  }
-  return best;
-}
-
-function pointAt(shape: readonly LonLat[], position: ShapePosition): LonLat | undefined {
-  const a = shape[position.segment];
-  const b = shape[position.segment + 1] ?? a;
-  if (!a || !b) return undefined;
-  return [a[0] + (b[0] - a[0]) * position.t, a[1] + (b[1] - a[1]) * position.t];
-}
-
-/** The polyline between two positions on it: the start point, the vertices between, the end point. */
-function slicePositions(shape: readonly LonLat[], from: ShapePosition, to: ShapePosition): LonLat[] {
-  const start = pointAt(shape, from);
-  const end = pointAt(shape, to);
-  if (!start || !end) return [];
-  const between = shape.slice(from.segment + 1, to.segment + 1);
-  const points = [start, ...between, end];
-  return points.filter((point, index) => index === 0 || !samePoint(point, points[index - 1]));
-}
-
-function samePoint(a: LonLat, b: LonLat | undefined): boolean {
-  return b !== undefined && Math.abs(a[0] - b[0]) < 1e-9 && Math.abs(a[1] - b[1]) < 1e-9;
 }
 
 /** How far a lone hop may sit from a bundle's line and still be on the same road. */
@@ -234,7 +183,7 @@ function alignHop(hop: Hop, bundles: ReadonlyMap<string, LonLat[]>, own: Readonl
   const matches: { key: string; coordinates: LonLat[]; from: number; to: number }[] = [];
   for (const [key, coordinates] of bundles) {
     if (own.has(key)) continue;
-    const span = line.spanOf(coordinates);
+    const span = line.spanOf(coordinates, ALIGN_METERS);
     if (span) matches.push({ key, coordinates, ...span });
   }
   if (matches.length === 0) return [hop];
@@ -252,99 +201,6 @@ function alignHop(hop: Hop, bundles: ReadonlyMap<string, LonLat[]>, own: Readonl
   const tail = line.slice(cursor, line.length);
   if (tail.length >= 2) hops.push({ key: `${hop.key}~${piece}`, coordinates: tail });
   return hops;
-}
-
-/** Metres per degree of latitude, and of longitude at Bangkok's latitude: near enough for projecting onto a street. */
-const METERS_PER_DEGREE_LAT = 111_320;
-const METERS_PER_DEGREE_LON = 111_320 * Math.cos((13.75 * Math.PI) / 180);
-
-/** A polyline in local metres, with distances along it, for projecting other lines onto it. */
-class MeterLine {
-  private readonly xs: number[];
-  private readonly ys: number[];
-  /** Distance along the line at each vertex. */
-  private readonly along: number[];
-  readonly length: number;
-  private readonly coordinates: readonly LonLat[];
-
-  constructor(coordinates: readonly LonLat[]) {
-    this.coordinates = coordinates;
-    const origin = coordinates[0] ?? [0, 0];
-    this.xs = coordinates.map(([lon]) => (lon - origin[0]) * METERS_PER_DEGREE_LON);
-    this.ys = coordinates.map(([, lat]) => (lat - origin[1]) * METERS_PER_DEGREE_LAT);
-    this.along = [0];
-    for (let i = 1; i < coordinates.length; i += 1) {
-      this.along.push((this.along[i - 1] ?? 0) + Math.hypot((this.xs[i] ?? 0) - (this.xs[i - 1] ?? 0), (this.ys[i] ?? 0) - (this.ys[i - 1] ?? 0)));
-    }
-    this.length = this.along.at(-1) ?? 0;
-  }
-
-  /** Where `point` falls along the line and how far off it is. */
-  project(point: LonLat): { along: number; meters: number } {
-    const origin = this.coordinates[0] ?? [0, 0];
-    const px = (point[0] - origin[0]) * METERS_PER_DEGREE_LON;
-    const py = (point[1] - origin[1]) * METERS_PER_DEGREE_LAT;
-    let best = { along: 0, meters: Infinity };
-    for (let i = 0; i < this.xs.length - 1; i += 1) {
-      const ax = this.xs[i] ?? 0;
-      const ay = this.ys[i] ?? 0;
-      const bx = (this.xs[i + 1] ?? 0) - ax;
-      const by = (this.ys[i + 1] ?? 0) - ay;
-      const length2 = bx * bx + by * by;
-      const t = length2 === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * bx + (py - ay) * by) / length2));
-      const meters = Math.hypot(px - ax - bx * t, py - ay - by * t);
-      if (meters < best.meters) best = { along: (this.along[i] ?? 0) + Math.sqrt(length2) * t, meters };
-    }
-    return best;
-  }
-
-  /**
-   * The stretch of this line that `other` runs along, if it does: every
-   * point of `other` within ALIGN_METERS, in this line's direction, and the
-   * stretch not much shorter than `other` (a line crossing at a point does
-   * not count).
-   */
-  spanOf(other: readonly LonLat[]): { from: number; to: number } | undefined {
-    let previous = -Infinity;
-    let from = Infinity;
-    let to = -Infinity;
-    for (const point of other) {
-      const { along, meters } = this.project(point);
-      if (meters > ALIGN_METERS || along < previous - ALIGN_METERS) return undefined;
-      previous = Math.max(previous, along);
-      from = Math.min(from, along);
-      to = Math.max(to, along);
-    }
-    const otherLength = new MeterLine(other).length;
-    return to - from >= otherLength * 0.6 && to - from > 0 ? { from, to } : undefined;
-  }
-
-  /** The line between two distances along it: the end points interpolated, the vertices between kept. */
-  slice(from: number, to: number): LonLat[] {
-    if (to - from <= 0.5) return [];
-    const points: LonLat[] = [this.pointAt(from)];
-    for (let i = 0; i < this.coordinates.length; i += 1) {
-      const at = this.along[i] ?? 0;
-      const point = this.coordinates[i];
-      if (point && at > from && at < to) points.push(point);
-    }
-    points.push(this.pointAt(to));
-    return points;
-  }
-
-  private pointAt(distance: number): LonLat {
-    for (let i = 1; i < this.coordinates.length; i += 1) {
-      const at = this.along[i] ?? 0;
-      const a = this.coordinates[i - 1];
-      const b = this.coordinates[i];
-      if (at >= distance && a && b) {
-        const before = this.along[i - 1] ?? 0;
-        const t = at === before ? 0 : (distance - before) / (at - before);
-        return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
-      }
-    }
-    return this.coordinates.at(-1) ?? [0, 0];
-  }
 }
 
 /**
