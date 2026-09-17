@@ -9,6 +9,7 @@ import { createTopbar } from '../ui/topbar.ts';
 import { applyTestViewport, testViewport, trackVisibleHeight } from '../ui/viewport.ts';
 import type { BoardMap, BoardMapProps, ViewMove, ViewRequest } from './board-map.ts';
 import { renderRouteLink, renderStopCard, type FanStatus } from './card.ts';
+import { bundleLegs } from './bundle.ts';
 import { fanLegs } from './fan.ts';
 import { formatBoardHash, readBoardHash } from './hash.ts';
 import { renderSettingsView } from './settings-view.ts';
@@ -50,7 +51,7 @@ export function createApp(root: HTMLElement): void {
     settings: initial.settings ?? false,
     labels: loadBoardLabels(),
     ...(initial.stop ? { selectedId: initial.stop } : {}),
-    fan: { kind: 'ready', legs: [] },
+    fan: { kind: 'ready', legs: [], strands: [] },
     details: new Map(),
     zoom: 0,
     fitOnArrival: initial.stop !== undefined,
@@ -131,7 +132,7 @@ export function createApp(root: HTMLElement): void {
   async function loadFan(): Promise<void> {
     const stop = selectedStop();
     if (!stop || !state.routes) {
-      state.fan = { kind: 'ready', legs: [] };
+      state.fan = { kind: 'ready', legs: [], strands: [] };
       return;
     }
     state.fan = { kind: 'loading' };
@@ -146,7 +147,8 @@ export function createApp(root: HTMLElement): void {
     }
     // The selection may have moved on while the files loaded.
     if (selectedStop()?.id !== stop.id) return;
-    state.fan = { kind: 'ready', legs: fanLegs(stop, state.routes, state.details) };
+    const legs = fanLegs(stop, state.routes, state.details);
+    state.fan = { kind: 'ready', legs, strands: bundleLegs(stop.id, legs, state.details) };
     if (state.fitOnArrival) {
       state.fitOnArrival = false;
       requestView({ kind: 'fan' });
@@ -275,6 +277,7 @@ export function createApp(root: HTMLElement): void {
       stops: state.stops ?? [],
       ...(stop ? { selected: stop } : {}),
       legs: state.fan.kind === 'ready' ? state.fan.legs : [],
+      strands: state.fan.kind === 'ready' ? state.fan.strands : [],
       ...(state.highlight ? { highlight: state.highlight } : {}),
       ...(state.view ? { view: state.view } : {}),
       insetBottom: boardMap?.overlay.offsetHeight ?? 0,

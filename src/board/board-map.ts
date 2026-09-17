@@ -10,6 +10,7 @@ import { GeoJSONSource, type ExpressionSpecification, type Map as MapLibreMap } 
 import { localize, type Lang } from '../lib/i18n.ts';
 import type { BoardStop } from '../lib/types.ts';
 import { addLabelBoxImage, basemapStyle, boundsOf, createBaseMap, FONT_MEDIUM, LabelsControl, pointerOver, setLayersVisible } from '../ui/base-map.ts';
+import type { Strand } from './bundle.ts';
 import { fadedLegColour, legColour, type FanLeg } from './fan.ts';
 import { STOPS_MINZOOM } from './zoom-hint.ts';
 
@@ -21,6 +22,8 @@ export interface BoardMapProps {
   stops: readonly BoardStop[];
   selected?: BoardStop;
   legs: readonly FanLeg[];
+  /** The legs cut into bundles: what is drawn. `legs` carry the labels and the fits. */
+  strands: readonly Strand[];
   /** A route singled out from the card: its legs at full strength, the others faded. */
   highlight?: string;
   /** The "Aa" button's state: the route numbers along the lines (more may follow). */
@@ -50,6 +53,7 @@ export interface BoardMap {
 
 const STOPS_SOURCE = 'board-stops';
 const FAN_SOURCE = 'board-fan';
+const STRANDS_SOURCE = 'board-strands';
 const LABEL_BOX_SELECTED = 'board-label-selected';
 const STOP_LAYERS = ['board-stops', 'board-selected'];
 const FAN_LAYERS = ['board-fan-line', 'board-fan-faded'];
@@ -58,12 +62,42 @@ const LABEL_LAYERS = ['board-fan-labels'];
 const BANGKOK: [number, number] = [100.53, 13.75];
 
 /**
- * A line width in pixels that grows from `street` at zoom 14 to `close` at
- * zoom 17 and on to nearly twice that at zoom 20: a 4px line is thread-thin
- * among the buildings, and the roads keep widening the further in you go.
+ * How the strands are drawn at each zoom: `step` is how far apart neighbours
+ * in a bundle sit, `ribbon` the most a whole bundle may span (twenty routes
+ * on one avenue make a ribbon, not a motorway), `width` a lone line's width.
+ * Citywide the step is tiny and the strands all but overlap; at street zoom
+ * the step exceeds the width, so the casing shows between them; close in,
+ * everything grows with the roads.
  */
-function lineWidth(street: number, close: number): ExpressionSpecification {
-  return ['interpolate', ['linear'], ['zoom'], 14, street, 17, close, 20, close * 1.8];
+const STRAND_STEPS: [zoom: number, step: number, ribbon: number, width: number][] = [
+  [10, 1.5, 12, 4],
+  [13, 3, 24, 4],
+  [15, 5.5, 44, 5],
+  [17, 8.5, 68, 7],
+  [20, 15, 120, 12.6],
+];
+
+/** The step a bundle's strands sit apart, at one zoom: the nominal step or the ribbon shared out, whichever is less. */
+function stepAt(step: number, ribbon: number): ExpressionSpecification {
+  return ['min', step, ['/', ribbon, ['max', 1, ['-', ['get', 'count'], 1]]]];
+}
+
+/** `['zoom']` may only feed a top-level interpolate, so the zoom steps are the outer expression and the slot arithmetic each output. */
+const STRAND_OFFSET: ExpressionSpecification = [
+  'interpolate', ['linear'], ['zoom'],
+  ...STRAND_STEPS.flatMap(([zoom, step, ribbon]) => [zoom, ['*', ['-', ['get', 'slot'], ['/', ['-', ['get', 'count'], 1], 2]], stepAt(step, ribbon)] as ExpressionSpecification]),
+];
+
+/**
+ * A strand's width: the nominal width times `scale` (faded lines are
+ * slimmer), but never wider than the step so neighbours stay apart; a casing
+ * is `casing` times the line it backs.
+ */
+function strandWidth(scale: number, casing = 1): ExpressionSpecification {
+  return [
+    'interpolate', ['linear'], ['zoom'],
+    ...STRAND_STEPS.flatMap(([zoom, step, ribbon, width]) => [zoom, ['*', casing, ['min', width * scale, stepAt(step, ribbon)]] as ExpressionSpecification]),
+  ];
 }
 
 export function createBoardMap(container: HTMLElement, initial: BoardMapProps): BoardMap {
@@ -143,44 +177,61 @@ function fanFeatures(props: BoardMapProps): FeatureCollection<LineString> {
   return { type: 'FeatureCollection', features };
 }
 
+function strandFeatures(props: BoardMapProps): FeatureCollection<LineString> {
+  const features = props.strands.map((strand): Feature<LineString> => ({
+    type: 'Feature',
+    properties: {
+      id: strand.leg.routeId,
+      colour: legColour(strand.leg.hue, props.dark),
+      fadedColour: fadedLegColour(strand.leg.hue, props.dark),
+      faded: props.highlight !== undefined && props.highlight !== strand.leg.routeId,
+      slot: strand.slot,
+      count: strand.count,
+    },
+    geometry: { type: 'LineString', coordinates: strand.coordinates },
+  }));
+  return { type: 'FeatureCollection', features };
+}
+
 function addLayers(map: MapLibreMap, props: BoardMapProps): void {
   const surface = props.dark ? '#121212' : '#ffffff';
   addLabelBoxImage(map, LABEL_BOX_SELECTED, props.dark, props.accent, undefined, 2.5);
   map.addSource(FAN_SOURCE, { type: 'geojson', data: fanFeatures(props) });
+  map.addSource(STRANDS_SOURCE, { type: 'geojson', data: strandFeatures(props) });
   map.addSource(STOPS_SOURCE, { type: 'geojson', data: stopFeatures(props) });
   // Faded legs first, so the singled-out route's casing sits over them: their own knocked-back colours,
   // opaque, with a thin casing of their own so they float over the roads as drawn lines do.
   map.addLayer({
     id: 'board-fan-faded-casing',
     type: 'line',
-    source: FAN_SOURCE,
+    source: STRANDS_SOURCE,
     filter: ['get', 'faded'],
-    layout: { 'line-cap': 'round', 'line-join': 'round' },
-    paint: { 'line-color': surface, 'line-width': lineWidth(5, 9), 'line-opacity': 0.7 },
+    layout: { 'line-cap': 'round', 'line-join': 'round', 'line-sort-key': ['get', 'slot'] },
+    paint: { 'line-color': surface, 'line-width': strandWidth(0.75, 5 / 3), 'line-opacity': 0.7, 'line-offset': STRAND_OFFSET },
   });
   map.addLayer({
     id: 'board-fan-faded',
     type: 'line',
-    source: FAN_SOURCE,
+    source: STRANDS_SOURCE,
     filter: ['get', 'faded'],
-    layout: { 'line-cap': 'round', 'line-join': 'round' },
-    paint: { 'line-color': ['get', 'fadedColour'], 'line-width': lineWidth(3, 5.5) },
+    layout: { 'line-cap': 'round', 'line-join': 'round', 'line-sort-key': ['get', 'slot'] },
+    paint: { 'line-color': ['get', 'fadedColour'], 'line-width': strandWidth(0.75), 'line-offset': STRAND_OFFSET },
   });
   map.addLayer({
     id: 'board-fan-casing',
     type: 'line',
-    source: FAN_SOURCE,
+    source: STRANDS_SOURCE,
     filter: ['!', ['get', 'faded']],
-    layout: { 'line-cap': 'round', 'line-join': 'round' },
-    paint: { 'line-color': surface, 'line-width': lineWidth(7, 12), 'line-opacity': 0.8 },
+    layout: { 'line-cap': 'round', 'line-join': 'round', 'line-sort-key': ['get', 'slot'] },
+    paint: { 'line-color': surface, 'line-width': strandWidth(1, 7 / 4), 'line-opacity': 0.8, 'line-offset': STRAND_OFFSET },
   });
   map.addLayer({
     id: 'board-fan-line',
     type: 'line',
-    source: FAN_SOURCE,
+    source: STRANDS_SOURCE,
     filter: ['!', ['get', 'faded']],
-    layout: { 'line-cap': 'round', 'line-join': 'round' },
-    paint: { 'line-color': ['get', 'colour'], 'line-width': lineWidth(4, 7) },
+    layout: { 'line-cap': 'round', 'line-join': 'round', 'line-sort-key': ['get', 'slot'] },
+    paint: { 'line-color': ['get', 'colour'], 'line-width': strandWidth(1), 'line-offset': STRAND_OFFSET },
   });
   map.addLayer({
     id: 'board-stops',
@@ -252,6 +303,8 @@ function addLayers(map: MapLibreMap, props: BoardMapProps): void {
 function setData(map: MapLibreMap, props: BoardMapProps, stopsChanged: boolean): void {
   const fan = map.getSource(FAN_SOURCE);
   if (fan instanceof GeoJSONSource) fan.setData(fanFeatures(props));
+  const strands = map.getSource(STRANDS_SOURCE);
+  if (strands instanceof GeoJSONSource) strands.setData(strandFeatures(props));
   if (!stopsChanged) return;
   const stops = map.getSource(STOPS_SOURCE);
   if (stops instanceof GeoJSONSource) stops.setData(stopFeatures(props));

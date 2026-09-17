@@ -7,7 +7,7 @@
  * to get off. The map then offsets each strand by its slot.
  */
 
-import { bearingDegrees, nearestShapeIndex, pointAlong, type LonLat } from '../lib/geometry.ts';
+import { bearingDegrees, pointAlong, type LonLat } from '../lib/geometry.ts';
 import type { RouteDetail } from '../lib/types.ts';
 import type { FanLeg } from './fan.ts';
 
@@ -66,7 +66,12 @@ interface LegHops {
   hops: Hop[];
 }
 
-/** The leg's run cut at its stops from `stopId` on; the shape is walked forward only, so a loop cannot jump ahead of itself. */
+/**
+ * The leg's run cut at its stops from `stopId` on. The shapes are simplified
+ * for the map, so several stops can fall between two vertices: each stop is
+ * projected onto the polyline and the cut made there. The shape is walked
+ * forward only, so a loop cannot jump ahead of itself.
+ */
 function hopsOf(stopId: string, leg: FanLeg, details: ReadonlyMap<string, RouteDetail>): Hop[] {
   const detail = details.get(leg.routeId);
   const direction = detail?.directions[leg.directionIndex];
@@ -74,21 +79,75 @@ function hopsOf(stopId: string, leg: FanLeg, details: ReadonlyMap<string, RouteD
   const start = direction.stops.indexOf(stopId);
   if (start < 0) return [];
   const hops: Hop[] = [];
-  let cursor = 0;
-  for (let i = start + 1; i < direction.stops.length; i += 1) {
-    const from = direction.stops[i - 1];
-    const to = direction.stops[i];
-    const place = to === undefined ? undefined : detail.stops[to];
+  let cursor: ShapePosition = { segment: 0, t: 0 };
+  let from = stopId;
+  for (const to of direction.stops.slice(start + 1)) {
+    const place = detail.stops[to];
     // A stop without a position cannot cut the shape; its hop merges into the next.
-    if (from === undefined || to === undefined || place?.lat === undefined || place.lon === undefined) continue;
-    const ahead = leg.coordinates.slice(cursor);
-    const found = nearestShapeIndex(ahead, { lat: place.lat, lon: place.lon });
-    if (found === undefined) break;
-    const end = cursor + found;
-    if (end > cursor) hops.push({ key: `${from}>${to}`, coordinates: leg.coordinates.slice(cursor, end + 1) });
+    if (place?.lat === undefined || place.lon === undefined) continue;
+    const end = projectOnto(leg.coordinates, [place.lon, place.lat], cursor);
+    if (!end) break;
+    const coordinates = slicePositions(leg.coordinates, cursor, end);
+    if (coordinates.length >= 2) hops.push({ key: `${from}>${to}`, coordinates });
     cursor = end;
+    from = to;
   }
   return hops;
+}
+
+/** A place on a polyline: on segment `segment` (from vertex `segment` to `segment + 1`), `t` of the way along it. */
+interface ShapePosition {
+  segment: number;
+  t: number;
+}
+
+/** Metres per degree of latitude, and of longitude at Bangkok's latitude: near enough for projecting onto a street. */
+const METERS_PER_DEGREE_LAT = 111_320;
+const METERS_PER_DEGREE_LON = 111_320 * Math.cos((13.75 * Math.PI) / 180);
+
+/** The nearest point on the polyline at or after `after`, as a position; undefined for a shape too short to have a segment. */
+function projectOnto(shape: readonly LonLat[], place: LonLat, after: ShapePosition): ShapePosition | undefined {
+  let best: ShapePosition | undefined;
+  let bestMeters = Infinity;
+  for (let segment = after.segment; segment < shape.length - 1; segment += 1) {
+    const a = shape[segment];
+    const b = shape[segment + 1];
+    if (!a || !b) break;
+    const ax = (place[0] - a[0]) * METERS_PER_DEGREE_LON;
+    const ay = (place[1] - a[1]) * METERS_PER_DEGREE_LAT;
+    const bx = (b[0] - a[0]) * METERS_PER_DEGREE_LON;
+    const by = (b[1] - a[1]) * METERS_PER_DEGREE_LAT;
+    const length = bx * bx + by * by;
+    let t = length === 0 ? 0 : (ax * bx + ay * by) / length;
+    t = Math.max(segment === after.segment ? after.t : 0, Math.min(1, t));
+    const meters = Math.hypot(ax - bx * t, ay - by * t);
+    if (meters < bestMeters) {
+      bestMeters = meters;
+      best = { segment, t };
+    }
+  }
+  return best;
+}
+
+function pointAt(shape: readonly LonLat[], position: ShapePosition): LonLat | undefined {
+  const a = shape[position.segment];
+  const b = shape[position.segment + 1] ?? a;
+  if (!a || !b) return undefined;
+  return [a[0] + (b[0] - a[0]) * position.t, a[1] + (b[1] - a[1]) * position.t];
+}
+
+/** The polyline between two positions on it: the start point, the vertices between, the end point. */
+function slicePositions(shape: readonly LonLat[], from: ShapePosition, to: ShapePosition): LonLat[] {
+  const start = pointAt(shape, from);
+  const end = pointAt(shape, to);
+  if (!start || !end) return [];
+  const between = shape.slice(from.segment + 1, to.segment + 1);
+  const points = [start, ...between, end];
+  return points.filter((point, index) => index === 0 || !samePoint(point, points[index - 1]));
+}
+
+function samePoint(a: LonLat, b: LonLat | undefined): boolean {
+  return b !== undefined && Math.abs(a[0] - b[0]) < 1e-9 && Math.abs(a[1] - b[1]) < 1e-9;
 }
 
 /**

@@ -1,10 +1,11 @@
 import { localize, t, type Lang } from '../lib/i18n.ts';
 import type { BoardStop, RouteDetail } from '../lib/types.ts';
 import { h } from '../ui/dom.ts';
+import type { Strand } from './bundle.ts';
 import { openInNewIcon } from '../ui/icons.ts';
 import { legColour, type FanLeg } from './fan.ts';
 
-export type FanStatus = { kind: 'loading' } | { kind: 'ready'; legs: FanLeg[] };
+export type FanStatus = { kind: 'loading' } | { kind: 'ready'; legs: FanLeg[]; strands: Strand[] };
 
 export interface StopCardProps {
   lang: Lang;
